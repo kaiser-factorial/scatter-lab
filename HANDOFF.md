@@ -1,6 +1,7 @@
 # Scatter Lab — Handoff
 
-**Date:** 2026-08-05 (code-review remediation; build sprint was Aug 1–2, 2026)
+**Date:** 2026-08-11 (scripted walkthrough + pin interactivity; code-review remediation was
+2026-08-05; build sprint was Aug 1–2, 2026)
 **Live:** https://scatter-lab.vercel.app · **Repo:** https://github.com/kaiser-factorial/scatter-lab (public)
 **Deploy:** push to `main` → Vercel auto-builds (project `scatter-lab`, team `factorial-ai`, Root Directory `frontend`, ~35s builds)
 
@@ -28,10 +29,13 @@ The app is one page ([src/app/page.tsx](frontend/src/app/page.tsx)) plus librari
 | `src/lib/stats.ts` | Pearson/Spearman, group comparison + eta², silhouette-by-k, k-distance |
 | `src/lib/workspaces.ts` | Session persistence (IndexedDB `scatter-lab`) + file export/import |
 | `src/lib/assistant.ts` | Assistant client (OpenAI-compatible), tool definitions, tool loop |
+| `src/lib/walkthrough.ts` | The scripted tour as data: steps, bridge actions, handoff greeting |
+| `src/lib/relayout.ts` | Reading Plotly's `plotly_relayout` payload (camera / 2D viewport / reset) |
 | `src/lib/methods.ts` | Curated, cited methods-reference chunks + lexical retrieval |
 | `src/lib/openrouterAuth.ts` | OpenRouter OAuth PKCE (one-click key issuance) |
 | `src/lib/feedback.ts` | Thumbs feedback → IndexedDB buffer → Supabase (insert-only) |
-| `src/components/AssistantPanel.tsx` | Chat UI: dock modes, markdown rendering, feedback UI |
+| `src/components/AssistantPanel.tsx` | Panel: menu / walkthrough / chat, dock modes, markdown, feedback |
+| `src/components/WalkthroughStartDialog.tsx` | Consent gate before the tour runs over loaded data |
 
 Two full visual themes (Bauhaus "primary" / Terminal) via `next-themes`; theme-aware
 plot chrome throughout.
@@ -122,7 +126,7 @@ of one fact drifting apart is what caused A3, and this would have been a fourth.
   sidebar while it runs, with "Quit the walkthrough" beside the disabled control.
 - **The tour never downloads anything**, and that is now a test against a recording bridge
   rather than a line of prose asking the model not to.
-- **Tests** (`walkthrough.test.ts`, 16 cases) prove the graph — every `next` resolves, every
+- **Tests** (`walkthrough.test.ts`, 18 cases) prove the graph — every `next` resolves, every
   step is reachable, it terminates — and run the steps against a recording proxy bridge to
   pin call order (shape only after clustering owns colour; the live view returns to the
   flower measurements after the 2D pin). A renamed step id is a failing test, not a dead end.
@@ -141,14 +145,26 @@ falls back to a plain `loadDemo()` if the dynamically-imported panel has not ass
 beside a right-docked panel are two unreadable slivers — and it points at the dock buttons
 (`data-guide="assistant-dock"`, the first guide target outside the sidebar) so the move is
 explained rather than merely surprising. It does not move back on exit: the bottom dock is
-the better place once a pin exists, and the user has now seen the control. Test-pinned:
-`setAssistantDock('bottom')` must precede `pinView`.
+the better place once a pin exists, and the user has now seen the control. Note that this
+goes through `changeDock`, so it also *persists* to `scatterlab.assistant.dock` — the tour
+changes a saved preference, deliberately. Test-pinned: `setAssistantDock('bottom')` must
+precede `pinView`.
 
 **Highlight scope was a per-theme bug.** `SidebarSection` put `data-guide` on the outer
 `<div>` in the terminal branch but on the *title span* in the Bauhaus branch — so pointing
 at "variables" ringed three words of header on one theme and the whole panel on the other.
 Both anchor the section now. `flashGuide`'s accordion-opening fallback still works, since it
 walks up to `[data-scatter-section]`, which is on the same element.
+
+**Panel chrome while it runs.** Choice buttons sit *above* a disabled composer reading "Use
+buttons above for walkthrough", with **Exit demo** on the end of that row — the row is where
+the eye goes when typing turns out not to work, which is why the way out lives there rather
+than as a link below it. It is an `<input>`, not a `<textarea>`: a textarea wraps its
+placeholder and clips the second line against the one-row height. Each pressed button is
+echoed into the transcript as a user turn and rules off the beat above it; without that the
+whole tour read as one wall of text. A progress counter and the full step list (past struck
+through, current in the theme accent, upcoming plain) render below the transcript, because an
+in-app tour of unknown length is the one people abandon.
 
 **Panel view machine.** `menu | walkthrough | chat`, plus the existing settings toggle. The
 menu is the front door exactly once (`scatterlab.assistant.menuseen`); after that the panel
@@ -377,8 +393,8 @@ unbiased-sample check, held in reserve.
 
 ## Outstanding
 
-1. ~~Unit tests are not in the repo~~ **Done (2026-08-02), extended (2026-08-05):**
-   16 suites / 207 cases in `frontend/src/lib/__tests__/` (vitest). CI
+1. ~~Unit tests are not in the repo~~ **Done (2026-08-02), extended (2026-08-05 and
+   2026-08-11):** 20 suites / 316 cases in `frontend/src/lib/__tests__/` (vitest). CI
    (`.github/workflows/tests.yml`) now runs `vitest`, `tsc --noEmit`, `next build` and a
    lint gate — it used to run vitest alone, so a type error or a broken build reached the
    preview deployment before it reached CI (finding E3).
@@ -446,33 +462,6 @@ unbiased-sample check, held in reserve.
    parameter, but 250–400 lines and no small JS implementation worth trusting).
    Ruled out: spectral (needs an n×n Laplacian eigendecomposition; the Jacobi solver in
    `pca.ts` is O(n³) per sweep and would hang the tab) and affinity propagation.
-13. ~~Pin View blocks the UI; pins cannot be zoomed or panned~~ **Both done (2026-08-11).**
-   Measured before touching anything: pinning cost **1312 ms** from click to paint on the
-   iris demo (259 ms inside the handler, then a 933 ms task) — the reported 296 ms was the
-   handler alone. The work is irreducible (a new pane means a new Plotly WebGL context, and
-   every existing pane resizes into the re-split grid); what was wrong is that it was
-   *urgent*. `pinCurrentView`/`removePin` now wrap their `setPinnedViews` in a
-   **transition**, so the browser paints the click before the pane is built rather than
-   after, and the button reads "Pinning…" while it happens. The pin object is still built
-   synchronously — it reads the live camera off the plot div, which must be its value at
-   click time. Also: `ResizeObserver` fires once the moment it starts observing, so a
-   freshly-mounted pane was resizing itself to the size Plotly had just laid it out at, in
-   the same frame as every real resize; that first callback is skipped now.
-   **Result: 1312 ms → 40 ms, and 696 ms → 16 ms on the second pin.** The long tasks remain
-   (488 ms) but no longer sit between the click and the paint.
-
-   The zoom/pan half had a cause worth remembering: **every pane shared one `onRelayout`
-   that wrote into the LIVE `camera`/`range2d`**, while pinned panes rendered from
-   `view.camera`/`view.range2d`. So dragging a pin rotated the live plot and left the pin
-   where it was — pins looked frozen because interacting with one moved something else.
-   `ViewPlot` now passes its own `view.id` with the event and the handler routes the update
-   to the pane that fired it. Reading the payload moved into `lib/relayout.ts`
-   (`readRelayout`) and is unit-tested: Plotly reports a camera move, a box-zoom, and a
-   double-click reset (`autorange`, sometimes one axis only) through the same event, and a
-   partial range must be dropped rather than half-applied — `{x: [...], y: [undefined,
-   undefined]}` blanks the plot. Browser-verified in both modes: the pin rotates/zooms
-   alone, the live view is untouched, double-click resets only the pane clicked, and a pin
-   holds its new angle across an unrelated live re-render.
 10. **Possible future directions** discussed but not committed: embeddings-based RAG for
    user-supplied papers (only worth it beyond the curated corpus), OpenRouter spend-limit
    note in settings, silhouette/elbow charts in the Cluster section UI.
@@ -530,6 +519,48 @@ unbiased-sample check, held in reserve.
    Verified fine on review: insert-only RLS (`ON CONFLICT DO NOTHING` needs no
    SELECT), the two-row `event_id` pattern with the `distinct on` analysis query,
    and metadata-only rows without consent.
+13. ~~Pin View blocks the UI; pins cannot be zoomed or panned~~ **Both done (2026-08-11).**
+   Measured before touching anything: pinning cost **1312 ms** from click to paint on the
+   iris demo (259 ms inside the handler, then a 933 ms task) — the reported 296 ms was the
+   handler alone. The work is irreducible (a new pane means a new Plotly WebGL context, and
+   every existing pane resizes into the re-split grid); what was wrong is that it was
+   *urgent*. `pinCurrentView`/`removePin` now wrap their `setPinnedViews` in a
+   **transition**, so the browser paints the click before the pane is built rather than
+   after, and the button reads "Pinning…" while it happens. The pin object is still built
+   synchronously — it reads the live camera off the plot div, which must be its value at
+   click time. Also: `ResizeObserver` fires once the moment it starts observing, so a
+   freshly-mounted pane was resizing itself to the size Plotly had just laid it out at, in
+   the same frame as every real resize; that first callback is skipped now.
+   **Result: 1312 ms → 40 ms, and 696 ms → 16 ms on the second pin.** The long tasks remain
+   (488 ms) but no longer sit between the click and the paint.
+
+   The zoom/pan half had a cause worth remembering: **every pane shared one `onRelayout`
+   that wrote into the LIVE `camera`/`range2d`**, while pinned panes rendered from
+   `view.camera`/`view.range2d`. So dragging a pin rotated the live plot and left the pin
+   where it was — pins looked frozen because interacting with one moved something else.
+   `ViewPlot` now passes its own `view.id` with the event and the handler routes the update
+   to the pane that fired it. Reading the payload moved into `lib/relayout.ts`
+   (`readRelayout`) and is unit-tested: Plotly reports a camera move, a box-zoom, and a
+   double-click reset (`autorange`, sometimes one axis only) through the same event, and a
+   partial range must be dropped rather than half-applied — `{x: [...], y: [undefined,
+   undefined]}` blanks the plot. Browser-verified in both modes: the pin rotates/zooms
+   alone, the live view is untouched, double-click resets only the pane clicked, and a pin
+   holds its new angle across an unrelated live re-render.
+14. **Open questions from the walkthrough (2026-08-11), all small, none blocking.**
+   - **The consent dialog fires on a re-run even when the only dataset is the Iris demo.**
+     It cannot tell "the demo you just toured" from "a file you happened to name iris.csv",
+     and `loadDemoData` already treats `name === 'iris'` as the demo for its own
+     idempotence — so suppressing it is a one-line check against that same convention.
+     Left in because showing the warning is the safe direction and Corina had not called it.
+   - **Pinning still produces a ~490 ms long task**, just no longer between the click and
+     the paint. What remains is Plotly building a WebGL context per pane plus the survivors
+     resizing; reducing it means touching how panes are created, not when.
+   - **2D pinned panes take the live `camera` as a layout dependency** (`view.camera ??
+     camera`, and `view.camera` is null in 2D), so dragging the live 3D view invalidates
+     every 2D pin's layout memo and re-plots it. Harmless — the camera is unused in 2D — but
+     it is free re-plotting. Pre-existing; noticed while routing relayout per pane.
+   - **`useMemo` is imported and unused in `AssistantPanel.tsx`**, one of the 123 lint
+     problems the gate now pins.
 
 ## Working on it
 

@@ -66,9 +66,11 @@ are in
   parameter sliders, per-cluster composition breakdowns, and diagnostics
   (silhouette-by-k, k-distance percentiles for eps). Save composition heatmaps
   as PNGs in Viridis, Inferno, or Greens, with a 0–100% colour-scale legend.
-- **Compare views** — pin up to 4 views in a tiled grid; transfer columns
-  (e.g. cluster labels) between datasets by row order or key match, with
-  alignment guards
+- **Compare views** — pin up to 4 views in a tiled grid. A pin keeps the data
+  and framing it was taken with while the live view moves on, but stays fully
+  interactive: rotate, zoom or double-click any pane to reset that pane alone.
+  Transfer columns (e.g. cluster labels) between datasets by row order or key
+  match, with alignment guards
 - **Exports** — PNG, rotating GIF, or a fully self-contained interactive HTML
   file that works offline
 - **Workspaces** — sessions persist locally (IndexedDB) and export/import as
@@ -85,10 +87,13 @@ directly offers the same choice as a menu.
 eight steps, one button at a time, no API key and no network. It drives the real
 workbench as it goes (loads the data, runs the PCA, clusters the scores, pins a
 comparison) and points at each control with a highlight that holds until you move
-on. The composer is disabled while it runs, uploading is paused, and it never
-starts a download. If a dataset of yours is already loaded it says what it is
-about to change and offers to save a workspace first, and the state you had is
-one click away afterwards.
+on. Uploading is paused while it runs and it never starts a download. If a dataset
+of yours is already loaded it says what it is about to change and offers to save a
+workspace first, and the state you had is one click away afterwards.
+
+The message box is disabled throughout — the buttons take you through, **Exit
+demo** sits on the end of that row, and a step list below the transcript shows
+where you are and what is left.
 
 The steps live in `frontend/src/lib/walkthrough.ts` as data, so the tour is the
 same every time and a broken step is a failing test rather than a dead end.
