@@ -507,7 +507,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
       {/* header — in float mode, drag to slide the panel along the bottom */}
       <div
         onPointerDown={dock === 'float' ? beginDrag('move') : undefined}
-        className={`flex items-center justify-between px-3 py-2 flex-shrink-0 select-none ${dock === 'float' ? 'cursor-grab active:cursor-grabbing' : ''} ${headerCls}`}
+        className={`flex items-center justify-between px-3 py-1 flex-shrink-0 select-none ${dock === 'float' ? 'cursor-grab active:cursor-grabbing' : ''} ${headerCls}`}
         title={dock === 'float' ? 'Drag to move' : undefined}
       >
         <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
@@ -528,16 +528,18 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
               <LayoutList className="w-3.5 h-3.5" />
             </button>
           )}
-          {([['right', PanelRight, 'Dock to the right'], ['bottom', PanelBottom, 'Dock to the bottom'], ['float', PictureInPicture2, 'Float (drag anywhere along the bottom)']] as const).map(([m, Icon, label]) => (
-            <button
-              key={m}
-              onClick={() => onDockChange(m)}
-              title={label}
-              className={`p-1 cursor-pointer ${dock === m ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-            </button>
-          ))}
+          <span data-guide="assistant-dock" className="flex items-center">
+            {([['right', PanelRight, 'Dock to the right'], ['bottom', PanelBottom, 'Dock to the bottom'], ['float', PictureInPicture2, 'Float (drag anywhere along the bottom)']] as const).map(([m, Icon, label]) => (
+              <button
+                key={m}
+                onClick={() => onDockChange(m)}
+                title={label}
+                className={`p-1 cursor-pointer ${dock === m ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </button>
+            ))}
+          </span>
           <span className="w-1" />
           {view !== 'walkthrough' && (
             <button onClick={() => { setView('chat'); setShowSettings(s => !s); }} title="Assistant settings" className="p-1 hover:opacity-60 cursor-pointer">
@@ -559,10 +561,12 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
           stepId={wtStepId}
           busy={wtBusy}
           scrollRef={wtScrollRef}
-          inputCls={inputCls}
           onChoose={choice => {
-            if (choice.next) void enterStep(choice.next);
-            else endWalkthrough(choice.then ?? 'exit');
+            if (!choice.next) return endWalkthrough(choice.then ?? 'exit');
+            // Echo the press as a user turn before the next beat arrives, so the
+            // transcript reads as an exchange and each step has a visible start.
+            setWtLog(prev => [...prev, { kind: 'user', text: choice.label }]);
+            void enterStep(choice.next);
           }}
           onSkip={() => endWalkthrough('exit')}
         />
@@ -740,13 +744,12 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
 
 // The walkthrough transcript: the same bubbles and "▸" tool chips the chat uses,
 // driven by buttons instead of typing.
-const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, inputCls, onChoose, onSkip }: {
+const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSkip }: {
   primary: boolean,
   log: ChatEntry[],
   stepId: string,
   busy: boolean,
   scrollRef: React.RefObject<HTMLDivElement | null>,
-  inputCls: string,
   onChoose: (choice: { label: string; next: string | null; then?: 'assistant' | 'exit' }) => void,
   onSkip: () => void,
 }) => {
@@ -757,8 +760,20 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, inputCls, onCh
   return (
     <>
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[120px]">
+        {/* The button you pressed is echoed as your turn, and rules off the beat
+            above it. Without the break the whole tour ran together as one wall
+            of text with no seam between one step and the next. */}
         {log.map((e, i) => (
-          e.kind === 'tool' ? (
+          e.kind === 'user' ? (
+            <div
+              key={i}
+              className={`pt-2.5 mt-2.5 text-xs ${primary
+                ? 'border-t border-[#111111]/15 font-bold'
+                : 'border-t border-[var(--system-green)]/20 text-[var(--system-green)]'}`}
+            >
+              <span className="opacity-50">&gt; </span>{e.text}
+            </div>
+          ) : e.kind === 'tool' ? (
             <div key={i} className={`text-[10px] uppercase tracking-wider ${primary ? 'text-[var(--p-blue)]' : 'text-[var(--system-green)]/70'}`}>
               ▸ {e.text}
             </div>
@@ -810,22 +825,36 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, inputCls, onCh
           ))}
         </div>
 
-        <textarea
-          rows={1}
-          disabled
-          value=""
-          readOnly
-          aria-label="Typing is disabled during the walkthrough"
-          placeholder="Walkthrough — use the buttons above"
-          className={`w-full px-2 py-1.5 text-xs outline-none resize-none leading-snug opacity-40 cursor-not-allowed ${inputCls}`}
-        />
-
-        <button
-          onClick={onSkip}
-          className="w-full text-[10px] underline-offset-2 hover:underline opacity-50 hover:opacity-90 cursor-pointer"
-        >
-          Skip to the live workspace
-        </button>
+        {/* The way out lives on the end of the dead composer rather than as a
+            link under it: that row is where the eye already goes when typing
+            turns out not to work. */}
+        <div className="flex gap-1.5 items-stretch">
+          {/* An input, not a textarea: a textarea wraps its placeholder and then
+              clips the second line against the one-row height. Nothing is being
+              typed here anyway. */}
+          <input
+            type="text"
+            disabled
+            value=""
+            readOnly
+            aria-label="Typing is disabled during the walkthrough"
+            placeholder="Use buttons above for walkthrough"
+            // A notch smaller than the live composer so the whole sentence fits
+            // beside the Exit button at the panel's minimum width.
+            className={`flex-1 min-w-0 px-2 py-1.5 text-[10px] outline-none leading-snug cursor-not-allowed opacity-50 ${primary
+              ? 'bg-black/[0.06] border border-[#111111]/30 text-[#111111]'
+              : 'bg-[var(--input)] border border-[var(--border)] text-[var(--foreground)]'}`}
+          />
+          <button
+            onClick={onSkip}
+            title="Leave the walkthrough and use the workbench yourself"
+            className={`flex-shrink-0 px-2 text-[10px] font-bold uppercase tracking-wider cursor-pointer ${primary
+              ? 'border-2 border-[#111111] hover:bg-[var(--p-yellow)]'
+              : 'border border-[var(--system-green)]/50 text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+          >
+            Exit demo
+          </button>
+        </div>
       </div>
     </>
   );

@@ -180,9 +180,15 @@ const ThemedLegend = ({ view, theme, muted = {}, onToggle }: { view: any, theme:
         </div>
     );
 
+    // The legend floats above the canvas, and the canvas tiles once a view is
+    // pinned — so an open legend sits on top of the neighbouring pane. Fading it
+    // while it is not being read keeps the points underneath visible without
+    // taking the key away; hovering brings it back to full strength.
+    const legendFade = 'opacity-75 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150';
+
     if (theme === 'terminal') {
         return (
-            <div className="absolute top-1/4 right-0 z-30">
+            <div className={`absolute top-1/4 right-0 z-30 ${legendFade}`}>
                 <CyberPanel id="legend-panel" title="Legend" width={200} collapseDirection="side" positionMode="relative" position={{x:0, y:0}} onDragStart={() => {}}>
                     <div className="p-3 w-full">
                         <div className="text-[10px] font-bold mb-2 uppercase tracking-widest text-[#10ff50]/70">{view.colorBy}</div>
@@ -195,7 +201,7 @@ const ThemedLegend = ({ view, theme, muted = {}, onToggle }: { view: any, theme:
     }
 
     return (
-        <div className="absolute top-1/4 right-0 z-30">
+        <div className={`absolute top-1/4 right-0 z-30 ${legendFade}`}>
             <PrimaryCollapsible title={view.colorBy} mode="side" width={200}>
                 {innerContent}
                 {shapeSection}
@@ -1565,11 +1571,16 @@ const SidebarSection = ({ title, step, children, hasBorder = false, theme, guide
     const c = step != null ? STEP_COLORS[(step - 1) % STEP_COLORS.length] : null;
     if (theme === 'primary') {
         return (
-            <div data-scatter-section={sectionId} style={{ order }} onClick={event => revealOpenedSidebarSection(event, event.currentTarget)}>
+            // data-guide sits on the whole section, not the title: it used to be
+            // on the heading span below, so pointing at "variables" ringed three
+            // words of header while the panel being described sat outside the
+            // ring. The terminal branch above always anchored the section, which
+            // is why only this theme looked wrong.
+            <div data-guide={guide ?? sectionId} data-scatter-section={sectionId} style={{ order }} onClick={event => revealOpenedSidebarSection(event, event.currentTarget)}>
                 <AccordionItem
                     value={sectionId}
                     title={
-                        <span data-guide={guide ?? sectionId} role="heading" aria-level={2} className="scatterlab-primary-accordion-title">
+                        <span role="heading" aria-level={2} className="scatterlab-primary-accordion-title">
                             {c && <span className="bauhaus-step" style={{ backgroundColor: c.bg, color: c.fg }}>{step}</span>}
                             <span>{title}</span>
                         </span>
@@ -3331,6 +3342,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const ok = flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26');
           if (!ok) return `"${target}" is not on screen right now${datasets.length === 0 ? ' — sections after Data appear once a dataset is loaded' : ''}.`;
           return `Highlighted ${target} with an ephemeral arrow (~5s). Continue explaining while the user looks.`;
+      },
+
+      setAssistantDock: (mode) => {
+          if (mode !== 'right' && mode !== 'bottom' && mode !== 'float') return `Unknown dock "${mode}". Use right, bottom, or float.`;
+          changeDock(mode);
+          return `Moved the assistant panel to the ${mode === 'float' ? 'floating overlay' : `${mode} dock`}.`;
       },
 
       holdHighlight: (target) => {

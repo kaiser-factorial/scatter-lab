@@ -132,6 +132,15 @@ describe('walkthrough step actions', () => {
       { method: 'controlView', args: [{ rotation: 'stop' }] });
   });
 
+  it('moves the panel out of the way before it pins a second pane', async () => {
+    // Pinning while the panel is docked right splits the leftover strip into
+    // two unreadable slivers, so the dock move has to come first.
+    const calls = await runAll('compare');
+    const docked = calls.findIndex(c => c.method === 'setAssistantDock');
+    expect(calls[docked]?.args).toEqual(['bottom']);
+    expect(docked).toBeLessThan(calls.findIndex(c => c.method === 'pinView'));
+  });
+
   it('returns the live view to the flower measurements after pinning the 2D one', async () => {
     const calls = await runAll('compare');
     const pinnedAt = calls.findIndex(c => c.method === 'pinView');

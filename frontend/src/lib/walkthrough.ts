@@ -77,8 +77,7 @@ export const WALKTHROUGH: WalkthroughStep[] = [
       '150 flowers, four measurements, three species, now loaded and on screen. It takes about ' +
       'five minutes.\n\n' +
       'I drive the workbench as we go: assigning axes, running a PCA, clustering it, and pointing ' +
-      'at each control as I describe it. Nothing is downloaded and nothing is sent anywhere — ' +
-      'every step here runs in your browser.',
+      'at each control as I describe it.',
     choices: [{ label: 'Start with the Data section', next: 'data' }],
   },
   {
@@ -100,13 +99,15 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     highlight: 'variables',
     say:
       'The **Variables** panel is both the data profile and the plot control.\n\n' +
-      'Each row shows a column\'s type, range or category count, missing values, and a mini ' +
-      'histogram. The small buttons do the plotting: **X**, **Y**, **Z** put a numeric column on ' +
-      'an axis, **C** colours the points by it, **S** encodes it as the marker shape.\n\n' +
+      'Each row shows a column\'s **type**, **range or category count**, **missing values**, and a ' +
+      '**mini histogram**. The small buttons do the plotting:\n\n' +
+      '- **X**, **Y**, **Z** — put a numeric column on that axis\n' +
+      '- **C** — colour the points by it\n' +
+      '- **S** — encode it as the marker shape\n\n' +
       'The opening view was chosen for you: identifier-like columns such as `Id` are skipped as ' +
       'axes (though you can still select them), and the first low-cardinality non-boolean column — ' +
       'here `Species` — becomes the initial colour. You can see the three species already starting ' +
-      'to separate by petal size.',
+      'to separate.',
     choices: [{ label: 'Run a PCA on the measurements', next: 'pca' }],
   },
   {
@@ -117,10 +118,11 @@ export const WALKTHROUGH: WalkthroughStep[] = [
       'The **PCA** section runs a principal component analysis in the browser: tick the variables, ' +
       'choose how many components to keep, press Run. I have just run one on the four flower ' +
       'measurements — `Id` is excluded, since an identifier is not a measurement.\n\n' +
-      '*Standardize* is on, which makes this a correlation-based PCA — the right choice when ' +
-      'variables could be on different scales. The scree bars show how much variance each ' +
-      'component explains, and *Top PC contributors* lists which measurements load on each one.\n\n' +
-      'The new `PC1`–`PC3` columns are now on the axes: a summary of all four measurements at once.',
+      '*Standardize* is on, which makes this a correlation-based PCA. The scree bars show how much ' +
+      'variance each component explains, and *Top PC contributors* lists which measurements load on ' +
+      'each one.\n\n' +
+      'The new `PC1`–`PC3` columns are now on the axes: a look into four variables plotted in three ' +
+      'dimensions.',
     run: [b => b.runPCA({ variables: IRIS_VARIABLES, n_components: 3, standardize: true })],
     choices: [{ label: 'Cluster the PC scores', next: 'cluster' }],
   },
@@ -129,11 +131,11 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     title: 'Clustering',
     highlight: 'cluster',
     say:
-      'K-Means with **k = 3**, run on the PC scores now on the axes. Clustering always runs on the ' +
-      '*plotted* axes, which is why the PCA came first.\n\n' +
-      'Standardizing is off here on purpose: PC scores are already ordered by variance, and that ' +
-      'ordering is the point of the decomposition. For raw variables on mixed scales you would want ' +
-      'it on — the checkbox defaults follow the data, and the **(i)** markers explain why.\n\n' +
+      'I just ran k-means clustering (k=3) on those 3 PC values. **Clustering always runs on the ' +
+      'plotted axes**, which is why the PCA came first.\n\n' +
+      'Standardizing is off here because PC scores are already ordered by variance. For raw variables ' +
+      'on mixed scales you would want it on — the checkbox defaults follow the data, and the **(i)** ' +
+      'markers explain why.\n\n' +
       'Colour is now the cluster, and I have moved `Species` onto the **shape** channel, so you are ' +
       'reading two variables at once: do the found clusters line up with the known species? ' +
       '*Cluster info by* below the button cross-tabulates the two, as *% of cluster* or *% of group*, ' +
@@ -149,15 +151,25 @@ export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'compare',
     title: 'Compare',
-    highlight: 'view',
+    // Pointed at the dock buttons rather than the View section, because the
+    // panel moving out from the side is the first thing that happens here and
+    // an unexplained move is disorienting. The View section is named in the
+    // text and stays one click away.
+    highlight: 'assistant-dock',
     say:
+      'I moved this panel to the bottom first — two plots side by side need the width, and the ' +
+      'buttons I am pointing at put it right, bottom, or floating whenever you like.\n\n' +
       'The **View** section switches 2D/3D, toggles the axis grids, renames axis labels for exports, ' +
       'and starts the auto-rotation you can see now. Drag the plot to rotate it yourself, scroll to zoom.\n\n' +
       '*Pin View* freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
       'different axes, colourings or cluster runs sit next to each other. I pinned the flat ' +
       '`PC1 × PC2` view, then brought the live plot back to the flower measurements, still coloured ' +
-      'by cluster and shaped by species. The pin keeps its own camera; the live view keeps updating.',
+      'by cluster and shaped by species. A pin is frozen where it was taken; only the live view ' +
+      'keeps updating.',
     run: [
+      // Dock first: pinning into the narrow strip beside a right-docked panel
+      // produces two unreadable slivers.
+      b => b.setAssistantDock('bottom'),
       b => b.setPlot({ x: 'PC1', y: 'PC2', view_mode: '2D' }),
       b => b.pinView(),
       b => b.setPlot({ ...FLOWER_VIEW, view_mode: '3D' }),
@@ -171,11 +183,8 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     highlight: 'export',
     say:
       'The **Export** section saves the active view as a 2× **PNG**, a rotating **GIF** of the 3D ' +
-      'plot, or a self-contained interactive **HTML** file that spins offline in any browser — the ' +
-      'useful one for sending a 3D plot to someone who does not have the data. It can also write the ' +
-      'derived dataset back out as CSV, PCA scores and cluster labels included.\n\n' +
-      'I am not downloading any of them. The walkthrough never starts a download; that stays your ' +
-      'click, here and with the assistant.',
+      'plot, or a self-contained interactive **HTML** file that spins offline in any browser. It can ' +
+      'also write the derived dataset back out as CSV, with PCA scores and cluster labels included.',
     choices: [{ label: 'Finish the walkthrough', next: 'done' }],
   },
   {

@@ -107,6 +107,10 @@ export type AppBridge = {
     reset_camera?: boolean;
   }) => string;
   highlightUI: (target: string) => string;
+  // Where the assistant panel sits. The walkthrough moves it to the bottom
+  // before it pins a view — side-by-side panes in the narrow strip left by a
+  // right-docked panel are unreadable, and the dock control is worth teaching.
+  setAssistantDock: (dock: 'right' | 'bottom' | 'float') => string;
   // Same pointer, held until the returned disposer runs (null = not on screen).
   // The scripted walkthrough uses this so the ring survives a long read; the
   // assistant keeps the timed version, which matches how it points while talking.
@@ -120,6 +124,8 @@ export type AppBridge = {
 export const GUIDE_TARGETS = [
   'workspace', 'upload-dropzone', 'add-dataset', 'components-toggle',
   'datasets-list', 'variables', 'pca', 'view', 'cluster', 'export',
+  // Not in the sidebar: the dock buttons in the assistant panel's own header.
+  'assistant-dock',
 ] as const;
 
 // Tools that change what the user sees — a turn using any of these offers Undo

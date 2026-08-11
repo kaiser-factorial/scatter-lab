@@ -136,6 +136,20 @@ on the dataset it had just loaded itself). It is idempotent, so the menu route a
 run both behave. The page holds `startWalkthroughRef`, mirroring `exitWalkthroughRef`, and
 falls back to a plain `loadDemo()` if the dynamically-imported panel has not assigned it yet.
 
+**The panel moves itself before it pins.** The compare step calls
+`bridge.setAssistantDock('bottom')` *before* `pinView`, because two panes in the strip left
+beside a right-docked panel are two unreadable slivers — and it points at the dock buttons
+(`data-guide="assistant-dock"`, the first guide target outside the sidebar) so the move is
+explained rather than merely surprising. It does not move back on exit: the bottom dock is
+the better place once a pin exists, and the user has now seen the control. Test-pinned:
+`setAssistantDock('bottom')` must precede `pinView`.
+
+**Highlight scope was a per-theme bug.** `SidebarSection` put `data-guide` on the outer
+`<div>` in the terminal branch but on the *title span* in the Bauhaus branch — so pointing
+at "variables" ringed three words of header on one theme and the whole panel on the other.
+Both anchor the section now. `flashGuide`'s accordion-opening fallback still works, since it
+walks up to `[data-scatter-section]`, which is on the same element.
+
 **Panel view machine.** `menu | walkthrough | chat`, plus the existing settings toggle. The
 menu is the front door exactly once (`scatterlab.assistant.menuseen`); after that the panel
 opens in `chat` and the menu stays one click away in the header, so the walkthrough is never
@@ -432,6 +446,13 @@ unbiased-sample check, held in reserve.
    parameter, but 250–400 lines and no small JS implementation worth trusting).
    Ruled out: spectral (needs an n×n Laplacian eigendecomposition; the Jacobi solver in
    `pca.ts` is O(n³) per sweep and would hang the tab) and affinity propagation.
+13. **Pin View costs ~300 ms of blocked UI (reported 2026-08-11).** Chrome's INP tooling
+   flags the pin button at 296 ms: adding a pane re-lays-out `TmuxGrid` and Plotly builds a
+   WebGL context for it synchronously. Not a regression — F-series work already stopped the
+   grid purging *every* context on a pin — but the remaining cost is real and unmeasured.
+   Related and worth doing together: **pinned views cannot be zoomed or panned.** A pin is
+   frozen where it was taken (the walkthrough says so, having first claimed it "keeps its
+   own camera" — it holds a camera, but nothing lets the user move it).
 10. **Possible future directions** discussed but not committed: embeddings-based RAG for
    user-supplied papers (only worth it beyond the curated corpus), OpenRouter spend-limit
    note in settings, silhouette/elbow charts in the Cluster section UI.
