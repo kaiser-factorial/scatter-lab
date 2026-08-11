@@ -107,6 +107,10 @@ export type AppBridge = {
     reset_camera?: boolean;
   }) => string;
   highlightUI: (target: string) => string;
+  // Same pointer, held until the returned disposer runs (null = not on screen).
+  // The scripted walkthrough uses this so the ring survives a long read; the
+  // assistant keeps the timed version, which matches how it points while talking.
+  holdHighlight: (target: string) => (() => void) | null;
   // undo support: snapshot/restore the whole view state
   snapshot: () => unknown;
   restore: (snap: unknown) => void;
@@ -146,8 +150,12 @@ export const TUTORIAL: Record<string, string> = {
     'With two or more datasets loaded, "Transfer column from another dataset" (bottom of the Data section) copies a column — typically Cluster labels — into the active dataset, aligned by row order (with an automatic identity check) or by a shared key column. This lets you e.g. color one projection space by clusters found in another.',
   export:
     'Section 6 exports the active view: PNG (2x resolution), a rotating GIF of the 3D view, or a self-contained interactive HTML file that works offline — nice for sending a spinnable 3D plot to a collaborator. It can also save the active, derived dataset as a CSV (including PCA scores and Cluster when present). "Add title & legend to exports" controls the dressing. The assistant can save all of these, but should ask before initiating any download.',
+  // The nine-beat prose script this used to hold is now code, in
+  // lib/walkthrough.ts, where the ordering is a data structure instead of a
+  // request. Keeping both would be two copies of one tour drifting apart —
+  // the mistake behind finding A3. Point at the scripted one instead.
   iris_demo:
-    'Iris demo guide — use this as a flexible, paced guided walkthrough when the user asks for a demo or tour. Treat each numbered item as one distinct beat, except that the opening combines steps 1–3: do not pause between loading the demo, orienting the user to Variables, and observing the initial grouping. These are content and ordering directions, not a script: adapt the wording to the conversation while preserving the facts. After every completed beat, pause with a short, specific question that points to the next beat; do not use an open-ended “What would you like to see next?” that abandons the sequence. If the user asks a detour question, answer it and then offer the next unfinished beat. Never initiate a PNG, GIF, HTML, heatmap, CSV, or workspace download merely because it is mentioned. Crucially, do not set Species as marker shape before step 5: the initial Iris view is colour-by-Species only so that shape can be introduced after Cluster takes over colour. (1) Call load_demo_data and introduce the classic Iris dataset, including its 150 flowers, four measurements, three species, and the current petal-length / petal-width / sepal-length axes. Keep provenance optional: only raise the Edgar Anderson / Ronald Fisher history when the user asks. Immediately continue to step 2. (2) Call get_app_state and highlight Variables. Explain its two roles: it lets the user inspect columns (for example ranges, categories, and distributions) and configure their X/Y/Z axes, colour, and marker shape. Then distinguish that from the initial-load convenience: identifier-like columns such as Id are not selected as default axes, but remain configurable; the first suitable low-cardinality non-boolean column becomes the initial colour, and the user can override it with the C control. Immediately continue to step 3. (3) Use the returned profile to make one compact, plot-relevant observation. For Iris, favour the three Species classes and how the existing colour encoding already makes the species begin to group; do not turn this into a generic list of ranges. Pause by offering the PCA beat. (4) Highlight PCA, then run_pca with exactly SepalLengthCm, SepalWidthCm, PetalLengthCm, and PetalWidthCm; use 3 components and standardize=true. Never include Id in this demo PCA. Briefly note the reported variance and that the score axes are a measurement summary. End by asking whether the user is ready to cluster those PCA scores. (5) Highlight cluster, run_clustering with KMEANS, k=3, standardize=false on those PCA score axes. Cluster becomes colour; only now call set_plot with shape_by=Species, then get_cluster_breakdown for Species. Explain the result as an exploratory comparison, point to Cluster Info, describe its % of cluster / % of group modes and palette heatmap, and offer to save it rather than saving automatically. End by asking whether the user is ready to compare a 2D view. (6) Show the 2D PC1 × PC2 view with set_plot; offer to pin it. If the user accepts, call pin_view. Then restore the live 3D flower measurement view (PetalLengthCm × PetalWidthCm × SepalLengthCm), keep Cluster colour and Species shape, and call control_view rotation=start. Ask whether the user is ready to look at export options. (7) Highlight export, explain PNG, interactive HTML, and rotating GIF; offer to save the rotating clustered 3D GIF. (8) Invite questions. (9) When the user is done, ask whether they have a dataset to upload.',
+    'There is a scripted, click-through walkthrough of the Iris demo built into the assistant panel — the user opens it from the panel menu ("Guided walkthrough"), and it runs deterministically without a model: load the demo, tour the Variables panel, run a PCA on the four measurements, K-Means the PC scores, pin a 2D comparison, and finish at the export options. If the user asks for a demo, tour, or walkthrough, tell them that button exists and what it covers, and offer it first — it is more reliable than narrating one, and it costs them no tokens. If they would rather you do it live, or they want a tour of THEIR data rather than Iris, run it yourself from the other tutorial topics: load_demo_data, then work down the sidebar (variables, pca, clustering, compare_pin, export), highlighting each section, pausing after each beat with a concrete "Ready to continue to [next step]?" rather than an open-ended question, and never initiating any download merely because it is part of a tour.',
   workspaces:
     'The Workspace section saves the entire session — datasets, pins, notes, settings — locally in the browser (IndexedDB). "Export as file" downloads a workspace as a shareable file; "Import file" loads one. Nothing syncs to any server.',
   privacy:
@@ -581,7 +589,7 @@ When the user asks you to interpret results or asks a methods question (componen
 
 When explaining where something is in the interface or how to do something manually, call highlight_ui to point an ephemeral highlight at the relevant control while you explain — especially during tours (pair each tour step with its highlight).
 
-Tours: when the user asks for a tour, asks how the app works, or seems new, call get_tutorial and teach from it — never invent UI details. For a built-in demo, request exactly the iris_demo topic and follow its ordered sequence one beat at a time. Its opening combines the data introduction, the Variables panel’s inspection/plotting controls, and the explanation of initial axes/colour choices; pause only after that combined beat. Otherwise pause after each beat with a concrete “Ready to continue to [next step]?” question, never an unstructured “what next?” that loses the tour. For a general tour, pick the sections that match their situation (no data yet → start with load_data). Do not initiate any download just because it is part of a tour: offer it, then wait for a clear user yes.
+Tours: when the user asks for a tour, asks how the app works, or seems new, call get_tutorial and teach from it — never invent UI details. For a demo of the built-in Iris data, request the iris_demo topic first: a scripted click-through walkthrough already exists in the panel menu, and pointing them at it is better than narrating your own. Only run a tour yourself if they decline it, or if they want their own data toured. When you do, pause after each beat with a concrete “Ready to continue to [next step]?” question, never an unstructured “what next?” that loses the tour. For a general tour, pick the sections that match their situation (no data yet → start with load_data). Do not initiate any download just because it is part of a tour: offer it, then wait for a clear user yes.
 
 Keep responses short and concrete. This is a side panel, not a report.
 
@@ -626,6 +634,18 @@ const makeClient = async (apiKey: string, baseURL: string) => {
 
 // One user turn: stream the response, execute any tool calls, loop until the
 // model stops asking for tools. Returns the updated history.
+// Yield until React has committed and painted.
+//
+// Anything making two bridge calls in a row needs this: the second call
+// otherwise reads state from before the first one's commit. A fixed timeout
+// proved too short on slow machines. Exported because the scripted walkthrough
+// runs multi-call steps and must not grow its own copy of the rule.
+export const paintYield = (): Promise<void> =>
+  new Promise<void>(resolve => {
+    if (typeof requestAnimationFrame === 'undefined') return void setTimeout(resolve, 50);
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 20)));
+  });
+
 export const runAssistantTurn = async (
   apiKey: string,
   baseURL: string,
@@ -752,13 +772,7 @@ export const runAssistantTurn = async (
         tool_call_id: call.id,
         content: await executeTool(call.function.name, call.function.arguments),
       });
-      // Yield until React has committed and painted between sequential tool
-      // calls — otherwise a later call in the same response reads stale state
-      // (a fixed timeout proved too short on slow machines)
-      await new Promise<void>(resolve => {
-        if (typeof requestAnimationFrame === 'undefined') return setTimeout(resolve, 50);
-        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 20)));
-      });
+      await paintYield();
     }
   }
   handlers.onText('\n[Paused after many tool calls — say "continue" to keep going.]');

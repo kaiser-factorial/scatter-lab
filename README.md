@@ -75,14 +75,31 @@ are in
   shareable files
 - **Two themes** — Bauhaus and Terminal
 
+## Two ways in: a guided walkthrough, or the assistant
+
+Opening the assistant panel for the first time offers a choice.
+
+**The guided walkthrough** is a scripted, click-through tour of the Iris demo —
+eight steps, one button at a time, no API key and no network. It drives the real
+workbench as it goes (loads the data, runs the PCA, clusters the scores, pins a
+comparison) and points at each control with a highlight that holds until you move
+on. The composer is disabled while it runs, uploading is paused, and it never
+starts a download. If a dataset of yours is already loaded it says what it is
+about to change and offers to save a workspace first, and the state you had is
+one click away afterwards.
+
+The steps live in `frontend/src/lib/walkthrough.ts` as data, so the tour is the
+same every time and a broken step is a failing test rather than a dead end.
+
 ## The assistant (optional, bring-your-own-key)
 
 An in-app AI copilot that drives the workbench through tool calls: assign axes,
 run PCA and clustering, read cluster compositions, configure and save their
-heatmaps, scatter exports, or a rotating 3D GIF, compute correlations and group comparisons, give a guided tour — and literally point at the interface
-with an ephemeral highlight while explaining it. Interpretation questions are
-grounded in a curated, citation-backed methods reference that ships with the
-app.
+heatmaps, scatter exports, or a rotating 3D GIF, compute correlations and group
+comparisons, tour your own data — and literally point at the interface with an
+ephemeral highlight while explaining it. Interpretation questions are grounded in
+a curated, citation-backed methods reference that ships with the app. Asked for a
+demo, it offers the scripted walkthrough above rather than improvising one.
 
 - **One-click OpenRouter connect** (OAuth PKCE) or paste any key; any
   OpenAI-compatible endpoint works, including local runtimes (Ollama) for a

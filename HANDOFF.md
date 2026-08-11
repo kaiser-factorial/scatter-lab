@@ -81,6 +81,70 @@ loop receives the bridge *ref* and dereferences `.current` per call, with a pain
 yield between calls — passing the object itself froze a whole turn at send-time state
 (the `GET APP STATE` polling bug, fixed in `4a5018d`). Don't regress this.
 
+## The scripted walkthrough
+
+`src/lib/walkthrough.ts` + `WalkthroughStartDialog.tsx` + the `walkthrough` view in
+`AssistantPanel.tsx`. Read this before editing the tour or the panel's view machine.
+
+**Why it exists.** There was one tour, `TUTORIAL.iris_demo` — a ~1,400-word prose brief
+telling the model to run nine beats "one beat at a time", with directives like *do not set
+Species as marker shape before step 5* and *never initiate a download merely because it is
+mentioned*. That is a script enforced by asking nicely, and it cost an API key to reach at
+all: the panel rendered `SettingsForm` whenever `!apiKey`, so the first screen a visitor
+without one met was a form asking for a credential, before anything showed what it was for.
+
+**The insight is that it needs no model.** Every beat of `iris_demo` was already an
+`AppBridge` method, so the deterministic tour is the same tour with the model removed:
+steps call the bridge directly, the wording is fixed, the ordering is an array. `iris_demo`
+now *defers* to it (offer the button, only narrate a tour if declined or if the user wants
+their own data toured) rather than keeping a second copy of the same facts — three copies
+of one fact drifting apart is what caused A3, and this would have been a fourth.
+
+**Load-bearing details.**
+
+- **Steps hold a LIST of actions, not one function taking a bridge.** The bridge closes
+  over the page's state and is rebuilt on every commit, so two calls against one
+  dereferenced bridge run the second against pre-commit state — the GET APP STATE bug
+  (`4a5018d`). The runner re-reads `bridgeRef.current` and `paintYield()`s between actions,
+  which makes the correct thing the only thing a step can express. `paintYield` is now
+  exported from `assistant.ts` so the tool loop and the walkthrough share one copy.
+- **`flashGuide` gained a `persist` mode** and now returns a disposer instead of a boolean.
+  The 5.4 s timeout is right for the assistant, which points while it talks; in
+  click-to-advance a user reading for twenty seconds would watch the pointer die. The
+  walkthrough holds the ring and drops it on step change, on exit, and on unmount (it lives
+  on `<body>` — nothing else would clean it up). `bridge.holdHighlight` is the entry point.
+- **Nothing destructive without consent.** A `snapshot()` is taken before the first step
+  and offered back as "Restore my pre-walkthrough workspace" on exit — but only if there
+  were datasets to restore. What a snapshot does *not* cover is the user's own data being
+  displaced as active, so with any dataset loaded the tour stops at a dialog that says what
+  it will change, offers the workspace save **inline** (advice to go save first, at the cost
+  of the dialog, is advice nobody takes), and offers Cancel. Uploading is disabled in the
+  sidebar while it runs, with "Quit the walkthrough" beside the disabled control.
+- **The tour never downloads anything**, and that is now a test against a recording bridge
+  rather than a line of prose asking the model not to.
+- **Tests** (`walkthrough.test.ts`, 16 cases) prove the graph — every `next` resolves, every
+  step is reachable, it terminates — and run the steps against a recording proxy bridge to
+  pin call order (shape only after clustering owns colour; the live view returns to the
+  flower measurements after the 2D pin). A renamed step id is a failing test, not a dead end.
+
+**Panel view machine.** `menu | walkthrough | chat`, plus the existing settings toggle. The
+menu is the front door exactly once (`scatterlab.assistant.menuseen`); after that the panel
+opens in `chat` and the menu stays one click away in the header, so the walkthrough is never
+unreachable. The handoff greeting is composed locally from `getState()` and pushed into
+`historyRef` — not sent as a hidden user turn: a first impression should not be a coin flip,
+should not cost a round trip, and has to work before a key exists. It is flagged `local` so
+the thumbs controls skip it; rating a hard-coded string would land in the eval table as
+model feedback.
+
+**One bug it surfaced.** The walkthrough points at the PCA panel and says "Id is excluded" —
+and Id was sitting there ticked, because `bridge.runPCA` called `handleRunPCA` directly while
+`PCASection` kept its own default selection. Pre-existing on the assistant path, invisible
+until something narrated it. The page now mirrors an external run (`externalRun` prop:
+variables, k, standardize, missing, label, and a `seq` so a repeat re-syncs) back into the
+panel's controls. The label is synced *and pinned* (`labelTouched`) because the auto-suggest
+derives a label from shared affixes, which on the four Iris columns is `thCm` — a name for
+columns the run did not create.
+
 ## Feedback pipeline (eval data)
 
 Thumbs per assistant reply → instant metadata-only row; optional "why" box (rating-matched
