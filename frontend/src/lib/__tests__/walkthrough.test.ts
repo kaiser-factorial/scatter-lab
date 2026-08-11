@@ -84,6 +84,12 @@ const runWholeTour = async () => {
 };
 
 describe('walkthrough step actions', () => {
+  it('loads the demo in its very first step', async () => {
+    // "Load demo" on the empty state is one click into a running tour, so the
+    // data load has to be the tour's own first act rather than a step later.
+    expect(await runAll(FIRST_STEP)).toContainEqual({ method: 'loadDemoData', args: [] });
+  });
+
   it('runs the Iris PCA on the four measurements, never on Id', async () => {
     const [call] = await runAll('pca');
     expect(call.method).toBe('runPCA');

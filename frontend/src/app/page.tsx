@@ -825,7 +825,7 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
                         </button>
                     </div>
                     <p className="text-[11px] text-[var(--foreground)]/60">
-                        New here? Open the <span className="text-[var(--system-green)]">Assistant</span> (bottom right) and pick the guided walkthrough — no key needed.
+                        <span className="text-[var(--system-green)]">load demo</span> opens a five-minute guided walkthrough of the Iris data — click-through, no API key. Skip it any time.
                     </p>
                 </div>
             </div>
@@ -879,11 +879,11 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
                         disabled={busy}
                         className="bauhaus-btn flex-1 py-2.5 text-sm font-bold bg-[var(--p-yellow)] text-[#111111] disabled:opacity-40 cursor-pointer"
                     >
-                        {busy ? "Loading…" : "Load demo data"}
+                        {busy ? "Loading…" : "Load demo"}
                     </button>
                 </div>
                 <p className="text-[11px] opacity-50 text-center -mt-2">
-                    New here? Open the <span className="font-bold">Assistant</span> (bottom right) and pick the guided walkthrough — no key needed.
+                    <span className="font-bold">Load demo</span> opens a five-minute guided walkthrough of the Iris data — click-through, no API key. Skip it any time.
                 </p>
             </div>
         </div>
@@ -2852,6 +2852,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // the control is disabled and says why, with the way out beside it.
   const [walkthroughActive, setWalkthroughActive] = useState(false);
   const exitWalkthroughRef = useRef<(() => void) | null>(null);
+  const startWalkthroughRef = useRef<(() => void) | null>(null);
   // Mirrors an assistant/walkthrough PCA back into the PCA panel's controls.
   const [externalPcaRun, setExternalPcaRun] = useState<{ vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null>(null);
   useEffect(() => {
@@ -3979,7 +3980,16 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   <ThemedLegend view={allViews[0]} theme={theme} muted={mutedMap} onToggle={toggleMuted} />
               </>
           ) : (
-              <EmptyState theme={theme} onLoadDemo={loadDemo} onUpload={() => dsInputRef.current?.click()} busy={isUploading} />
+              <EmptyState
+                theme={theme}
+                // "Load demo" opens the walkthrough, which loads the data as its
+                // own first act. The panel is dynamically imported, so on the
+                // very first paint its ref may not be assigned yet — fall back
+                // to a plain load rather than leaving the button dead.
+                onLoadDemo={() => { if (startWalkthroughRef.current) startWalkthroughRef.current(); else void loadDemo(); }}
+                onUpload={() => dsInputRef.current?.click()}
+                busy={isUploading}
+              />
           )}
         </div>
         <AssistantPanel
@@ -3990,6 +4000,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           onDockChange={changeDock}
           onWalkthroughChange={setWalkthroughActive}
           exitWalkthroughRef={exitWalkthroughRef}
+          startWalkthroughRef={startWalkthroughRef}
         />
       </main>
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} theme={theme} />

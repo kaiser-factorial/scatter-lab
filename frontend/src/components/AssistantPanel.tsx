@@ -77,7 +77,7 @@ const AssistantMarkdown = memo(({ text }: { text: string }) => (
 ));
 AssistantMarkdown.displayName = 'AssistantMarkdown';
 
-const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef }: {
+const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef }: {
   bridgeRef: React.MutableRefObject<AppBridge>,
   theme: string | undefined,
   askRef?: React.MutableRefObject<((q: string) => void) | null>,
@@ -87,6 +87,9 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
   // offers its own way out next to the disabled control.
   onWalkthroughChange?: (active: boolean) => void,
   exitWalkthroughRef?: React.MutableRefObject<(() => void) | null>,
+  // "Load demo" on the empty state opens the panel straight into the tour,
+  // which loads the data itself as its first act.
+  startWalkthroughRef?: React.MutableRefObject<(() => void) | null>,
 }) => {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -419,6 +422,12 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
 
   // Let the page quit the walkthrough from beside the controls it disables
   if (exitWalkthroughRef) exitWalkthroughRef.current = () => endWalkthrough('exit');
+  // …and start it from the empty state's "Load demo"
+  if (startWalkthroughRef) startWalkthroughRef.current = () => {
+    setOpen(true);
+    setShowSettings(false);
+    beginWalkthrough();
+  };
 
   // Allow the rest of the app to open the panel with a prefilled question
   if (askRef) askRef.current = (q: string) => {

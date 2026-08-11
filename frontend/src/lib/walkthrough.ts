@@ -67,26 +67,31 @@ export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'welcome',
     title: 'Welcome',
+    // The data load lives here, in the tour's first act, rather than a step
+    // later — so "Load demo" on the empty state is a single click into a
+    // running tour with the data already on screen, and the menu route gets the
+    // same thing. Idempotent, so arriving with Iris already loaded is fine.
+    run: [b => b.loadDemoData()],
     say:
-      'This is a guided walkthrough of Scatter Lab. It runs on the built-in **Iris** demo — ' +
-      '150 flowers, four measurements, three species — and takes about five minutes.\n\n' +
-      'I drive the workbench as we go: loading data, running a PCA, clustering it, and pointing ' +
-      'at the controls I am describing. Nothing is downloaded and nothing is sent anywhere — ' +
+      'This is a guided walkthrough of Scatter Lab, running on the built-in **Iris** demo — ' +
+      '150 flowers, four measurements, three species, now loaded and on screen. It takes about ' +
+      'five minutes.\n\n' +
+      'I drive the workbench as we go: assigning axes, running a PCA, clustering it, and pointing ' +
+      'at each control as I describe it. Nothing is downloaded and nothing is sent anywhere — ' +
       'every step here runs in your browser.',
-    choices: [{ label: 'Load the Iris demo', next: 'data' }],
+    choices: [{ label: 'Start with the Data section', next: 'data' }],
   },
   {
     id: 'data',
     title: 'Data',
     highlight: 'upload-dropzone',
     say:
-      'Loaded. This is where your own data comes in too — drop a **CSV, XLSX, or Parquet** file ' +
-      'on the box I am pointing at, then press *Add Dataset*. Several datasets can be open at ' +
-      'once; clicking one in the list below makes it the active one.\n\n' +
+      'This is where your own data comes in — drop a **CSV, XLSX, or Parquet** file on the box I ' +
+      'am pointing at, then press *Add Dataset*. Several datasets can be open at once; clicking ' +
+      'one in the list below makes it the active one.\n\n' +
       'Every column is profiled on the way in, and anything the parser had to interpret — ragged ' +
       'rows, duplicate headers, numbers written with decimal commas — is reported rather than ' +
       'silently absorbed.',
-    run: [b => b.loadDemoData()],
     choices: [{ label: 'Look at the variables', next: 'variables' }],
   },
   {

@@ -127,6 +127,15 @@ of one fact drifting apart is what caused A3, and this would have been a fourth.
   pin call order (shape only after clustering owns colour; the live view returns to the
   flower measurements after the 2D pin). A renamed step id is a failing test, not a dead end.
 
+**Two entry points, one path.** The empty state's **Load demo** button (was "Load demo
+data") opens the panel and starts the tour rather than only loading a file — so the demo is
+one click from the opening screen. That is why `loadDemoData` is the *first step's* action
+and not the second's: the button starts the walkthrough and the walkthrough loads the data,
+instead of the page loading data and then handing over (which would trip the consent dialog
+on the dataset it had just loaded itself). It is idempotent, so the menu route and a repeat
+run both behave. The page holds `startWalkthroughRef`, mirroring `exitWalkthroughRef`, and
+falls back to a plain `loadDemo()` if the dynamically-imported panel has not assigned it yet.
+
 **Panel view machine.** `menu | walkthrough | chat`, plus the existing settings toggle. The
 menu is the front door exactly once (`scatterlab.assistant.menuseen`); after that the panel
 opens in `chat` and the menu stays one click away in the header, so the walkthrough is never

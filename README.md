@@ -77,7 +77,9 @@ are in
 
 ## Two ways in: a guided walkthrough, or the assistant
 
-Opening the assistant panel for the first time offers a choice.
+**Load demo** on the opening screen is the short way in: one click loads the Iris
+data, opens the panel, and starts the walkthrough. Opening the assistant panel
+directly offers the same choice as a menu.
 
 **The guided walkthrough** is a scripted, click-through tour of the Iris demo —
 eight steps, one button at a time, no API key and no network. It drives the real
