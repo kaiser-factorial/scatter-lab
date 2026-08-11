@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
+import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { UploadCloud, Play, Square, Download, Pin, Layers, Monitor, X, Trash2, Info } from "lucide-react";
+import { UploadCloud, Play, Square, Download, Pin, Monitor, X, Trash2, Info } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { TmuxGrid } from "@/components/TmuxGrid";
@@ -24,6 +24,7 @@ const AssistantPanel = dynamic(
 );
 import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import { GUIDE_TARGETS } from "@/lib/assistant";
+import { readRelayout } from "@/lib/relayout";
 import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
@@ -1724,7 +1725,9 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
     view: any, title: string, colorBy: string, axesOn: boolean, aspect: AspectMode,
     window2d: { x: [number, number], y: [number, number] } | null,
     camera: SceneCamera,
-    onRelayout: (e: any) => void,
+    // The pane's own id travels with the event: every pane shares one handler,
+    // and it has to know whether the live view or a pin was dragged.
+    onRelayout: (e: any, viewId: string | number) => void,
 }) => {
     const { theme } = useTheme();
     const traces = useMemo(
@@ -1754,7 +1757,14 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
         if (!el || typeof ResizeObserver === 'undefined') return;
         let raf = 0;
         let dead = false;
+        // ResizeObserver delivers one callback the moment it starts observing.
+        // For a pane that has just mounted that is a resize to the size Plotly
+        // already laid itself out at — pure waste, and it lands in the same
+        // frame as the real resizes of every other pane, which is what makes
+        // adding a pin one long task instead of n-1 short ones.
+        let firstObservation = true;
         const ro = new ResizeObserver(() => {
+            if (firstObservation) { firstObservation = false; return; }
             // Coalesce: a grid re-split fires this for every pane in the same
             // frame, and Plots.resize is not free.
             cancelAnimationFrame(raf);
@@ -1778,7 +1788,7 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
                 layout={layout}
                 useResizeHandler={true}
                 style={{ width: "100%", height: "100%" }}
-                onRelayout={onRelayout}
+                onRelayout={(e: any) => onRelayout(e, view.id)}
             />
         </div>
     );
@@ -2379,12 +2389,6 @@ export default function Home() {
       }
   };
 
-  const getLayout = (title: string, customAxisNames: AxisLabels, mode = viewMode, axesOn = false, window2d: { x: [number, number], y: [number, number] } | null = null, sceneCamera: { eye: { x: number, y: number, z: number } } | null = null) =>
-      buildPlotLayout({
-          dark: theme === 'terminal', title, colorBy, axisNames: customAxisNames,
-          mode, axesOn, aspect, window2d, camera: sceneCamera ?? camera,
-      });
-
   // Target by id — NOT .js-plotly-plot: Plotly.toImage spawns (and can leak) a
   // temporary clone div with that class, and grabbing the purged clone exports
   // empty default axes instead of the real plot
@@ -2701,13 +2705,24 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       return null;
   };
 
+  // Pinning mounts a whole new Plotly pane, WebGL context and all, and then
+  // every existing pane resizes into the re-split grid. Measured on the iris
+  // demo that was 1312 ms from click to paint (259 ms of it inside the handler,
+  // then a 933 ms task) — the button appeared frozen.
+  //
+  // The work is irreducible; what was wrong is that it was URGENT. As a
+  // transition React renders it at low priority, so the browser paints the
+  // click before the new pane is built instead of after. The pin object itself
+  // is still built synchronously: it reads the live camera off the plot div,
+  // which has to be its value at click time.
+  const [isPinning, startPinning] = useTransition();
+
   const pinCurrentView = () => {
       if (pinnedViews.length >= 3) {
           setUploadStatus("Pin limit reached — the grid holds the live view plus 3 pins. Remove one to pin another.");
           return;
       }
-      setPinnedViews([
-          ...pinnedViews,
+      const pin = (
           // Tables are replaced wholesale on change, so sharing the reference is a safe snapshot
           { id: Date.now(), data: processedData, colorBy, shapeBy,
             axes: effectiveAxes(activeDataset!, viewMode), labels: effectiveLabels(activeDataset!, viewMode), viewMode,
@@ -2726,12 +2741,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 ? (getActivePlotDiv()?.layout?.scene?.camera ?? cameraRef.current)
                 : null,
             muted: { ...mutedMap },
-            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}` }
-      ]);
+            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}` });
+      startPinning(() => setPinnedViews(prev => [...prev, pin]));
   };
 
   const removePin = (id: number) => {
-      setPinnedViews(pinnedViews.filter(v => v.id !== id));
+      // Unmounting a pane re-splits the grid and resizes the survivors, so it
+      // costs what pinning costs. Same treatment.
+      startPinning(() => setPinnedViews(prev => prev.filter(v => v.id !== id)));
   };
 
   const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
@@ -3400,24 +3417,32 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // Stable across renders, so memoizing ViewPlot is not defeated by a fresh
   // closure on every prop pass (F13). Reads live values from refs where it must,
   // rather than closing over state that would force it to be rebuilt.
-  const handleRelayout = useCallback((e: any) => {
-      const gd = getActivePlotDiv();
-      if (!gd) return;
-      if (e['scene.camera']) {
-          // A drag during auto-rotation means the user took the wheel.
+  // Mirror a pane's own zoom/pan/rotate back into the state that pane renders
+  // from. Without it the next re-render re-applies the stored layout and snaps
+  // the plot back to where it was.
+  //
+  // This used to write everything into the LIVE camera and range2d regardless of
+  // which pane fired, while pinned panes rendered from `view.camera` /
+  // `view.range2d`. So dragging a pin rotated the live plot and left the pin
+  // exactly where it was — the reason pins read as frozen pictures. Each pane
+  // now updates its own framing.
+  const handleRelayout = useCallback((e: any, viewId: string | number) => {
+      const intent = readRelayout(e);
+      if (!intent) return;
+      const isPin = viewId !== 'active';
+      const updatePin = (patch: Record<string, unknown>) =>
+          setPinnedViews(prev => prev.map(v => (v.id === viewId ? { ...v, ...patch } : v)));
+
+      if (intent.kind === 'camera') {
+          if (isPin) { updatePin({ camera: intent.camera }); return; }
+          if (!getActivePlotDiv()) return;
+          // A drag during auto-rotation means the user took the wheel — but only
+          // when it is the rotating live view being dragged.
           if (isRotatingRef.current) setIsRotating(false);
-          setCamera(e['scene.camera']);
+          setCamera(intent.camera as SceneCamera);
           return;
       }
-      // Mirror the user's own box-zoom/pan into state; without this the next
-      // re-render would re-apply the old layout and snap the plot back.
-      // Double-click sends autorange instead.
-      if (e['xaxis.autorange'] || e['yaxis.autorange']) { setRange2d(null); return; }
-      const x0 = e['xaxis.range[0]'], x1 = e['xaxis.range[1]'];
-      const y0 = e['yaxis.range[0]'], y1 = e['yaxis.range[1]'];
-      if ([x0, x1, y0, y1].every(v => typeof v === 'number' && Number.isFinite(v))) {
-          setRange2d({ x: [x0, x1], y: [y0, y1] });
-      }
+      if (isPin) updatePin({ range2d: intent.range }); else setRange2d(intent.range);
   }, []);
 
   const renderView = (view: any, index: number) => {
@@ -3855,8 +3880,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     {isRotating ? <><Square className="w-4 h-4" /> Stop Rotation</> : <><Play className="w-4 h-4" /> Start Rotation</>}
                 </button>
                 <Separator dashed className="scatterlab-view-divider" />
-                <button onClick={pinCurrentView} className={`scatterlab-action-button w-full flex items-center justify-center gap-2 py-2 text-sm font-bold ${theme==='primary'?'bauhaus-btn bg-[var(--p-red)] text-white':'bg-[var(--primary)] border border-[var(--primary)] text-white'}`}>
-                    <Pin className="w-4 h-4" /> Pin View
+                {/* The pane is built off the critical path now, so the button
+                    says what is happening rather than going quiet mid-work. */}
+                <button onClick={pinCurrentView} disabled={isPinning} className={`scatterlab-action-button w-full flex items-center justify-center gap-2 py-2 text-sm font-bold disabled:opacity-60 ${theme==='primary'?'bauhaus-btn bg-[var(--p-red)] text-white':'bg-[var(--primary)] border border-[var(--primary)] text-white'}`}>
+                    <Pin className="w-4 h-4" /> {isPinning ? 'Pinning…' : 'Pin View'}
                 </button>
               </SidebarSection>
 

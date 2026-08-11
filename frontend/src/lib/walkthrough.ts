@@ -164,8 +164,10 @@ export const WALKTHROUGH: WalkthroughStep[] = [
       '*Pin View* freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
       'different axes, colourings or cluster runs sit next to each other. I pinned the flat ' +
       '`PC1 × PC2` view, then brought the live plot back to the flower measurements, still coloured ' +
-      'by cluster and shaped by species. A pin is frozen where it was taken; only the live view ' +
-      'keeps updating.',
+      'by cluster and shaped by species.\n\n' +
+      'A pin keeps the data it was taken with — only the live view follows the sidebar — but it is ' +
+      'not a picture: drag, scroll or double-click any pane to rotate, zoom and reset **that pane** ' +
+      'on its own.',
     run: [
       // Dock first: pinning into the narrow strip beside a right-docked panel
       // produces two unreadable slivers.

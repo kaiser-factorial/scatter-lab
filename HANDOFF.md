@@ -446,13 +446,33 @@ unbiased-sample check, held in reserve.
    parameter, but 250–400 lines and no small JS implementation worth trusting).
    Ruled out: spectral (needs an n×n Laplacian eigendecomposition; the Jacobi solver in
    `pca.ts` is O(n³) per sweep and would hang the tab) and affinity propagation.
-13. **Pin View costs ~300 ms of blocked UI (reported 2026-08-11).** Chrome's INP tooling
-   flags the pin button at 296 ms: adding a pane re-lays-out `TmuxGrid` and Plotly builds a
-   WebGL context for it synchronously. Not a regression — F-series work already stopped the
-   grid purging *every* context on a pin — but the remaining cost is real and unmeasured.
-   Related and worth doing together: **pinned views cannot be zoomed or panned.** A pin is
-   frozen where it was taken (the walkthrough says so, having first claimed it "keeps its
-   own camera" — it holds a camera, but nothing lets the user move it).
+13. ~~Pin View blocks the UI; pins cannot be zoomed or panned~~ **Both done (2026-08-11).**
+   Measured before touching anything: pinning cost **1312 ms** from click to paint on the
+   iris demo (259 ms inside the handler, then a 933 ms task) — the reported 296 ms was the
+   handler alone. The work is irreducible (a new pane means a new Plotly WebGL context, and
+   every existing pane resizes into the re-split grid); what was wrong is that it was
+   *urgent*. `pinCurrentView`/`removePin` now wrap their `setPinnedViews` in a
+   **transition**, so the browser paints the click before the pane is built rather than
+   after, and the button reads "Pinning…" while it happens. The pin object is still built
+   synchronously — it reads the live camera off the plot div, which must be its value at
+   click time. Also: `ResizeObserver` fires once the moment it starts observing, so a
+   freshly-mounted pane was resizing itself to the size Plotly had just laid it out at, in
+   the same frame as every real resize; that first callback is skipped now.
+   **Result: 1312 ms → 40 ms, and 696 ms → 16 ms on the second pin.** The long tasks remain
+   (488 ms) but no longer sit between the click and the paint.
+
+   The zoom/pan half had a cause worth remembering: **every pane shared one `onRelayout`
+   that wrote into the LIVE `camera`/`range2d`**, while pinned panes rendered from
+   `view.camera`/`view.range2d`. So dragging a pin rotated the live plot and left the pin
+   where it was — pins looked frozen because interacting with one moved something else.
+   `ViewPlot` now passes its own `view.id` with the event and the handler routes the update
+   to the pane that fired it. Reading the payload moved into `lib/relayout.ts`
+   (`readRelayout`) and is unit-tested: Plotly reports a camera move, a box-zoom, and a
+   double-click reset (`autorange`, sometimes one axis only) through the same event, and a
+   partial range must be dropped rather than half-applied — `{x: [...], y: [undefined,
+   undefined]}` blanks the plot. Browser-verified in both modes: the pin rotates/zooms
+   alone, the live view is untouched, double-click resets only the pane clicked, and a pin
+   holds its new angle across an unrelated live re-render.
 10. **Possible future directions** discussed but not committed: embeddings-based RAG for
    user-supplied papers (only worth it beyond the curated corpus), OpenRouter spend-limit
    note in settings, silhouette/elbow charts in the Cluster section UI.
