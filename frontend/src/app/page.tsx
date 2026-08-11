@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
+import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { UploadCloud, Play, Square, Download, Pin, Layers, Monitor, X, Trash2, Info } from "lucide-react";
+import { UploadCloud, Play, Square, Download, Pin, Monitor, X, Trash2, Info } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { TmuxGrid } from "@/components/TmuxGrid";
@@ -24,6 +24,7 @@ const AssistantPanel = dynamic(
 );
 import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import { GUIDE_TARGETS } from "@/lib/assistant";
+import { readRelayout } from "@/lib/relayout";
 import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
@@ -180,9 +181,15 @@ const ThemedLegend = ({ view, theme, muted = {}, onToggle }: { view: any, theme:
         </div>
     );
 
+    // The legend floats above the canvas, and the canvas tiles once a view is
+    // pinned — so an open legend sits on top of the neighbouring pane. Fading it
+    // while it is not being read keeps the points underneath visible without
+    // taking the key away; hovering brings it back to full strength.
+    const legendFade = 'opacity-75 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150';
+
     if (theme === 'terminal') {
         return (
-            <div className="absolute top-1/4 right-0 z-30">
+            <div className={`absolute top-1/4 right-0 z-30 ${legendFade}`}>
                 <CyberPanel id="legend-panel" title="Legend" width={200} collapseDirection="side" positionMode="relative" position={{x:0, y:0}} onDragStart={() => {}}>
                     <div className="p-3 w-full">
                         <div className="text-[10px] font-bold mb-2 uppercase tracking-widest text-[#10ff50]/70">{view.colorBy}</div>
@@ -195,7 +202,7 @@ const ThemedLegend = ({ view, theme, muted = {}, onToggle }: { view: any, theme:
     }
 
     return (
-        <div className="absolute top-1/4 right-0 z-30">
+        <div className={`absolute top-1/4 right-0 z-30 ${legendFade}`}>
             <PrimaryCollapsible title={view.colorBy} mode="side" width={200}>
                 {innerContent}
                 {shapeSection}
@@ -825,7 +832,7 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
                         </button>
                     </div>
                     <p className="text-[11px] text-[var(--foreground)]/60">
-                        New here? Open the <span className="text-[var(--system-green)]">Assistant</span> (bottom right) and ask for a tour.
+                        <span className="text-[var(--system-green)]">load demo</span> opens a five-minute guided walkthrough of the Iris data — click-through, no API key. Skip it any time.
                     </p>
                 </div>
             </div>
@@ -879,11 +886,11 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
                         disabled={busy}
                         className="bauhaus-btn flex-1 py-2.5 text-sm font-bold bg-[var(--p-yellow)] text-[#111111] disabled:opacity-40 cursor-pointer"
                     >
-                        {busy ? "Loading…" : "Load demo data"}
+                        {busy ? "Loading…" : "Load demo"}
                     </button>
                 </div>
                 <p className="text-[11px] opacity-50 text-center -mt-2">
-                    New here? Open the <span className="font-bold">Assistant</span> (bottom right) and ask for a tour.
+                    <span className="font-bold">Load demo</span> opens a five-minute guided walkthrough of the Iris data — click-through, no API key. Skip it any time.
                 </p>
             </div>
         </div>
@@ -892,13 +899,16 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
 
 // In-app PCA: pick variables, pick k, run — scores land as PC columns and the
 // scree bars show what each component buys you.
-const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun }: {
+const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun }: {
     table: DataTable,
     datasetId: number,
     theme: string | undefined,
     lastRun: { varianceExplained: number[]; cumulative: number[]; spectrum?: number[]; eigenvalues?: number[]; standardize?: boolean; k?: number; columns?: string[] } | null,
     runs: PcaRun[],
     onRun: (vars: string[], k: number, standardize: boolean, label: string, missing: MissingStrategy) => void,
+    // A run started outside this panel — by the assistant or the walkthrough.
+    // `seq` increments per run so a repeat of the same settings still syncs.
+    externalRun?: { vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null,
 }) => {
     // Component columns (bare or labeled) don't feed new PCAs; COMP_ composites
     // stay selectable on purpose — feeding composites into a second-order PCA
@@ -926,6 +936,27 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun }: {
     const varsKey = numericVars.join('\u0000');
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { setSelected(prev => new Set(Array.from(prev).filter(c => numericVars.includes(c)))); }, [varsKey]);
+    // A run started from the assistant or the walkthrough leaves the panel
+    // showing what it actually ran. Without this the controls kept their
+    // defaults while the run used something else — so the walkthrough could
+    // point at the PCA section, say "Id is excluded", and have Id ticked.
+    const externalSeq = externalRun?.seq ?? 0;
+    useEffect(() => {
+        if (!externalRun) return;
+        setSelected(new Set(externalRun.vars.filter(c => numericVars.includes(c))));
+        setK(externalRun.k);
+        setStandardize(externalRun.standardize);
+        setMissing(externalRun.missing);
+        // The run's own label, and pinned: the auto-suggestion derives a label
+        // from shared affixes in the selection, which on the four Iris columns
+        // is "thCm" — a name for columns the run did not create. The panel is
+        // reporting a finished run here, not composing the next one.
+        setLabel(externalRun.label);
+        labelTouched.current = true;
+        // Keyed on the sequence number alone: this fires per external RUN, not
+        // whenever the object identity or the column list happens to change.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [externalSeq]);
     useEffect(() => {
         if (labelTouched.current) return;
         setLabel(selected.size === numericVars.length ? '' : (deriveRunLabel(Array.from(selected)) ?? ''));
@@ -1427,7 +1458,13 @@ const GUIDE_SECTION: Record<string, string> = {
     export: 'export',
 };
 
-const flashGuide = (target: string, color: string): boolean => {
+// Returns a disposer, or null when the target is not on screen.
+//
+// `persist` exists for the scripted walkthrough. The 5.4 s timeout is right for
+// the assistant, which points while it is talking; in a click-to-advance tour a
+// user reading a paragraph for twenty seconds would watch the pointer die on
+// them, so the walkthrough holds the ring and drops it when the step changes.
+const flashGuide = (target: string, color: string, persist = false): (() => void) | null => {
     let el = document.querySelector(`[data-guide="${target}"]`) as HTMLElement | null;
     // Puxel's Accordion only mounts an item's body while open. When the
     // assistant is aiming at a hidden control, open its titled section first
@@ -1438,7 +1475,7 @@ const flashGuide = (target: string, color: string): boolean => {
         const trigger = el?.closest('[data-scatter-section]')?.querySelector<HTMLButtonElement>('.px-accordion-trigger');
         if (trigger?.getAttribute('aria-expanded') === 'false') trigger.click();
     }
-    if (!el) return false;
+    if (!el) return null;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const ring = document.createElement('div');
     const arrow = document.createElement('div');
@@ -1460,10 +1497,22 @@ const flashGuide = (target: string, color: string): boolean => {
     };
     place();
     const tracker = setInterval(place, 100);
-    ring.animate([{ opacity: 1 }, { opacity: 0.35 }, { opacity: 1 }], { duration: 900, iterations: 6 });
-    arrow.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 600, iterations: 9 });
-    setTimeout(() => { clearInterval(tracker); ring.remove(); arrow.remove(); }, 5400);
-    return true;
+    // Infinite while held; the pulse is what makes it read as a pointer rather
+    // than a border, so it keeps running for as long as the ring is up.
+    const iterations = persist ? Infinity : 6;
+    ring.animate([{ opacity: 1 }, { opacity: 0.35 }, { opacity: 1 }], { duration: 900, iterations });
+    arrow.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 600, iterations: persist ? Infinity : 9 });
+    let disposed = false;
+    const dispose = () => {
+        if (disposed) return;
+        disposed = true;
+        clearInterval(tracker);
+        clearTimeout(timer);
+        ring.remove();
+        arrow.remove();
+    };
+    const timer = persist ? undefined : setTimeout(dispose, 5400);
+    return dispose;
 };
 
 // Steps cycle through the Bauhaus triad; yellow flips to black text for contrast
@@ -1523,11 +1572,16 @@ const SidebarSection = ({ title, step, children, hasBorder = false, theme, guide
     const c = step != null ? STEP_COLORS[(step - 1) % STEP_COLORS.length] : null;
     if (theme === 'primary') {
         return (
-            <div data-scatter-section={sectionId} style={{ order }} onClick={event => revealOpenedSidebarSection(event, event.currentTarget)}>
+            // data-guide sits on the whole section, not the title: it used to be
+            // on the heading span below, so pointing at "variables" ringed three
+            // words of header while the panel being described sat outside the
+            // ring. The terminal branch above always anchored the section, which
+            // is why only this theme looked wrong.
+            <div data-guide={guide ?? sectionId} data-scatter-section={sectionId} style={{ order }} onClick={event => revealOpenedSidebarSection(event, event.currentTarget)}>
                 <AccordionItem
                     value={sectionId}
                     title={
-                        <span data-guide={guide ?? sectionId} role="heading" aria-level={2} className="scatterlab-primary-accordion-title">
+                        <span role="heading" aria-level={2} className="scatterlab-primary-accordion-title">
                             {c && <span className="bauhaus-step" style={{ backgroundColor: c.bg, color: c.fg }}>{step}</span>}
                             <span>{title}</span>
                         </span>
@@ -1671,7 +1725,9 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
     view: any, title: string, colorBy: string, axesOn: boolean, aspect: AspectMode,
     window2d: { x: [number, number], y: [number, number] } | null,
     camera: SceneCamera,
-    onRelayout: (e: any) => void,
+    // The pane's own id travels with the event: every pane shares one handler,
+    // and it has to know whether the live view or a pin was dragged.
+    onRelayout: (e: any, viewId: string | number) => void,
 }) => {
     const { theme } = useTheme();
     const traces = useMemo(
@@ -1701,7 +1757,14 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
         if (!el || typeof ResizeObserver === 'undefined') return;
         let raf = 0;
         let dead = false;
+        // ResizeObserver delivers one callback the moment it starts observing.
+        // For a pane that has just mounted that is a resize to the size Plotly
+        // already laid itself out at — pure waste, and it lands in the same
+        // frame as the real resizes of every other pane, which is what makes
+        // adding a pin one long task instead of n-1 short ones.
+        let firstObservation = true;
         const ro = new ResizeObserver(() => {
+            if (firstObservation) { firstObservation = false; return; }
             // Coalesce: a grid re-split fires this for every pane in the same
             // frame, and Plots.resize is not free.
             cancelAnimationFrame(raf);
@@ -1725,7 +1788,7 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
                 layout={layout}
                 useResizeHandler={true}
                 style={{ width: "100%", height: "100%" }}
-                onRelayout={onRelayout}
+                onRelayout={(e: any) => onRelayout(e, view.id)}
             />
         </div>
     );
@@ -2326,12 +2389,6 @@ export default function Home() {
       }
   };
 
-  const getLayout = (title: string, customAxisNames: AxisLabels, mode = viewMode, axesOn = false, window2d: { x: [number, number], y: [number, number] } | null = null, sceneCamera: { eye: { x: number, y: number, z: number } } | null = null) =>
-      buildPlotLayout({
-          dark: theme === 'terminal', title, colorBy, axisNames: customAxisNames,
-          mode, axesOn, aspect, window2d, camera: sceneCamera ?? camera,
-      });
-
   // Target by id — NOT .js-plotly-plot: Plotly.toImage spawns (and can leak) a
   // temporary clone div with that class, and grabbing the purged clone exports
   // empty default axes instead of the real plot
@@ -2648,13 +2705,24 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       return null;
   };
 
+  // Pinning mounts a whole new Plotly pane, WebGL context and all, and then
+  // every existing pane resizes into the re-split grid. Measured on the iris
+  // demo that was 1312 ms from click to paint (259 ms of it inside the handler,
+  // then a 933 ms task) — the button appeared frozen.
+  //
+  // The work is irreducible; what was wrong is that it was URGENT. As a
+  // transition React renders it at low priority, so the browser paints the
+  // click before the new pane is built instead of after. The pin object itself
+  // is still built synchronously: it reads the live camera off the plot div,
+  // which has to be its value at click time.
+  const [isPinning, startPinning] = useTransition();
+
   const pinCurrentView = () => {
       if (pinnedViews.length >= 3) {
           setUploadStatus("Pin limit reached — the grid holds the live view plus 3 pins. Remove one to pin another.");
           return;
       }
-      setPinnedViews([
-          ...pinnedViews,
+      const pin = (
           // Tables are replaced wholesale on change, so sharing the reference is a safe snapshot
           { id: Date.now(), data: processedData, colorBy, shapeBy,
             axes: effectiveAxes(activeDataset!, viewMode), labels: effectiveLabels(activeDataset!, viewMode), viewMode,
@@ -2673,12 +2741,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 ? (getActivePlotDiv()?.layout?.scene?.camera ?? cameraRef.current)
                 : null,
             muted: { ...mutedMap },
-            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}` }
-      ]);
+            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}` });
+      startPinning(() => setPinnedViews(prev => [...prev, pin]));
   };
 
   const removePin = (id: number) => {
-      setPinnedViews(pinnedViews.filter(v => v.id !== id));
+      // Unmounting a pane re-splits the grid and resizes the survivors, so it
+      // costs what pinning costs. Same treatment.
+      startPinning(() => setPinnedViews(prev => prev.filter(v => v.id !== id)));
   };
 
   const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
@@ -2805,6 +2875,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   const askAssistantRef = useRef<((q: string) => void) | null>(null);
   // Assistant dock mode: right column (default) / bottom row / floating overlay
   const [assistantDock, setAssistantDock] = useState<'right' | 'bottom' | 'float'>('right');
+  // The scripted walkthrough is driving the workbench: uploading mid-tour would
+  // land a dataset the script does not know about between two of its steps, so
+  // the control is disabled and says why, with the way out beside it.
+  const [walkthroughActive, setWalkthroughActive] = useState(false);
+  const exitWalkthroughRef = useRef<(() => void) | null>(null);
+  const startWalkthroughRef = useRef<(() => void) | null>(null);
+  // Mirrors an assistant/walkthrough PCA back into the PCA panel's controls.
+  const [externalPcaRun, setExternalPcaRun] = useState<{ vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null>(null);
   useEffect(() => {
       const saved = localStorage.getItem('scatterlab.assistant.dock');
       if (saved === 'right' || saved === 'bottom' || saved === 'float') setAssistantDock(saved);
@@ -3039,7 +3117,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (opts.label && !label) return `"${opts.label}" is not usable as a run label — use letters, digits, _ or -.`;
           const missing: MissingStrategy =
               opts.missing === 'complete' ? 'complete' : opts.missing === 'iterative' ? 'iterative' : 'median';
-          return handleRunPCA(vars, Math.min(Math.max(opts.n_components ?? 3, 1), 10), opts.standardize ?? true, label, missing);
+          const k = Math.min(Math.max(opts.n_components ?? 3, 1), 10);
+          const standardizePCA = opts.standardize ?? true;
+          setExternalPcaRun(prev => ({ vars, k, standardize: standardizePCA, missing, label, seq: (prev?.seq ?? 0) + 1 }));
+          return handleRunPCA(vars, k, standardizePCA, label, missing);
       },
 
       correlate: (colA, colB) => {
@@ -3280,6 +3361,17 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `Highlighted ${target} with an ephemeral arrow (~5s). Continue explaining while the user looks.`;
       },
 
+      setAssistantDock: (mode) => {
+          if (mode !== 'right' && mode !== 'bottom' && mode !== 'float') return `Unknown dock "${mode}". Use right, bottom, or float.`;
+          changeDock(mode);
+          return `Moved the assistant panel to the ${mode === 'float' ? 'floating overlay' : `${mode} dock`}.`;
+      },
+
+      holdHighlight: (target) => {
+          if (!(GUIDE_TARGETS as readonly string[]).includes(target)) return null;
+          return flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26', true);
+      },
+
       snapshot: () => ({
           datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap,
@@ -3325,24 +3417,32 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // Stable across renders, so memoizing ViewPlot is not defeated by a fresh
   // closure on every prop pass (F13). Reads live values from refs where it must,
   // rather than closing over state that would force it to be rebuilt.
-  const handleRelayout = useCallback((e: any) => {
-      const gd = getActivePlotDiv();
-      if (!gd) return;
-      if (e['scene.camera']) {
-          // A drag during auto-rotation means the user took the wheel.
+  // Mirror a pane's own zoom/pan/rotate back into the state that pane renders
+  // from. Without it the next re-render re-applies the stored layout and snaps
+  // the plot back to where it was.
+  //
+  // This used to write everything into the LIVE camera and range2d regardless of
+  // which pane fired, while pinned panes rendered from `view.camera` /
+  // `view.range2d`. So dragging a pin rotated the live plot and left the pin
+  // exactly where it was — the reason pins read as frozen pictures. Each pane
+  // now updates its own framing.
+  const handleRelayout = useCallback((e: any, viewId: string | number) => {
+      const intent = readRelayout(e);
+      if (!intent) return;
+      const isPin = viewId !== 'active';
+      const updatePin = (patch: Record<string, unknown>) =>
+          setPinnedViews(prev => prev.map(v => (v.id === viewId ? { ...v, ...patch } : v)));
+
+      if (intent.kind === 'camera') {
+          if (isPin) { updatePin({ camera: intent.camera }); return; }
+          if (!getActivePlotDiv()) return;
+          // A drag during auto-rotation means the user took the wheel — but only
+          // when it is the rotating live view being dragged.
           if (isRotatingRef.current) setIsRotating(false);
-          setCamera(e['scene.camera']);
+          setCamera(intent.camera as SceneCamera);
           return;
       }
-      // Mirror the user's own box-zoom/pan into state; without this the next
-      // re-render would re-apply the old layout and snap the plot back.
-      // Double-click sends autorange instead.
-      if (e['xaxis.autorange'] || e['yaxis.autorange']) { setRange2d(null); return; }
-      const x0 = e['xaxis.range[0]'], x1 = e['xaxis.range[1]'];
-      const y0 = e['yaxis.range[0]'], y1 = e['yaxis.range[1]'];
-      if ([x0, x1, y0, y1].every(v => typeof v === 'number' && Number.isFinite(v))) {
-          setRange2d({ x: [x0, x1], y: [y0, y1] });
-      }
+      if (isPin) updatePin({ range2d: intent.range }); else setRange2d(intent.range);
   }, []);
 
   const renderView = (view: any, index: number) => {
@@ -3542,25 +3642,40 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               <div
                 key={zone.key}
                 data-guide={zone.key === 'ds' ? 'upload-dropzone' : undefined}
-                onClick={() => zone.ref.current?.click()}
-                onDragOver={e => { e.preventDefault(); setDragOver(zone.key); }}
+                onClick={() => { if (!walkthroughActive) zone.ref.current?.click(); }}
+                onDragOver={e => { e.preventDefault(); if (!walkthroughActive) setDragOver(zone.key); }}
                 onDragLeave={() => setDragOver(null)}
                 onDrop={e => {
                   e.preventDefault();
                   setDragOver(null);
+                  if (walkthroughActive) return;
                   const f = e.dataTransfer.files?.[0];
                   if (f) zone.set(f);
                 }}
-                className={`border-2 border-dashed p-3 flex flex-col items-center cursor-pointer transition-colors ${theme === 'primary' ? 'border-[3px] bg-white' : theme === 'terminal' ? 'border-[var(--system-green)]/45 text-[var(--system-green)] hover:border-[var(--system-green)] hover:bg-[var(--system-green)]/10' : ''} ${dragOver === zone.key
+                aria-disabled={walkthroughActive || undefined}
+                title={walkthroughActive ? 'Paused while the walkthrough is running' : undefined}
+                className={`border-2 border-dashed p-3 flex flex-col items-center transition-colors ${walkthroughActive ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${theme === 'primary' ? 'border-[3px] bg-white' : theme === 'terminal' ? 'border-[var(--system-green)]/45 text-[var(--system-green)]' : ''} ${walkthroughActive ? 'border-[var(--border)]' : dragOver === zone.key
                   ? (theme === 'primary' ? 'border-[var(--p-blue)] bg-blue-50' : 'border-[var(--system-green)] bg-[var(--system-green)]/10')
-                  : 'border-[var(--border)] hover:bg-[var(--foreground)]/5'}`}
+                  : `border-[var(--border)] hover:bg-[var(--foreground)]/5 ${theme === 'terminal' ? 'hover:border-[var(--system-green)] hover:bg-[var(--system-green)]/10' : ''}`}`}
               >
-                <input type="file" className="hidden" accept=".csv,.xlsx,.parquet" ref={zone.ref} onChange={(e) => e.target.files && zone.set(e.target.files[0])} />
-                {zone.file
-                  ? <span className="text-xs font-medium text-center break-all">{zone.file.name}</span>
-                  : <span className="text-xs font-medium opacity-50 text-center">{zone.empty}</span>}
+                <input type="file" className="hidden" accept=".csv,.xlsx,.parquet" ref={zone.ref} disabled={walkthroughActive} onChange={(e) => e.target.files && zone.set(e.target.files[0])} />
+                {walkthroughActive
+                  ? <span className="text-xs font-medium opacity-70 text-center">Uploads are paused during the walkthrough</span>
+                  : zone.file
+                    ? <span className="text-xs font-medium text-center break-all">{zone.file.name}</span>
+                    : <span className="text-xs font-medium opacity-50 text-center">{zone.empty}</span>}
               </div>
             ))}
+            {walkthroughActive && (
+              <button
+                onClick={() => exitWalkthroughRef.current?.()}
+                className={`scatterlab-action-button w-full text-xs font-bold py-1.5 border cursor-pointer ${theme === 'primary'
+                  ? 'border-[var(--border)] bg-[var(--input)] hover:bg-[var(--p-yellow)]'
+                  : 'border-[var(--system-green)]/40 bg-[var(--input)] text-[var(--system-green)]/80 hover:bg-[var(--system-green)]/10'}`}
+              >
+                Quit the walkthrough
+              </button>
+            )}
             {sheetOptions.length > 1 && (
               // Only shown for a genuine multi-sheet workbook. The default is
               // the parser's own choice (first sheet with data), so a Readme-
@@ -3589,7 +3704,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
             >
               {showComponents || componentsFile ? '− Remove components file' : '+ Project through a PCA components file'}
             </button>
-            <button data-guide="add-dataset" onClick={handleUpload} disabled={!datasetFile || isUploading} className={`scatterlab-action-button w-full text-sm font-bold py-2 disabled:opacity-50 ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--system-green)]/55 hover:bg-[var(--system-green)]/10 text-[var(--system-green)] cursor-pointer'}`}>
+            <button data-guide="add-dataset" onClick={handleUpload} disabled={!datasetFile || isUploading || walkthroughActive} title={walkthroughActive ? 'Paused while the walkthrough is running' : undefined} className={`scatterlab-action-button w-full text-sm font-bold py-2 disabled:opacity-50 ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--system-green)]/55 hover:bg-[var(--system-green)]/10 text-[var(--system-green)] cursor-pointer'}`}>
               {isUploading ? "Processing..." : "Add Dataset"}
             </button>
             {processedData && (
@@ -3693,6 +3808,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     lastRun={pcaInfo}
                     runs={activeDataset?.pcaRuns ?? []}
                     onRun={handleRunPCA}
+                    externalRun={externalPcaRun}
                   />
                 )}
               </SidebarSection>
@@ -3764,8 +3880,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     {isRotating ? <><Square className="w-4 h-4" /> Stop Rotation</> : <><Play className="w-4 h-4" /> Start Rotation</>}
                 </button>
                 <Separator dashed className="scatterlab-view-divider" />
-                <button onClick={pinCurrentView} className={`scatterlab-action-button w-full flex items-center justify-center gap-2 py-2 text-sm font-bold ${theme==='primary'?'bauhaus-btn bg-[var(--p-red)] text-white':'bg-[var(--primary)] border border-[var(--primary)] text-white'}`}>
-                    <Pin className="w-4 h-4" /> Pin View
+                {/* The pane is built off the critical path now, so the button
+                    says what is happening rather than going quiet mid-work. */}
+                <button onClick={pinCurrentView} disabled={isPinning} className={`scatterlab-action-button w-full flex items-center justify-center gap-2 py-2 text-sm font-bold disabled:opacity-60 ${theme==='primary'?'bauhaus-btn bg-[var(--p-red)] text-white':'bg-[var(--primary)] border border-[var(--primary)] text-white'}`}>
+                    <Pin className="w-4 h-4" /> {isPinning ? 'Pinning…' : 'Pin View'}
                 </button>
               </SidebarSection>
 
@@ -3906,10 +4024,28 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   <ThemedLegend view={allViews[0]} theme={theme} muted={mutedMap} onToggle={toggleMuted} />
               </>
           ) : (
-              <EmptyState theme={theme} onLoadDemo={loadDemo} onUpload={() => dsInputRef.current?.click()} busy={isUploading} />
+              <EmptyState
+                theme={theme}
+                // "Load demo" opens the walkthrough, which loads the data as its
+                // own first act. The panel is dynamically imported, so on the
+                // very first paint its ref may not be assigned yet — fall back
+                // to a plain load rather than leaving the button dead.
+                onLoadDemo={() => { if (startWalkthroughRef.current) startWalkthroughRef.current(); else void loadDemo(); }}
+                onUpload={() => dsInputRef.current?.click()}
+                busy={isUploading}
+              />
           )}
         </div>
-        <AssistantPanel bridgeRef={bridgeRef} theme={theme} askRef={askAssistantRef} dock={assistantDock} onDockChange={changeDock} />
+        <AssistantPanel
+          bridgeRef={bridgeRef}
+          theme={theme}
+          askRef={askAssistantRef}
+          dock={assistantDock}
+          onDockChange={changeDock}
+          onWalkthroughChange={setWalkthroughActive}
+          exitWalkthroughRef={exitWalkthroughRef}
+          startWalkthroughRef={startWalkthroughRef}
+        />
       </main>
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} theme={theme} />
 

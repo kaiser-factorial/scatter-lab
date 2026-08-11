@@ -37,7 +37,7 @@ jobs:
       # you clear some — that is the point of pinning it.
       - name: Lint (no regressions)
         run: |
-          BASELINE=125
+          BASELINE=123
           COUNT=$(npx eslint . -f json \
             | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);console.log(r.reduce((n,f)=>n+f.errorCount+f.warningCount,0))})")
           echo "eslint problems: $COUNT (baseline $BASELINE)"
