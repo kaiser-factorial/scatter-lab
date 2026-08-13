@@ -27,7 +27,7 @@ The app is one page ([src/app/page.tsx](frontend/src/app/page.tsx)) plus librari
 | `src/lib/pca.ts` | In-app PCA: Jacobi eigensolver, scores/loadings/scree (sklearn-equivalent) |
 | `src/lib/cluster.ts` | DBSCAN + K-Means (k-means++, seeded/deterministic) |
 | `src/lib/stats.ts` | Pearson/Spearman, group comparison + eta², silhouette-by-k, k-distance |
-| `src/lib/workspaces.ts` | Session persistence (IndexedDB `scatter-lab`) + file export/import |
+| `src/lib/workspaces.ts` | Named workspaces + autosaved session (IndexedDB `scatter-lab`) + file export/import |
 | `src/lib/assistant.ts` | Assistant client (OpenAI-compatible), tool definitions, tool loop |
 | `src/lib/walkthrough.ts` | The scripted tour as data: steps, bridge actions, handoff greeting |
 | `src/lib/relayout.ts` | Reading Plotly's `plotly_relayout` payload (camera / 2D viewport / reset) |
@@ -60,6 +60,44 @@ improves automatic choices. The policy is pure/tested in `src/lib/defaults.ts`.
 cluster` or `% of group` view as a 2× PNG heatmap (Viridis, Inferno, or Greens), with a
 0–100% colour-scale legend. Cells retain both the normalized percentage and raw count; rendering/download is local
 in `src/lib/clusterBreakdown.ts`.
+
+## Session continuity (2026-08-13)
+
+Refresh no longer resets the app. A single "current session" record (IndexedDB
+`scatter-lab`, store `session`, DB version 2) is autosaved as the user works —
+**event-driven and debounced (1.5 s after the last change), not on a timer** —
+with a flush on `pagehide`/`visibilitychange` to catch a close inside the
+debounce window. On load it auto-restores with a toast ("Picked up where you
+left off" + Start fresh). Named workspaces are untouched by autosave; they stay
+deliberate checkpoints.
+
+The payload is the same shape as a workspace (still format 1) plus an optional
+`conversation` section: the assistant's display transcript **and** its
+wire-format history, so a restored conversation actually continues — the model
+keeps its context. Conversations therefore also ride inside named workspaces
+and exported files (snapshot semantics: loading a workspace replaces the
+current chat with the workspace's own, or clears it if there is none —
+Corina's call, incl. export-by-default). The API key stays in localStorage
+only, as ever. `sanitizeConversation` filters the section on apply rather than
+validating it — a damaged chat must never cost the user their data (contrast
+`validateWorkspace`, which still throws for anything that can white-screen).
+
+**Crash-loop guard:** `scatterlab.session.restoreGuard` (localStorage) is set
+before applying the session and cleared by an effect that only runs after the
+restored state commits. If a restore ever white-screens (the C11 failure
+class), the next load finds the flag, skips auto-restore, and offers
+Resume/Discard instead of looping. The restore effect is single-shot behind a
+ref so StrictMode's dev double-mount doesn't trip the guard it just set.
+
+The panel side goes through `ConversationBridge` (same mutable-ref pattern as
+`askRef`), whose `pending` slot covers the startup race: the panel is
+dynamically imported, so a restore can finish before the panel exists to
+receive its conversation. Deliberately deferred: a conversation archive /
+history UI (v1 keeps exactly one live conversation; the settings "clear" is
+still destructive), truncating the *sent* wire history on very long
+conversations (stored ≠ sent; the growth predates persistence), and splitting
+tables into their own store so autosave stops re-cloning them when only view
+state changed (only matters ≥100k rows; the F21 estimate note has the numbers).
 
 ## The assistant
 
@@ -404,9 +442,14 @@ unbiased-sample check, held in reserve.
    visible: these chunks are rendered verbatim on the new About page, not just retrieved
    by the assistant. (The unbalanced parenthesis in `loadings_vs_scores` was fixed as part
    of A8, along with naming which loadings convention the app reports.)
-3. **Local dev machine is severely degraded** (25-min Next compiles, minutes to hydrate).
-   Current workflow: push and let Vercel build (33s there). Investigate the Mac
-   (Activity Monitor, disk space, thermals) before trusting local builds again.
+3. ~~Local dev machine is severely degraded~~ **Very likely solved (2026-08-13):**
+   a stray `package-lock.json` in the home directory made Next infer `~` as the
+   workspace root, so Turbopack watched/cached against the whole home directory —
+   observed concretely as `globals.css` edits never reaching the served CSS chunk
+   even across server restarts. `turbopack.root` is now pinned in
+   `next.config.ts`; after `rm -rf .next`, cold start measured **~10 s** and
+   incremental compiles under 3 s on the same machine. If local dev misbehaves
+   again, check for new stray lockfiles above the repo before blaming hardware.
 4. **Supabase table has test junk** to delete: rows with `model = 'setup-test'` and
    `model = 'mock/model'`. Free-tier projects pause after ~1 week idle (restore from
    dashboard). Write-only anon key means spam inserts are possible — acceptable at this
@@ -570,5 +613,6 @@ cp .env.local.example .env.local              # fill Supabase values to enable f
 ```
 
 Push to `main` deploys production. LocalStorage keys are all namespaced
-`scatterlab.*`; workspaces in IndexedDB `scatter-lab`; feedback buffer in
-IndexedDB `scatter-lab-feedback`.
+`scatterlab.*`; workspaces and the autosaved session in IndexedDB `scatter-lab`
+(stores `workspaces` / `session`, DB version 2); feedback buffer in IndexedDB
+`scatter-lab-feedback`.

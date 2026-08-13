@@ -6,22 +6,28 @@ export type WorkspaceMeta = { name: string; saved_at: string; bytes: number };
 
 const DB_NAME = 'scatter-lab';
 const STORE = 'workspaces';
+// v2 adds the session store: the continuously-autosaved "where you left off"
+// record, kept apart from named workspaces so autosave can never overwrite a
+// deliberate checkpoint.
+const SESSION_STORE = 'session';
+const DB_VERSION = 2;
 
 const openDB = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
+      if (!req.result.objectStoreNames.contains(SESSION_STORE)) req.result.createObjectStore(SESSION_STORE);
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 
-const tx = async <T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> => {
+const tx = async <T>(store: string, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> => {
   const db = await openDB();
   return new Promise<T>((resolve, reject) => {
-    const t = db.transaction(STORE, mode);
-    const req = fn(t.objectStore(STORE));
+    const t = db.transaction(store, mode);
+    const req = fn(t.objectStore(store));
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
     t.oncomplete = () => db.close();
@@ -32,8 +38,8 @@ type Stored = { payload: any; saved_at: string; bytes: number };
 
 export const listWorkspaces = async (): Promise<WorkspaceMeta[]> => {
   const [keys, values] = await Promise.all([
-    tx<IDBValidKey[]>('readonly', s => s.getAllKeys()),
-    tx<Stored[]>('readonly', s => s.getAll()),
+    tx<IDBValidKey[]>(STORE, 'readonly', s => s.getAllKeys()),
+    tx<Stored[]>(STORE, 'readonly', s => s.getAll()),
   ]);
   return keys
     .map((k, i) => ({ name: String(k), saved_at: values[i]?.saved_at ?? '', bytes: values[i]?.bytes ?? 0 }))
@@ -67,16 +73,35 @@ const estimateBytes = (payload: unknown): number => {
 
 export const saveWorkspace = async (name: string, payload: any): Promise<void> => {
   const stored: Stored = { payload, saved_at: new Date().toISOString().slice(0, 19), bytes: estimateBytes(payload) };
-  await tx('readwrite', s => s.put(stored, name));
+  await tx(STORE, 'readwrite', s => s.put(stored, name));
 };
 
 export const loadWorkspace = async (name: string): Promise<any | null> => {
-  const stored = await tx<Stored | undefined>('readonly', s => s.get(name));
+  const stored = await tx<Stored | undefined>(STORE, 'readonly', s => s.get(name));
   return stored?.payload ?? null;
 };
 
 export const deleteWorkspace = async (name: string): Promise<void> => {
-  await tx('readwrite', s => s.delete(name));
+  await tx(STORE, 'readwrite', s => s.delete(name));
+};
+
+// --- session continuity ------------------------------------------------------
+// One record, autosaved as the user works, restored on the next load. Same
+// payload shape as a workspace so validateWorkspace/applyWorkspace cover both.
+
+const SESSION_KEY = 'current';
+
+export const saveSession = async (payload: unknown): Promise<void> => {
+  await tx(SESSION_STORE, 'readwrite', s => s.put({ payload, saved_at: new Date().toISOString().slice(0, 19) }, SESSION_KEY));
+};
+
+export const loadSession = async (): Promise<unknown> => {
+  const stored = await tx<{ payload: unknown } | undefined>(SESSION_STORE, 'readonly', s => s.get(SESSION_KEY));
+  return stored?.payload ?? null;
+};
+
+export const clearSession = async (): Promise<void> => {
+  await tx(SESSION_STORE, 'readwrite', s => s.delete(SESSION_KEY));
 };
 
 export const exportWorkspaceFile = (name: string, payload: any) => {
@@ -162,6 +187,36 @@ export const validateWorkspace = (parsed: unknown): void => {
       throw new Error(`Workspace file is damaged: pinned view #${i + 1} has no usable data.`);
     }
   });
+};
+
+// --- assistant conversation --------------------------------------------------
+// Stored inside the workspace/session payload as an optional `conversation`
+// section: the display transcript plus the wire-format history that lets the
+// assistant actually continue where it left off (not just show old bubbles).
+// The API key is NOT part of this — it stays in localStorage, as ever.
+
+// `local` marks a message the panel composed rather than a model (the handoff
+// greeting); it must survive a round-trip so restored greetings still aren't
+// offered for thumbs feedback.
+export type ConversationEntry = { kind: 'user' | 'assistant' | 'tool' | 'error'; text: string; local?: boolean };
+export type Conversation = { entries: ConversationEntry[]; history: unknown[] };
+
+const ENTRY_KINDS = new Set(['user', 'assistant', 'tool', 'error']);
+
+/**
+ * Reduce an untyped `conversation` section to something the panel can render,
+ * or null if there is nothing usable. Unlike the table checks above this
+ * sanitizes rather than throws: a workspace whose data is intact should not be
+ * refused because its chat section is damaged — the chat is auxiliary.
+ */
+export const sanitizeConversation = (v: unknown): Conversation | null => {
+  if (!isRecord(v)) return null;
+  const entries = (Array.isArray(v.entries) ? v.entries : [])
+    .filter((e: unknown): e is ConversationEntry =>
+      isRecord(e) && typeof e.text === 'string' && typeof e.kind === 'string' && ENTRY_KINDS.has(e.kind));
+  const history = (Array.isArray(v.history) ? v.history : []).filter(isRecord);
+  if (entries.length === 0 && history.length === 0) return null;
+  return { entries, history };
 };
 
 export const importWorkspaceFile = async (file: File): Promise<{ name: string; payload: unknown }> => {

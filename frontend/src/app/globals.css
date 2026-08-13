@@ -383,3 +383,24 @@ body {
 [data-theme='terminal'] .scatterlab-infotip > span:first-child {
   color: var(--system-green);
 }
+
+/* Session-restore toast. Primary follows the puxel Toast look (ink box on the
+   light page, hard offset shadow, quick stepped rise) — same convention as the
+   accordion and InfoTip: puxel structure, chrome themed here. Terminal keeps
+   its green pill from utility classes; both share the entrance. */
+@keyframes scatterlab-toast-in {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.scatterlab-session-toast {
+  animation: scatterlab-toast-in 180ms steps(3, end);
+}
+
+[data-theme='primary'] .scatterlab-session-toast {
+  background: var(--p-black);
+  color: var(--p-white);
+  border: 3px solid var(--p-black);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--p-black) 35%, transparent);
+  font-weight: 600;
+}

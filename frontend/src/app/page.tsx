@@ -23,6 +23,7 @@ const AssistantPanel = dynamic(
     { ssr: false },
 );
 import type { AppBridge, ColumnProfile } from "@/lib/assistant";
+import type { ConversationBridge } from "@/components/AssistantPanel";
 import { GUIDE_TARGETS } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
 import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
@@ -2148,6 +2149,12 @@ export default function Home() {
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
           notes, mutedMap,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
+          workspaceName: workspaceName.trim() || undefined,
+          // Assistant transcript + wire history ride along (optional section,
+          // still format 1 — older builds simply ignore it). Falls back to the
+          // bridge's pending value during the startup window before the
+          // dynamically-imported panel has mounted.
+          conversation: convBridge.current.handle?.get() ?? convBridge.current.pending ?? undefined,
       };
   };
 
@@ -2201,7 +2208,7 @@ export default function Home() {
       }
   };
 
-  const applyWorkspace = (name: string, ws: any) => {
+  const applyWorkspace = (name: string, ws: any, opts?: { silent?: boolean }) => {
           const tables: Record<string, DataTable> = ws.tables ?? {};
           const rehydrate = (ref: any) => (typeof ref === 'string' ? tables[ref] : ref);
           // Restore muted state deliberately — suppress the reset that colorBy/activeId would trigger
@@ -2235,7 +2242,136 @@ export default function Home() {
           setHeatmapPalette(HEATMAP_PALETTES.includes(ws.heatmapPalette) ? ws.heatmapPalette : 'Viridis');
           setIncludeExportInfo(ws.includeExportInfo ?? true);
           setWorkspaceName(name);
-          setUploadStatus(`Loaded workspace "${name}".`);
+          // Snapshot semantics: the workspace's conversation (or none) replaces
+          // the current one. Sanitized, never validated-and-refused — damaged
+          // chat must not cost the user their data.
+          const conv = wsStore.sanitizeConversation(ws.conversation);
+          if (convBridge.current.handle) convBridge.current.handle.set(conv);
+          else convBridge.current.pending = conv;
+          if (!opts?.silent) setUploadStatus(`Loaded workspace "${name}".`);
+  };
+
+  // --- Session continuity (autosave + restore) --------------------------------
+  // One 'current session' record in IndexedDB, saved as you work and restored
+  // on the next load — refresh no longer resets the app. Named workspaces stay
+  // deliberate checkpoints; this record never touches them.
+  const convBridge = useRef<ConversationBridge>({ handle: null });
+  // Bumped when the assistant finishes a turn so the autosave effect fires;
+  // useCallback so the memoized panel isn't re-rendered by a fresh closure.
+  const [convVersion, setConvVersion] = useState(0);
+  const noteConversationChange = useCallback(() => setConvVersion(v => v + 1), []);
+
+  // Latest payload builder for callbacks that outlive a render (timer, pagehide);
+  // reassigned post-commit so the ref is never written during render
+  const buildPayloadRef = useRef<() => unknown>(() => ({}));
+  useEffect(() => { buildPayloadRef.current = buildWorkspacePayload; });
+
+  const sessionReady = useRef(false);       // block autosave until the restore attempt settles
+  const discardingSession = useRef(false);  // "start fresh" in flight — suppress flushes
+  const sessionSaveTimer = useRef<number | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<'restored' | 'recovery' | null>(null);
+
+  // Debounced, event-driven autosave: a timer-based "every X minutes" loses up
+  // to X minutes and writes while idle; this writes 1.5s after the last change.
+  // Camera drags land here too — the debounce is what absorbs them.
+  useEffect(() => {
+      if (!sessionReady.current || discardingSession.current) return;
+      if (sessionSaveTimer.current) window.clearTimeout(sessionSaveTimer.current);
+      sessionSaveTimer.current = window.setTimeout(() => {
+          sessionSaveTimer.current = null;
+          wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* IndexedDB unavailable */ });
+      }, 1500);
+  }, [datasets, pinnedViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
+      notes, mutedMap, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
+      breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
+
+  // Flush a pending save when the tab hides or unloads — this is what catches
+  // a close/refresh inside the debounce window. No pending timer = nothing new.
+  useEffect(() => {
+      const flush = () => {
+          if (!sessionReady.current || discardingSession.current || !sessionSaveTimer.current) return;
+          window.clearTimeout(sessionSaveTimer.current);
+          sessionSaveTimer.current = null;
+          wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* best effort */ });
+      };
+      const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); };
+      window.addEventListener('pagehide', flush);
+      document.addEventListener('visibilitychange', onVisibility);
+      return () => {
+          window.removeEventListener('pagehide', flush);
+          document.removeEventListener('visibilitychange', onVisibility);
+      };
+  }, []);
+
+  // Auto-restore on load, behind a crash-loop guard: the flag is set before
+  // applying and cleared only after the restored state has rendered (the
+  // effect below runs post-commit). If a restore ever white-screens the app
+  // (the C11 failure class), the next load finds the flag still set, skips
+  // auto-restore, and offers the session manually instead of looping.
+  const RESTORE_GUARD = 'scatterlab.session.restoreGuard';
+  const restoreAttempted = useRef(false);
+  useEffect(() => {
+      // Single-shot even under StrictMode's dev double-mount, which would
+      // otherwise see the guard this effect just set and cry crash-loop.
+      if (restoreAttempted.current) return;
+      restoreAttempted.current = true;
+      (async () => {
+          try {
+              if (localStorage.getItem(RESTORE_GUARD)) {
+                  localStorage.removeItem(RESTORE_GUARD);
+                  if (await wsStore.loadSession()) setSessionNotice('recovery');
+                  return;
+              }
+              const s = await wsStore.loadSession();
+              if (!s) return;
+              localStorage.setItem(RESTORE_GUARD, '1');
+              wsStore.validateWorkspace(s);
+              const savedName = (s as { workspaceName?: unknown }).workspaceName;
+              applyWorkspace(typeof savedName === 'string' ? savedName : '', s, { silent: true });
+              setSessionNotice('restored');
+          } catch {
+              // Damaged session record — start blank rather than refuse to load.
+              localStorage.removeItem(RESTORE_GUARD);
+          } finally {
+              sessionReady.current = true;
+          }
+      })();
+  }, []);
+
+  // Runs after the restored state committed without throwing: safe to drop the
+  // guard. Also lets the toast fade on its own.
+  useEffect(() => {
+      if (sessionNotice !== 'restored') return;
+      localStorage.removeItem(RESTORE_GUARD);
+      const t = window.setTimeout(() => setSessionNotice(null), 10000);
+      return () => window.clearTimeout(t);
+  }, [sessionNotice]);
+
+  const startFresh = async () => {
+      discardingSession.current = true;
+      if (sessionSaveTimer.current) { window.clearTimeout(sessionSaveTimer.current); sessionSaveTimer.current = null; }
+      try { await wsStore.clearSession(); } catch { /* nothing to clear */ }
+      localStorage.removeItem(RESTORE_GUARD);
+      window.location.reload();
+  };
+
+  const resumeSession = async () => {
+      setSessionNotice(null);
+      try {
+          const s = await wsStore.loadSession();
+          if (!s) { setUploadStatus('No saved session found.'); return; }
+          wsStore.validateWorkspace(s);
+          const savedName = (s as { workspaceName?: unknown }).workspaceName;
+          applyWorkspace(typeof savedName === 'string' ? savedName : '', s, { silent: true });
+          setUploadStatus('Session restored.');
+      } catch (err) {
+          setUploadStatus(`Restore failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+  };
+
+  const discardSession = async () => {
+      setSessionNotice(null);
+      try { await wsStore.clearSession(); } catch { /* nothing to clear */ }
   };
 
   const handleTransfer = ({ sourceId, sourceCol, mode, keyCol, name }: TransferSpec) => {
@@ -4040,13 +4176,32 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           bridgeRef={bridgeRef}
           theme={theme}
           askRef={askAssistantRef}
+          convRef={convBridge}
+          onConversationChange={noteConversationChange}
           dock={assistantDock}
           onDockChange={changeDock}
           onWalkthroughChange={setWalkthroughActive}
           exitWalkthroughRef={exitWalkthroughRef}
           startWalkthroughRef={startWalkthroughRef}
         />
+
       </main>
+      {sessionNotice && (
+        <div className={`scatterlab-session-toast fixed bottom-4 left-14 z-50 flex items-center gap-3 px-3 py-2 text-xs ${theme === 'primary'
+          ? ''
+          : 'bg-black/85 border border-[var(--system-green)]/50 text-[var(--system-green)]'}`}>
+          <span>{sessionNotice === 'restored' ? 'Picked up where you left off.' : 'Your last session didn’t restore cleanly.'}</span>
+          {sessionNotice === 'restored' ? (
+            <button onClick={startFresh} className="font-bold uppercase tracking-wider underline underline-offset-2 cursor-pointer">Start fresh</button>
+          ) : (
+            <>
+              <button onClick={resumeSession} className="font-bold uppercase tracking-wider underline underline-offset-2 cursor-pointer">Resume</button>
+              <button onClick={discardSession} className="font-bold uppercase tracking-wider underline underline-offset-2 cursor-pointer">Discard</button>
+            </>
+          )}
+          <button onClick={() => setSessionNotice(null)} title="Dismiss" className="opacity-60 hover:opacity-100 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      )}
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} theme={theme} />
 
       {/* Blanking declared missing-value codes. Replaces the active dataset's

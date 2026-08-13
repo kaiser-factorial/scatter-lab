@@ -17,17 +17,30 @@ import remarkBreaks from 'remark-breaks';
 import { startOpenRouterOAuth, completeOpenRouterOAuth } from '@/lib/openrouterAuth';
 import { feedbackEnabled, submitFeedback, flushFeedback } from '@/lib/feedback';
 import { InfoTip } from '@/components/InfoTip';
+import type { Conversation, ConversationEntry } from '@/lib/workspaces';
 
 // Chat entries for display; the wire-format history is kept separately.
-// `local` marks a message this component composed rather than a model — the
-// handoff greeting — so it is never offered for thumbs feedback, where it would
-// land in the eval table as a rating of a hard-coded string.
-type ChatEntry = { kind: 'user' | 'assistant' | 'tool' | 'error'; text: string; local?: boolean };
+// The shape (incl. `local`, which marks a message this component composed
+// rather than a model — the handoff greeting — so it is never offered for
+// thumbs feedback) is ConversationEntry, because entries persist in the
+// autosaved session and in workspaces.
+type ChatEntry = ConversationEntry;
 
 // What the panel is showing. The menu is the front door on a first visit; after
 // that the panel opens where the user works and the menu stays one click away
 // in the header.
 type PanelView = 'menu' | 'walkthrough' | 'chat';
+
+// Lets the page read/replace the conversation for session autosave and
+// workspace load — same mutable-ref pattern as askRef. `pending` covers the
+// startup race: the panel is dynamically imported, so a session restore can
+// finish before the panel exists to receive it; the value waits here and the
+// panel applies it on mount.
+export type ConversationHandle = {
+  get: () => Conversation;
+  set: (c: Conversation | null) => void;
+};
+export type ConversationBridge = { handle: ConversationHandle | null; pending?: Conversation | null };
 
 const LS = {
   key: 'scatterlab.assistant.key',
@@ -77,10 +90,12 @@ const AssistantMarkdown = memo(({ text }: { text: string }) => (
 ));
 AssistantMarkdown.displayName = 'AssistantMarkdown';
 
-const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef }: {
+const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef }: {
   bridgeRef: React.MutableRefObject<AppBridge>,
   theme: string | undefined,
   askRef?: React.MutableRefObject<((q: string) => void) | null>,
+  convRef?: React.MutableRefObject<ConversationBridge>,
+  onConversationChange?: () => void,
   dock: DockMode,
   onDockChange: (d: DockMode) => void,
   // The page disables uploading while the walkthrough drives the workbench, and
@@ -128,7 +143,22 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
   // opens with the same greeting the menu route gives.
   const greetRef = useRef(false);
 
+  // Replace the whole conversation (session restore / workspace load). Chat
+  // only — walkthrough progress is its own thing and deliberately not persisted.
+  const applyConversation = (c: Conversation | null) => {
+    setChat((c?.entries ?? []) as ChatEntry[]);
+    historyRef.current = (c?.history ?? []) as ChatCompletionMessageParam[];
+    setFb({});          // feedback state indexes into the old transcript
+    setUndoSnap(null);  // the snapshot refers to app state that no longer exists
+  };
+
   useEffect(() => {
+    // A restore that finished before this panel loaded left its conversation
+    // waiting in the bridge — apply it now.
+    if (convRef && convRef.current.pending !== undefined) {
+      applyConversation(convRef.current.pending ?? null);
+      convRef.current.pending = undefined;
+    }
     setApiKey(localStorage.getItem(LS.key) ?? '');
     // The menu is the front door exactly once. Landing a returning user back on
     // it every time would put a choice in front of them they already made, and
@@ -161,7 +191,8 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
         setOpen(true);
         setAuthError(`Connect failed: ${err?.message ?? err} Try again, or paste a key manually.`);
       });
-  }, []);
+    // convRef is a stable ref prop — listed to satisfy the lint, never changes
+  }, [convRef]);
 
   useEffect(() => {
     // OpenRouter's catalog is public — fetch even before a key exists so the
@@ -229,6 +260,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
     setApiKey('');
     setChat([]);
     historyRef.current = [];
+    onConversationChange?.();
   };
 
   const send = async (preset?: string) => {
@@ -268,6 +300,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
       setChat(prev => prev.filter((e, i) => !(i === prev.length - 1 && e.kind === 'assistant' && e.text === '')));
       setUndoSnap(mutated ? snapBefore : null);
       setBusy(false);
+      onConversationChange?.();
     }
   };
 
@@ -314,6 +347,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
     bridgeRef.current.restore(undoSnap);
     setUndoSnap(null);
     setChat(prev => [...prev, { kind: 'tool', text: 'reverted the assistant’s changes' }]);
+    onConversationChange?.();
   };
 
   // --- the walkthrough runner -----------------------------------------------
@@ -437,6 +471,14 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, dock, onDockChange, onW
     setShowSettings(false);
     send(q);
   };
+  // ...and to read/replace the conversation (session autosave, workspace load).
+  // Reassigned every render so `get` sees the current transcript.
+  if (convRef) {
+    convRef.current.handle = {
+      get: () => ({ entries: chat, history: historyRef.current }),
+      set: applyConversation,
+    };
+  }
 
   const primary = theme === 'primary';
   const panelCls = primary

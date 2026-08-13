@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateWorkspace, WORKSPACE_VERSION } from '../workspaces';
+import { validateWorkspace, sanitizeConversation, WORKSPACE_VERSION } from '../workspaces';
 
 // The old check was `!parsed.version` and nothing else, so a damaged file
 // reached applyWorkspace, rehydrated a dangling table reference to undefined,
@@ -69,5 +69,52 @@ describe('validateWorkspace (finding C11)', () => {
     expect(() => validateWorkspace({
       version: 1, datasets: [{ id: 1, name: 'ds', table }],
     })).not.toThrow();
+  });
+
+  it('ignores a conversation section — it is sanitized on apply, never refused', () => {
+    expect(() => validateWorkspace({ ...good(), conversation: 'garbage' })).not.toThrow();
+    expect(() => validateWorkspace({ ...good(), conversation: { entries: 42 } })).not.toThrow();
+  });
+});
+
+// The conversation section is auxiliary: a workspace whose data is intact must
+// never be refused because its chat is damaged. So sanitize, don't throw.
+describe('sanitizeConversation', () => {
+  const entry = (kind: string, text = 'hi') => ({ kind, text });
+
+  it('passes a well-formed conversation through', () => {
+    const conv = {
+      entries: [entry('user'), entry('assistant', 'hello'), entry('tool', 'set plot'), entry('error', 'nope')],
+      history: [{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }],
+    };
+    expect(sanitizeConversation(conv)).toEqual(conv);
+  });
+
+  it('returns null for anything that is not a conversation', () => {
+    for (const v of [null, undefined, 'text', 42, [], {}, { entries: 'nope', history: 'nope' }]) {
+      expect(sanitizeConversation(v)).toBeNull();
+    }
+  });
+
+  it('returns null for an empty conversation — nothing to restore', () => {
+    expect(sanitizeConversation({ entries: [], history: [] })).toBeNull();
+  });
+
+  it('drops malformed entries and keeps the rest', () => {
+    const conv = {
+      entries: [entry('user'), null, entry('alien'), { kind: 'user' }, { text: 'orphan' }, entry('assistant')],
+      history: [],
+    };
+    expect(sanitizeConversation(conv)?.entries).toEqual([entry('user'), entry('assistant')]);
+  });
+
+  it('drops non-object history items and keeps the rest', () => {
+    const conv = { entries: [entry('user')], history: [{ role: 'user' }, 'junk', null, 7] };
+    expect(sanitizeConversation(conv)?.history).toEqual([{ role: 'user' }]);
+  });
+
+  it('tolerates a missing half', () => {
+    expect(sanitizeConversation({ entries: [entry('user')] })).toEqual({ entries: [entry('user')], history: [] });
+    expect(sanitizeConversation({ history: [{ role: 'user' }] })).toEqual({ entries: [], history: [{ role: 'user' }] });
   });
 });
