@@ -47,6 +47,22 @@ export type Disclosure = {
 };
 
 export const DISCLOSURES = {
+  data_modes: {
+    title: 'What The Assistant Can See',
+    text: [
+      'Each dataset carries a data mode, chosen when it is added. In Private mode (the default) the assistant is sent column names and aggregate summaries only — never raw rows, never category values covering fewer than 5 rows, never identifier columns.',
+      'In Public/open mode, which you must explicitly confirm, the assistant can also read raw rows and full category lists of that dataset.',
+      'If any loaded dataset is private, the whole conversation runs at the private level: the row-reading tools do not exist for that conversation.',
+      'Everything else — parsing, PCA, clustering, exports — runs in the browser in both modes and never uploads the dataset anywhere.',
+    ],
+    more: [
+      'The 5-row rule is the usual small-cell threshold in statistical disclosure control: a value covering 80 rows describes a group, a value covering one row is that person.',
+      'The boundary is enforced where the data leaves the app, not by asking the assistant to behave: in Private mode the row-reading tools are not offered to the model at all.',
+      'Switching a dataset from open back to private clears the assistant conversation, because a transcript that already contains rows cannot be redacted after the fact.',
+      'Whatever the assistant does see is sent to the model API you configured, with your key. With a local runtime (Ollama, LM Studio) as the endpoint, even that never leaves your machine.',
+    ],
+  },
+
   kmeans_deterministic: {
     title: 'K-Means Is Reproducible, Not Optimal',
     text: [
@@ -229,6 +245,7 @@ export const disclosure = (key: DisclosureKey): Disclosure => DISCLOSURES[key];
 
 /** Ordered for an information page; grouped by where they apply in the app. */
 export const DISCLOSURE_SECTIONS: { heading: string; keys: DisclosureKey[] }[] = [
+  { heading: 'Privacy', keys: ['data_modes'] },
   { heading: 'Missing Data', keys: ['median_imputation', 'missing_value_codes'] },
   { heading: 'PCA', keys: ['standardize_pca', 'pca_loadings', 'variance_explained', 'scree_full_spectrum'] },
   {

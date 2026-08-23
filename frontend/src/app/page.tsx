@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { UploadCloud, Play, Square, Download, Pin, Monitor, X, Trash2, Info } from "lucide-react";
+import { UploadCloud, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { TmuxGrid } from "@/components/TmuxGrid";
@@ -29,6 +29,8 @@ import { readRelayout } from "@/lib/relayout";
 import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
+import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
+import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
 import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
@@ -295,6 +297,11 @@ type Dataset = {
     axes: Axes, labels: AxisLabels,
     axes2d: Axes2D, labels2d: Axes2D,
     pcaRuns?: PcaRun[],
+    // What the assistant may see of this dataset. Chosen at upload, changeable
+    // from the badge in the datasets list; 'private' is the fail-closed default
+    // (asDataMode maps anything unrecognized — including its absence in an
+    // older workspace — to it).
+    dataMode: DataMode,
 };
 
 type InitialUploadView = {
@@ -1801,6 +1808,12 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [datasetFile, setDatasetFile] = useState<File | null>(null);
   const [componentsFile, setComponentsFile] = useState<File | null>(null);
+  // Data mode for the NEXT upload. Reset to 'private' after every successful
+  // add — the declaration is per file, deliberately not sticky.
+  const [uploadDataMode, setUploadDataMode] = useState<DataMode>('private');
+  // Mode-switch dialog for an already-loaded dataset (badge in the list).
+  const [modeDialog, setModeDialog] = useState<{ datasetId: number; to: DataMode } | null>(null);
+  const [modeConfirmChecked, setModeConfirmChecked] = useState(false);
   // Sheets in the selected workbook, and which one to read. Empty string means
   // "let the parser choose", which is the right default — it picks the first
   // sheet that actually has data rather than blindly the first sheet.
@@ -2022,6 +2035,7 @@ export default function Home() {
     compFile: File | null,
     initialView?: InitialUploadView,
     sheet?: string,
+    dataMode: DataMode = 'private',
   ): Promise<DataTable | null> => {
     setIsUploading(true);
     setUploadStatus("Processing…");
@@ -2059,6 +2073,7 @@ export default function Home() {
         labels: defaultLabels(axes),
         axes2d: { x: axes.x, y: axes.y },
         labels2d: { x: axes.x, y: axes.y },
+        dataMode,
       };
       setDatasets(prev => [...prev, dataset]);
       setActiveId(id);
@@ -2075,6 +2090,7 @@ export default function Home() {
       // Consume the file selections so the slots are free for the next dataset
       setDatasetFile(null);
       setComponentsFile(null);
+      setUploadDataMode('private');
       if (dsInputRef.current) dsInputRef.current.value = "";
       if (compInputRef.current) compInputRef.current.value = "";
       return table;
@@ -2086,7 +2102,7 @@ export default function Home() {
     }
   };
 
-  const handleUpload = () => { if (datasetFile) uploadFiles(datasetFile, componentsFile, undefined, selectedSheet || undefined); };
+  const handleUpload = () => { if (datasetFile) uploadFiles(datasetFile, componentsFile, undefined, selectedSheet || undefined, uploadDataMode); };
 
   // Demo data ships with the app (public/demo) so the empty state can offer a
   // zero-friction first run: the public Iris CSV, no projection file required.
@@ -2105,6 +2121,10 @@ export default function Home() {
           colorBy: 'Species',
           viewMode: '3D',
         },
+        undefined,
+        // Iris is a textbook-public dataset, so the demo arrives in open mode —
+        // it doubles as the zero-risk way to try the row-access tools.
+        'open',
       );
     } catch {
       setUploadStatus("Demo data failed to load.");
@@ -2120,6 +2140,19 @@ export default function Home() {
           setColorBy(pickDefaultColorBy(ds.table, colorBy));
           if (!ds.axes.z) setViewMode("2D");
       }
+  };
+
+  // Applies a data-mode change from the confirm dialog. open → private also
+  // clears the assistant conversation: a transcript that already contains raw
+  // rows cannot be redacted after the fact, so the boundary is a fresh start.
+  const applyModeChange = (id: number, to: DataMode) => {
+      setDatasets(prev => prev.map(d => d.id === id ? { ...d, dataMode: to } : d));
+      if (to === 'private' && (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0) {
+          convBridge.current.handle?.set(null);
+          noteConversationChange();
+      }
+      setModeDialog(null);
+      setModeConfirmChecked(false);
   };
 
   // --- Workspace persistence (IndexedDB — fully local) -----------------------
@@ -2214,7 +2247,9 @@ export default function Home() {
           // Restore muted state deliberately — suppress the reset that colorBy/activeId would trigger
           skipMuteReset.current = true;
           setIsRotating(false);
-          setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table) })));
+          // dataMode runs through asDataMode: workspaces saved before data
+          // modes existed carry none, and must load as private (fail closed).
+          setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode) })));
           setPinnedViews((ws.pinnedViews ?? []).map((v: any) => ({ ...v, data: rehydrate(v.data) })));
           setActiveId(ws.activeId ?? null);
           setColorBy(ws.colorBy ?? "");
@@ -2951,9 +2986,16 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   useEffect(() => { freshTableRef.current = null; }, [processedData]);
   const latestTable = (): DataTable | null => freshTableRef.current ?? processedData;
 
+  // What the assistant may see is the ACTIVE dataset's own mode — profiles
+  // describe one dataset. (The tool list is stricter: combinedPolicy over all
+  // loaded datasets, because tools can cross dataset boundaries.)
+  const activePolicy = policyFor(activeDataset?.dataMode ?? 'private');
+  const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
+
   const columnProfiles = (): ColumnProfile[] => {
       const t = latestTable();
       if (!t) return [];
+      const policy = activePolicy;
       return t.columns.map(col => {
           const vals = t.data[col] ?? [];
           let missing = 0, isNumeric = false;
@@ -2991,12 +3033,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           // than per column keeps an ordinary 60-level `school` variable usable
           // while still never naming an individual.
           const shown = Array.from(counts.entries())
-              .filter(([, c]) => !valueIsTooRare(c))
+              .filter(([, c]) => policy.fullCategories || !valueIsTooRare(c))
               .sort((a, b) => b[1] - a[1]);
           // A column explicitly named as an identifier is withheld regardless:
           // in long-format data a participant ID legitimately repeats, and would
-          // otherwise clear the frequency bar.
-          const identifier = isIdentifierColumn(col);
+          // otherwise clear the frequency bar. (Not in open mode, where the
+          // user has declared there is nothing to protect.)
+          const identifier = !policy.identifiersVisible && isIdentifierColumn(col);
           const withheld = counts.size - shown.length;
           return {
               name: col, kind: 'categorical' as const, missing, nUnique: counts.size,
@@ -3031,7 +3074,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   }, []);
   bridgeRef.current = {
       getState: () => ({
-          datasets: datasets.map(d => ({ name: d.name, nRows: d.table.nRows, active: d.id === activeId })),
+          datasets: datasets.map(d => ({ name: d.name, nRows: d.table.nRows, active: d.id === activeId, dataMode: d.dataMode })),
           columns: columnProfiles(),
           axes: activeDataset ? effectiveAxes(activeDataset, viewMode) : { x: '', y: '', z: null },
           colorBy,
@@ -3155,7 +3198,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const attrCounts = new Map<string, number>();
           for (const v of attrVals) if (v != null) attrCounts.set(String(v), (attrCounts.get(String(v)) ?? 0) + 1);
           const groupable = Array.from(attrCounts.values()).filter(c => !valueIsTooRare(c)).length;
-          if (isIdentifierColumn(attribute) || groupable === 0) {
+          if (!activePolicy.fullCategories && (isIdentifierColumn(attribute) || groupable === 0)) {
               return `"${attribute}" has ${attrCounts.size} distinct values across ${t.nRows} rows, none of them covering enough rows to describe a group — a breakdown would just list individual values rather than say anything about the clusters. Pick a column with repeated categories.`;
           }
           const byCluster: Record<string, { total: number, counts: Record<string, number> }> = {};
@@ -3172,8 +3215,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               // three common categories AND a hundred one-off values, and only
               // the per-value test keeps the latter out of the output.
               const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-              const shown = entries.filter(([, n]) => !valueIsTooRare(n)).slice(0, 6);
-              const hidden = entries.length - entries.filter(([, n]) => !valueIsTooRare(n)).length;
+              const passing = entries.filter(([, n]) => activePolicy.fullCategories || !valueIsTooRare(n));
+              const shown = passing.slice(0, 6);
+              // In open mode nothing is withheld, only truncated to the top 6.
+              const hidden = activePolicy.fullCategories ? entries.length - shown.length : entries.length - passing.length;
               const rows = shown.map(([v, n]) => `${v} ${Math.round((n / total) * 100)}% (${n})`).join(', ');
               const tail = hidden ? `${shown.length ? ', ' : ''}${hidden} rarer value${hidden === 1 ? '' : 's'} not listed` : '';
               return `${ck} (n=${total}): ${rows}${tail}`;
@@ -3508,6 +3553,32 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26', true);
       },
 
+      // --- Open-mode row access ---------------------------------------------
+      // Second fence after the tool registry (toolsFor): each method re-checks
+      // the SESSION policy — the stricter of the two — so a stale tool call
+      // arriving after a mode flip, or against a freshly-loaded private
+      // dataset, is refused rather than answered.
+      sampleRows: (opts) => {
+          if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
+          const t = latestTable();
+          if (!t) return 'No dataset loaded.';
+          return sampleRowsCore(t, opts);
+      },
+
+      getRowsWhere: (opts) => {
+          if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
+          const t = latestTable();
+          if (!t) return 'No dataset loaded.';
+          return rowsWhereCore(t, opts);
+      },
+
+      listCategories: (column) => {
+          if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
+          const t = latestTable();
+          if (!t) return 'No dataset loaded.';
+          return listCategoriesCore(t, column);
+      },
+
       snapshot: () => ({
           datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap,
@@ -3840,6 +3911,34 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
             >
               {showComponents || componentsFile ? '− Remove components file' : '+ Project through a PCA components file'}
             </button>
+            {datasetFile && (
+              // Data mode for the file about to be added. Radio, not checkbox:
+              // both choices are explicit, and the default protects people who
+              // never read settings.
+              <fieldset className="flex flex-col gap-1 text-[11px]" data-guide="data-mode">
+                <legend className="opacity-70 pb-0.5">Assistant access for this dataset</legend>
+                {([
+                  { mode: 'private' as const, icon: Lock, label: 'Private research data', hint: 'Assistant sees aggregate summaries only — never individual rows or rare values.' },
+                  { mode: 'open' as const, icon: Globe, label: 'Public / open data', hint: 'Assistant may read raw rows. Only for data with no personal or confidential content.' },
+                ]).map(({ mode, icon: ModeIcon, label, hint }) => (
+                  <label key={mode} title={hint} className={`flex items-start gap-1.5 px-1.5 py-1 border cursor-pointer ${uploadDataMode === mode
+                    ? (theme === 'primary' ? 'border-[var(--border)] bg-[var(--p-yellow)]/60 font-bold' : 'border-[var(--primary)] text-[var(--primary)] bg-[var(--border)]')
+                    : 'border-[var(--border)] opacity-70 hover:opacity-100'}`}>
+                    <input
+                      type="radio"
+                      name="upload-data-mode"
+                      className="mt-0.5"
+                      checked={uploadDataMode === mode}
+                      onChange={() => setUploadDataMode(mode)}
+                    />
+                    <span className="flex flex-col">
+                      <span className="flex items-center gap-1"><ModeIcon className="w-3 h-3" /> {label}{mode === 'private' ? ' (default)' : ''}</span>
+                      <span className="opacity-60 font-normal">{hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
             <button data-guide="add-dataset" onClick={handleUpload} disabled={!datasetFile || isUploading || walkthroughActive} title={walkthroughActive ? 'Paused while the walkthrough is running' : undefined} className={`scatterlab-action-button w-full text-sm font-bold py-2 disabled:opacity-50 ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--system-green)]/55 hover:bg-[var(--system-green)]/10 text-[var(--system-green)] cursor-pointer'}`}>
               {isUploading ? "Processing..." : "Add Dataset"}
             </button>
@@ -3881,6 +3980,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     <span className="truncate" title={d.name}>{d.name}</span>
                     <span className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="opacity-60">{d.table.nRows} rows</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setModeConfirmChecked(false); setModeDialog({ datasetId: d.id, to: d.dataMode === 'open' ? 'private' : 'open' }); }}
+                        className="hover:opacity-60"
+                        title={d.dataMode === 'open'
+                          ? 'Public/open data — the assistant may read raw rows. Click to make private.'
+                          : 'Private research data — the assistant sees aggregates only. Click to change.'}
+                      >
+                        {d.dataMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); removeDataset(d.id); }} className="hover:opacity-50" title="Remove dataset">
                         <X className="w-3 h-3" />
                       </button>
@@ -4173,6 +4281,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           )}
         </div>
         <AssistantPanel
+          accessMode={datasets.length > 0 && datasets.every(d => d.dataMode === 'open') ? 'open'
+            : datasets.some(d => d.dataMode === 'open') ? 'mixed' : 'private'}
           bridgeRef={bridgeRef}
           theme={theme}
           askRef={askAssistantRef}
@@ -4202,6 +4312,56 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           <button onClick={() => setSessionNotice(null)} title="Dismiss" className="opacity-60 hover:opacity-100 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
+      {modeDialog && (() => {
+        const ds = datasets.find(d => d.id === modeDialog.datasetId);
+        if (!ds) return null;
+        const opening = modeDialog.to === 'open';
+        const chatNonEmpty = (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModeDialog(null)}>
+            <div
+              onClick={e => e.stopPropagation()}
+              className={`w-[380px] max-w-[90vw] p-4 flex flex-col gap-3 text-xs border ${theme === 'primary'
+                ? 'bg-white border-[3px] border-[var(--border)]'
+                : 'bg-[var(--background)] border-[var(--system-green)]/50 text-[var(--system-green)]'}`}
+            >
+              <div className="font-bold text-sm flex items-center gap-1.5">
+                {opening ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {opening ? 'Open full data access?' : 'Make this dataset private?'}
+              </div>
+              <div className="opacity-80 leading-snug">
+                {opening
+                  ? <>The assistant will be able to read raw rows of <b>{ds.name}</b> and send them to the configured model API — including any free-text answers, identifiers, and rare values. This is meant for public or fully anonymized data.</>
+                  : <>The assistant will see only aggregate summaries of <b>{ds.name}</b> — no raw rows, no rare category values, no identifier columns.</>}
+              </div>
+              {opening ? (
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5" checked={modeConfirmChecked} onChange={e => setModeConfirmChecked(e.target.checked)} />
+                  <span>I confirm this dataset contains no personal, sensitive, or confidential data.</span>
+                </label>
+              ) : chatNonEmpty ? (
+                <div className="opacity-80 leading-snug">
+                  ⚠ The current assistant conversation may already contain raw rows and will be cleared — a transcript can’t be redacted after the fact.
+                </div>
+              ) : null}
+              <div className="flex justify-end gap-2 pt-1">
+                <button onClick={() => setModeDialog(null)} className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => applyModeChange(ds.id, modeDialog.to)}
+                  disabled={opening && !modeConfirmChecked}
+                  className={`scatterlab-action-button px-3 py-1.5 font-bold disabled:opacity-40 cursor-pointer ${theme === 'primary'
+                    ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
+                    : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
+                >
+                  {opening ? 'Open full access' : chatNonEmpty ? 'Make private & clear chat' : 'Make private'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} theme={theme} />
 
       {/* Blanking declared missing-value codes. Replaces the active dataset's

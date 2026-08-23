@@ -16,6 +16,7 @@ const loadOpenAI = async (): Promise<typeof OpenAIType> => {
   return OpenAICtor;
 };
 import { METHODS_TOPICS, searchMethods } from './methods';
+import { combinedPolicy, MAX_SAMPLE_ROWS, type DataMode, type DataPolicy } from './dataPolicy';
 import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -61,7 +62,7 @@ export type ColumnProfile = {
 // The page implements this; the assistant drives the app through it.
 export type AppBridge = {
   getState: () => {
-    datasets: { name: string; nRows: number; active: boolean }[];
+    datasets: { name: string; nRows: number; active: boolean; dataMode: DataMode }[];
     columns: ColumnProfile[];
     axes: { x: string; y: string; z: string | null };
     colorBy: string;
@@ -118,12 +119,19 @@ export type AppBridge = {
   // undo support: snapshot/restore the whole view state
   snapshot: () => unknown;
   restore: (snap: unknown) => void;
+  // --- open-mode only (raw row access) ---
+  // Optional on the type, and each implementation re-checks the policy itself:
+  // the tool registry not offering these in private mode is the first fence,
+  // this is the second (a stale tool call can arrive after a mode flip).
+  sampleRows?: (opts: { n?: number; columns?: string[]; sort_by?: string; direction?: 'asc' | 'desc'; seed?: number }) => string;
+  getRowsWhere?: (opts: { column: string; op: 'eq' | 'lt' | 'gt' | 'contains'; value: string | number; columns?: string[]; limit?: number }) => string;
+  listCategories?: (column: string) => string;
 };
 
 // UI anchors the assistant can point at (data-guide attributes in the sidebar)
 export const GUIDE_TARGETS = [
   'workspace', 'upload-dropzone', 'add-dataset', 'components-toggle',
-  'datasets-list', 'variables', 'pca', 'view', 'cluster', 'export',
+  'datasets-list', 'data-mode', 'variables', 'pca', 'view', 'cluster', 'export',
   // Not in the sidebar: the dock buttons in the assistant panel's own header.
   'assistant-dock',
 ] as const;
@@ -141,7 +149,7 @@ export const TUTORIAL: Record<string, string> = {
   overview:
     'Scatter Lab turns tabular data into interactive 2D/3D scatter plots. All computation runs in the browser and the dataset is never uploaded to a server (you, the assistant, are the one exception — see the privacy topic). Typical flow: add a dataset → assign variables to axes and color in the Variables panel → run PCA or cluster when useful → compare views → export. The built-in Iris demo opens in a species-colored 3D flower view; during a guided tour, demonstrate the marker-shape control by adding Species as the shape encoding after it loads (the initial view intentionally leaves shape unused).',
   load_data:
-    'Add data via the dropzone in the sidebar ("1. Data") — drag a CSV, XLSX, or Parquet file in, or click to browse, then press "Add Dataset". Datasets with PC score columns plot immediately. Optionally, "+ Project through a PCA components file" reveals a second dropzone: supply a loadings file and the app median-imputes, standardizes, and computes PC1–PC3 itself. Several datasets can be loaded at once; click one in the list to make it active.',
+    'Add data via the dropzone in the sidebar ("1. Data") — drag a CSV, XLSX, or Parquet file in, or click to browse, then press "Add Dataset". Before adding, a two-option choice below the dropzone sets the dataset\'s data mode: "Private research data" (the default — the assistant sees aggregate summaries only) or "Public / open data" (the assistant may also read raw rows). The mode can be changed later from the lock/globe badge on the dataset in the list. Datasets with PC score columns plot immediately. Optionally, "+ Project through a PCA components file" reveals a second dropzone: supply a loadings file and the app median-imputes, standardizes, and computes PC1–PC3 itself. Several datasets can be loaded at once; click one in the list to make it active.',
   variables:
     'The Variables panel ("2. Variables") is both data profile and plot control. Every column shows its type, range or category count, missing values, and a mini-histogram. The small buttons on each row do the plotting: X, Y, Z put a numeric column on that axis; C colors the points by that column; S encodes it as the marker shape (circle, square, diamond, then open variants — offered only for columns with at most 6 distinct values, and pressed again to switch off). Color and shape are independent, so two variables can be read at once, with a shape key under the legend. If a components file was used, "Top PC contributors" shows which variables load on each PC.',
   plotting:
@@ -165,12 +173,12 @@ export const TUTORIAL: Record<string, string> = {
   workspaces:
     'The Workspace section saves the entire session — datasets, pins, notes, settings — locally in the browser (IndexedDB). "Export as file" downloads a workspace as a shareable file; "Import file" loads one. Nothing syncs to any server.',
   privacy:
-    'All parsing, projection, and clustering run in the browser, and the dataset itself is never uploaded to a server. Do not tell the user that nothing leaves their machine — that is not true while you are connected. You are the one opt-in exception: column names and aggregate summaries (never raw rows) are sent to the configured model API, using the user\'s own key.',
+    'All parsing, projection, and clustering run in the browser, and the dataset itself is never uploaded to a server. Do not tell the user that nothing leaves their machine — that is not true while you are connected. You are the one opt-in exception: what you see is sent to the configured model API, using the user\'s own key. How much you see is the dataset\'s data mode, chosen per dataset at upload (badge in the datasets list to change it): in Private mode (the default) that is column names and aggregate summaries only — never raw rows, never category values covering fewer than 5 rows, never identifier columns. In Public/open mode — which the user must explicitly confirm — you can additionally sample raw rows and list full category breakdowns. If ANY loaded dataset is private, the whole conversation runs in Private mode. Switching a dataset from open back to private clears the assistant conversation, because a transcript that already contains rows cannot be redacted after the fact.',
 };
 
 export const TUTORIAL_TOPICS = Object.keys(TUTORIAL);
 
-const TOOLS: ChatCompletionTool[] = [
+const BASE_TOOLS: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
@@ -560,11 +568,86 @@ const TOOLS: ChatCompletionTool[] = [
   },
 ];
 
+// Tools that exist ONLY when every loaded dataset is in open mode. Not
+// registered at all in private mode — a tool the model cannot name is a
+// stronger boundary than a tool that refuses.
+const OPEN_TOOLS: ChatCompletionTool[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'sample_rows',
+      description:
+        `Read raw rows from the active dataset (open-data mode). Returns up to ${MAX_SAMPLE_ROWS} rows as JSON. Without sort_by, a seeded random sample (same seed → same rows); with sort_by, the top rows by that column — use direction 'desc' for the largest values (e.g. inspecting outliers). The row cap is a token budget, not a privacy rule; prefer aggregate tools first and pull rows to verify anomalies or answer questions aggregates cannot.`,
+      parameters: {
+        type: 'object',
+        properties: {
+          n: { type: 'number', description: `How many rows (default 10, max ${MAX_SAMPLE_ROWS}).` },
+          columns: { type: 'array', items: { type: 'string' }, description: 'Columns to include (default: all, capped at 20).' },
+          sort_by: { type: 'string', description: 'Sort by this column instead of sampling randomly.' },
+          direction: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction (default asc).' },
+          seed: { type: 'number', description: 'Sampling seed (default 1). Change to draw a different sample.' },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_rows_where',
+      description:
+        `Read rows matching a filter from the active dataset (open-data mode). op 'eq' compares as string or number, 'lt'/'gt' compare numerically, 'contains' is a case-insensitive substring match. Returns up to ${MAX_SAMPLE_ROWS} matching rows as JSON plus the total match count.`,
+      parameters: {
+        type: 'object',
+        properties: {
+          column: { type: 'string', description: 'Column the filter applies to.' },
+          op: { type: 'string', enum: ['eq', 'lt', 'gt', 'contains'] },
+          value: { type: ['string', 'number'], description: 'Value to compare against.' },
+          columns: { type: 'array', items: { type: 'string' }, description: 'Columns to include in the result (default: all, capped at 20).' },
+          limit: { type: 'number', description: `Max rows returned (default 10, max ${MAX_SAMPLE_ROWS}).` },
+        },
+        required: ['column', 'op', 'value'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_categories',
+      description:
+        'Full value/count breakdown of one column of the active dataset (open-data mode), including values covering only a single row. Sorted by count, capped at 200 distinct values per call.',
+      parameters: {
+        type: 'object',
+        properties: {
+          column: { type: 'string', description: 'Column to enumerate.' },
+        },
+        required: ['column'],
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
+export const toolsFor = (policy: DataPolicy): ChatCompletionTool[] =>
+  policy.rowAccess ? [...BASE_TOOLS, ...OPEN_TOOLS] : BASE_TOOLS;
+
+// The conversation-level policy: open only when every loaded dataset is open.
+export const sessionPolicyOf = (state: ReturnType<AppBridge['getState']>): DataPolicy =>
+  combinedPolicy(state.datasets.map(d => d.dataMode));
+
 const fmtNum = (v: number | undefined) =>
   v === undefined ? '?' : Math.abs(v) >= 100 ? v.toFixed(0) : String(Math.round(v * 100) / 100);
 
 export const buildSystemPrompt = (bridge: AppBridge): string => {
   const s = bridge.getState();
+  const policy = sessionPolicyOf(s);
+  const anyOpen = s.datasets.some(d => d.dataMode === 'open');
+  // Three access postures, one paragraph each — the paragraph MUST match the
+  // tool list toolsFor() built from the same policy, so both derive from it.
+  const accessParagraph = policy.rowAccess
+    ? `Every loaded dataset was explicitly declared public/open by the user. In addition to aggregate statistics you may inspect raw data: sample_rows (seeded random sample or top-N by a column), get_rows_where (filtered rows), and list_categories (full value counts, including single-row values). Each call returns at most ${MAX_SAMPLE_ROWS} rows — a token budget, not a privacy rule. Still prefer aggregates first: pull rows to verify anomalies, inspect outliers or specific cases, or answer questions the summaries cannot.`
+    : `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as min/max/mean/sd/quartiles — use those to notice skew, ceiling effects and likely outliers rather than asking for the data. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.${anyOpen ? ' (Some loaded datasets are marked open, but at least one is private, so the whole conversation runs at the private level — row tools are unavailable until every loaded dataset is open.)' : ''}`;
   const cols = s.columns
     .map(c =>
       c.kind === 'numeric'
@@ -580,7 +663,7 @@ export const buildSystemPrompt = (bridge: AppBridge): string => {
 
 You can drive the app with your tools: change plot axes, coloring and marker shape, switch 2D/3D or the active dataset, run clustering, read cluster compositions, configure and save a cluster-composition heatmap, save PNG, interactive HTML, rotating GIF, or active-dataset CSV exports, mute/hide legend categories, transfer columns between datasets, pin/remove views, and save workspaces. You also have aggregate analysis tools: run_pca (in-browser principal component analysis — use it when the user wants to reduce dimensions or "see the structure" of a set of scale items; it reports how much data was imputed or dropped, which you should mention when it is not negligible), correlate (Pearson/Spearman), compare_groups (means by category + eta-squared), and clustering diagnostics (suggest_k silhouette scores, suggest_eps k-distance percentiles) — prefer running these over guessing parameters or relationships. Use tools to act, then summarize what you did in one or two sentences. When the user asks a question about their data, answer from the column profiles and aggregate tool results — never invent numbers you have not seen in this conversation.
 
-You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as min/max/mean/sd/quartiles — use those to notice skew, ceiling effects and likely outliers rather than asking for the data. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.
+${accessParagraph}
 
 Facts about THIS app that you cannot guess and are likely to get wrong from priors — state them when they come up, without needing to look them up:
 - K-Means here is DETERMINISTIC. It is seeded k-means++ from fixed seeds, best of 10 initialisations, up to 300 iterations, so the same data and the same k always give identical clusters. The usual answer ("no, k-means is randomly initialised") is wrong for this app. Say so, and add that reproducibility is not evidence of stable structure — to test that, vary k and re-run on subsamples.
@@ -600,7 +683,8 @@ Tours: when the user asks for a tour, asks how the app works, or seems new, call
 Keep responses short and concrete. This is a side panel, not a report.
 
 Current session:
-${s.datasets.length === 0 ? 'No dataset loaded yet — suggest loading one (there is a demo dataset button on the empty canvas).' : `Datasets: ${s.datasets.map(d => `${d.name} (${d.nRows} rows${d.active ? ', active' : ''})`).join('; ')}
+${s.datasets.length === 0 ? 'No dataset loaded yet — suggest loading one (there is a demo dataset button on the empty canvas).' : `Data access: ${policy.rowAccess ? 'OPEN — row tools available' : 'PRIVATE — aggregates only'}.
+Datasets: ${s.datasets.map(d => `${d.name} (${d.nRows} rows, ${d.dataMode}${d.active ? ', active' : ''})`).join('; ')}
 Plot: ${s.viewMode}, x=${s.axes.x}, y=${s.axes.y}${s.axes.z ? `, z=${s.axes.z}` : ''}, colored by ${s.colorBy}${s.shapeBy ? `, marker shape by ${s.shapeBy}` : ''}. Pinned views: ${s.pinnedViews}/3.
 Columns of the active dataset:
 ${cols}`}`;
@@ -731,6 +815,12 @@ export const runAssistantTurn = async (
           if (!chunks.length) return `Nothing matched. Available topics: ${METHODS_TOPICS.join(', ')}.`;
           return chunks.map(c => `## ${c.title}\n${c.text}`).join('\n\n');
         }
+        case 'sample_rows':
+          return bridge.sampleRows?.(input ?? {}) ?? 'Row access is not available: the session is in Private data mode.';
+        case 'get_rows_where':
+          return bridge.getRowsWhere?.(input) ?? 'Row access is not available: the session is in Private data mode.';
+        case 'list_categories':
+          return bridge.listCategories?.(input.column) ?? 'Row access is not available: the session is in Private data mode.';
         case 'control_view':
           return bridge.controlView(input ?? {});
         case 'highlight_ui':
@@ -752,7 +842,10 @@ export const runAssistantTurn = async (
         { role: 'system', content: buildSystemPrompt(bridgeRef.current) },
         ...messages,
       ],
-      tools: TOOLS,
+      // Recomputed each iteration: a tool call this loop already ran (e.g.
+      // switch_dataset) can change which datasets — and so which mode — the
+      // next iteration is talking about.
+      tools: toolsFor(sessionPolicyOf(bridgeRef.current.getState())),
     });
 
     stream.on('content', delta => handlers.onText(delta));
