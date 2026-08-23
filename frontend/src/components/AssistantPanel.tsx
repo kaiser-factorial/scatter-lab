@@ -364,6 +364,11 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     dropHighlight();
     setWtStepId(id);
     setWtBusy(true);
+    // Let the click's own frame paint (pressed button, busy state) BEFORE the
+    // step's actions run. Without this, loading the demo or running a PCA
+    // executes in the same task as the click and blocks that first paint —
+    // a ~200ms INP on the "Begin" button, measured on the Vercel preview.
+    await paintYield();
     const notes: ChatEntry[] = [];
     for (const action of step.run ?? []) {
       try {
