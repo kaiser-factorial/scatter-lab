@@ -852,7 +852,10 @@ const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
       if (!el) return setPos(null);
       const r = el.getBoundingClientRect();
       setPos(prev => {
-        const next = { left: Math.round(r.left), top: Math.round(r.bottom + 18) };
+        // Beside the highlight ring's pointer arrow (which sits at
+        // right + 12px pad + 6px, vertically centered), not underneath the
+        // anchor — below the dropzone it collided with the empty-state card.
+        const next = { left: Math.round(r.right + 46), top: Math.round(r.top + r.height / 2 - 17) };
         return prev && prev.left === next.left && prev.top === next.top ? prev : next;
       });
     };
@@ -866,8 +869,8 @@ const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
       onClick={onClick}
       disabled={disabled}
       style={{ position: 'fixed', left: pos.left, top: pos.top, zIndex: 96 }}
-      className={`py-1.5 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer shadow-lg ${primary
-        ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
+      className={`py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer shadow-lg whitespace-nowrap ${primary
+        ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
         : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
     >
       {label} →

@@ -814,16 +814,20 @@ const VariablesPanel = ({ dataset, viewMode, colorBy, shapeBy, theme, onAxis, on
 
 // First-run landing: an abstract scatter built from the Bauhaus glyphs, three
 // steps, and a zero-friction demo loader. Occupies the otherwise-blank canvas.
-const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | undefined, onLoadDemo: () => void, onUpload: () => void, busy: boolean }) => {
+const EmptyState = ({ theme, onLoadDemo, onUpload, busy, dimmed }: { theme: string | undefined, onLoadDemo: () => void, onUpload: () => void, busy: boolean, dimmed: boolean }) => {
     const steps = [
         "Add a dataset — CSV, XLSX, or Parquet",
         "Assign variables to X · Y · Z and color",
         "Cluster, pin comparisons, export",
     ];
+    // During the walkthrough the card is scenery, not a control surface: the
+    // tour's own anchored button is the one way forward, and two more live
+    // buttons underneath it would compete with it (and the dropzone pointer).
+    const dimCls = dimmed ? ' opacity-40 pointer-events-none select-none' : '';
 
     if (theme === 'terminal') {
         return (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className={`w-full h-full flex items-center justify-center${dimCls}`} aria-hidden={dimmed || undefined}>
                 <div className="max-w-md w-full mx-6 border border-[var(--system-green)]/40 bg-black/60 p-8 space-y-5">
                     <div className="text-[var(--system-green)] text-lg font-bold tracking-widest uppercase system-green-glow">Awaiting data_</div>
                     <div className="space-y-2">
@@ -859,7 +863,7 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
     }
 
     return (
-        <div className="w-full h-full flex items-center justify-center">
+        <div className={`w-full h-full flex items-center justify-center${dimCls}`} aria-hidden={dimmed || undefined}>
             <div className="max-w-md w-full mx-6 bg-white border-[3px] border-[#111111] shadow-[8px_8px_0px_#111111] p-8 space-y-6">
                 <svg viewBox="0 0 336 120" className="w-full" aria-hidden="true">
                     {/* faint grid */}
@@ -4844,6 +4848,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 onLoadDemo={() => { if (startWalkthroughRef.current) startWalkthroughRef.current(); else void loadDemo(); }}
                 onUpload={() => dsInputRef.current?.click()}
                 busy={isUploading}
+                dimmed={walkthroughActive}
               />
           )}
         </div>
