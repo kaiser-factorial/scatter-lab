@@ -2585,7 +2585,7 @@ export default function Home() {
 
   // Demo data ships with the app (public/demo) so the empty state can offer a
   // zero-friction first run: the public Iris CSV, no projection file required.
-  const loadDemo = async (): Promise<DataTable | null> => {
+  const loadDemo = async (mode: DataMode = 'open'): Promise<DataTable | null> => {
     setIsUploading(true);
     setUploadStatus("Loading demo data…");
     try {
@@ -2601,9 +2601,10 @@ export default function Home() {
           viewMode: '3D',
         },
         undefined,
-        // Iris is a textbook-public dataset, so the demo arrives in open mode —
-        // it doubles as the zero-risk way to try the row-access tools.
-        'open',
+        // Iris is textbook-public, so the demo defaults to open mode — the
+        // zero-risk way to try the row-access tools. The walkthrough loads it
+        // private instead, so the tour shows the mode most real data gets.
+        mode,
       );
     } catch {
       setUploadStatus("Demo data failed to load.");
@@ -3836,14 +3837,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `Pinned the current view. ${pinnedViews.length + 1}/3 pins used.`;
       },
 
-      loadDemoData: async () => {
+      loadDemoData: async (mode) => {
           const existing = datasets.find(d => d.name === 'iris');
           if (existing) {
               if (existing.id !== activeId) selectDataset(existing.id);
               freshTableRef.current = existing.table;
               return `The demo dataset is already loaded (${existing.table.nRows} rows) and is now the active dataset — no need to load it again.`;
           }
-          const table = await loadDemo();
+          const table = await loadDemo(mode);
           if (!table) return 'Demo data failed to load.';
           freshTableRef.current = table;
           return `Iris demo loaded: ${table.nRows} flowers, columns: ${table.columns.join(', ')}. It is now active in 3D: petal length × petal width × sepal length, colored by species. Marker shape is available for the tour to demonstrate.`;

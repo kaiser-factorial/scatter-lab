@@ -97,20 +97,24 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     say:
       'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the box I am ' +
       'pointing at, or click it to browse. A dialog then configures the add: the data mode, ' +
-      'missing-value scanning, and an optional components file.\n\n' +
-      'Press the button next to the dropzone and I will add the Iris demo through this same door.',
+      'missing-value scanning, and an optional components file.',
     choices: [{ label: 'Add the Iris demo', next: 'data-added' }],
   },
   {
     id: 'data-added',
     title: 'Dataset added',
     highlight: 'datasets-list',
-    // Idempotent, so arriving with Iris already loaded is fine.
-    run: [b => b.loadDemoData()],
+    // Idempotent, so arriving with Iris already loaded is fine. Private mode
+    // on purpose: the tour should show the default most real data gets, not
+    // the open mode the demo uses elsewhere.
+    run: [b => b.loadDemoData('private')],
     say:
-      'The Iris dataset is in — it now sits in the list I am pointing at, with its lock/globe badge ' +
-      '(the data mode), a gear for its settings, and an ✕ to remove it. Several datasets can be ' +
-      'open at once; clicking one makes it the active one.\n\n' +
+      'The Iris dataset is in — it now sits in the list I am pointing at, with its locked data mode ' +
+      'badge, a gear for its settings, and an ✕ to remove it. Several datasets can be open at once; ' +
+      'clicking one makes it the active one.\n\n' +
+      'I added it in **private mode**, the default: everything computes in your browser and the AI ' +
+      'assistant sees only column names, aggregate summaries and analysis results — never raw rows. ' +
+      'The mode is chosen in the add dialog and locked in for the dataset\'s lifetime.\n\n' +
       'Every column is profiled on the way in, and anything unusual the parser ran into — ragged ' +
       'rows, duplicate headers, numbers written with decimal commas — is reported rather than ' +
       'silently absorbed.',

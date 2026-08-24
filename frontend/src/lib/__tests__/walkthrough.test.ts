@@ -90,7 +90,7 @@ describe('walkthrough step actions', () => {
     // is prepopulated before the user has seen where data comes from.
     expect(await runAll(FIRST_STEP)).toEqual([]);
     expect(await runAll('data')).toEqual([]);
-    expect(await runAll('data-added')).toContainEqual({ method: 'loadDemoData', args: [] });
+    expect(await runAll('data-added')).toContainEqual({ method: 'loadDemoData', args: ['private'] });
     const dataStep = walkthroughStep('data')!;
     expect(stepAnchorsChoice(dataStep)).toBe(true);
     expect(dataStep.highlight).toBe('upload-dropzone');

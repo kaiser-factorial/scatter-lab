@@ -87,7 +87,7 @@ export type AppBridge = {
   saveInteractiveHtml: () => Promise<string>;
   saveActiveDatasetCsv: () => string;
   pinView: () => string;
-  loadDemoData: () => Promise<string>;
+  loadDemoData: (mode?: DataMode) => Promise<string>;
   // analysis (aggregates only)
   runPCA: (opts: { variables?: string[]; n_components?: number; standardize?: boolean; label?: string; missing?: 'median' | 'complete' | 'iterative' }) => string;
   correlate: (colA: string, colB: string) => string;
