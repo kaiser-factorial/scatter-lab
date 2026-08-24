@@ -873,7 +873,7 @@ const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
         ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
         : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
     >
-      {label} →
+      Next: {label}
     </button>,
     document.body,
   );
@@ -972,7 +972,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
                 ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
                 : 'border border-[var(--system-green)]/60 text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
             >
-              {choice.next ? `${choice.label} →` : choice.label}
+              {choice.next ? `Next: ${choice.label}` : choice.label}
             </button>
           ))}
         </div>

@@ -4356,20 +4356,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
             </button>
         </div>
 
-        {/* The privacy claim is the app's headline promise, so it links to the
-            page that explains its one exception (the assistant) rather than
-            relying on a `title` nobody sees on touch.
-            It claims local COMPUTATION and no dataset upload — not that nothing
-            ever leaves the tab, which the assistant makes untrue. A promise the
-            app cannot keep in every configuration is worse than a narrower one. */}
-        <button
-          onClick={() => setShowInfo(true)}
-          className="flex items-center gap-1.5 mb-6 text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100 cursor-pointer text-left"
-          title="All parsing, projection, and clustering run in your browser, and your dataset is never uploaded to a server. The optional assistant is the one exception — it sends summaries, never raw rows. Click to read more."
-        >
-          <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-          Computed locally — your dataset is never uploaded
-        </button>
+        {/* The privacy story lives in the info dialog and the per-dataset
+            lock/globe badges now — the always-on headline banner here was
+            retired as sidebar noise (owner's call). */}
+        <div className="mb-4" />
 
         <SidebarGroup theme={theme}>
 
