@@ -138,10 +138,6 @@ export const DISCLOSURES = {
       'ON: each variable is z-scored first, making this a correlation-based PCA where every variable carries equal weight.',
       'OFF: covariance-based, where high-variance variables dominate the components.',
     ],
-    more: [
-      'ON is the right choice when scales differ, which is most questionnaire data.',
-      'The two can give very different answers. Report which you used.',
-    ],
     methodsTopic: 'standardize_or_not',
   },
 
@@ -160,10 +156,6 @@ export const DISCLOSURES = {
     title: 'PCA Loadings',
     text: [
       'The numbers shown are unit-norm eigenvector weights (the quantity scikit-learn calls components_).',
-    ],
-    more: [
-      'In psychometrics, "loading" often means the variable-component correlation instead, which is this value scaled by the square root of the eigenvalue; the familiar "above 0.3 to 0.4 is meaningful" rule of thumb refers to that other quantity.',
-      'Signs are relative: a component and its mirror image are the same component.',
     ],
     methodsTopic: 'loadings_vs_scores',
   },
