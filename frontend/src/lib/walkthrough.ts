@@ -55,14 +55,19 @@ export type WalkthroughStep = {
    * lands — the assistant, or the workspace with the panel out of the way.
    */
   choices: { label: string; next: string | null; then?: 'assistant' | 'exit' }[];
-  /**
-   * Render this step's (single) choice button floating NEXT TO the highlighted
-   * control instead of in the panel, so advancing requires having looked at
-   * the thing being taught — used by the Data step to make sure the upload
-   * area itself is seen before the demo dataset appears through it.
-   */
-  anchorChoice?: boolean;
 };
+
+/**
+ * Whether a step's advance button floats NEXT TO the highlighted control
+ * (beside the pointer arrow) instead of sitting in the panel: every step that
+ * points at a sidebar section, so advancing always requires having looked at
+ * the thing being taught. Derived, not per-step — a new sidebar step gets the
+ * behavior for free. assistant-dock is the panel's own chrome (the button
+ * would overlap the panel), and multi-choice/ending steps stay in the panel.
+ */
+export const stepAnchorsChoice = (step: WalkthroughStep): boolean =>
+  !!step.highlight && step.highlight !== 'assistant-dock'
+  && step.choices.length === 1 && step.choices[0].next !== null;
 
 const IRIS_VARIABLES = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm'];
 
@@ -85,11 +90,10 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     id: 'data',
     title: 'Data',
     highlight: 'upload-dropzone',
-    // The button to advance floats beside the dropzone itself (anchorChoice),
-    // and the demo loads on the NEXT step — teach the door, then walk through
-    // it. Loading here would put data on screen before the user has seen where
-    // data comes from.
-    anchorChoice: true,
+    // The demo loads on the NEXT step — teach the door, then walk through it.
+    // Loading here would put data on screen before the user has seen where
+    // data comes from. (The advance button floats beside the dropzone, like
+    // every sidebar-pointing step — see stepAnchorsChoice.)
     say:
       'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the box I am ' +
       'pointing at, or click it to browse. A dialog then configures the add: the data mode, ' +

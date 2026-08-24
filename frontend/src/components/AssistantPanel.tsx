@@ -9,7 +9,7 @@ import {
 } from '@/lib/assistant';
 import {
   WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP,
-  walkthroughStep, walkthroughIndex, assistantGreeting,
+  walkthroughStep, walkthroughIndex, stepAnchorsChoice, assistantGreeting,
 } from '@/lib/walkthrough';
 import { WalkthroughStartDialog } from '@/components/WalkthroughStartDialog';
 import ReactMarkdown from 'react-markdown';
@@ -834,7 +834,7 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
 // The walkthrough transcript: the same bubbles and "▸" tool chips the chat uses,
 // driven by buttons instead of typing.
 // A step-advance button pinned beside a highlighted sidebar control (portal to
-// body, fixed position), for steps with `anchorChoice`: the user has to look
+// body, fixed position), for sidebar-pointing steps (stepAnchorsChoice): the user has to look
 // at the thing being taught to find the way forward. Tracks the anchor's rect
 // on the same 100ms cadence as the highlight ring, and sits just below the
 // ring's 12px pad; renders nothing when the anchor is off screen.
@@ -869,7 +869,7 @@ const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
       onClick={onClick}
       disabled={disabled}
       style={{ position: 'fixed', left: pos.left, top: pos.top, zIndex: 96 }}
-      className={`py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer shadow-lg whitespace-nowrap ${primary
+      className={`wt-anchored-pulse py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer shadow-lg whitespace-nowrap ${primary
         ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
         : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
     >
@@ -946,7 +946,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
         {/* Buttons sit ABOVE the composer: they are how you move, and the
             composer below them is visibly not. */}
         <div className="space-y-1.5">
-          {step?.anchorChoice && step.highlight && step.choices[0] ? (
+          {step && stepAnchorsChoice(step) && step.highlight ? (
             // The way forward lives beside the highlighted control instead of
             // here — the panel just says where to look.
             <>

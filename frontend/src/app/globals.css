@@ -227,6 +227,21 @@ body {
   }
 }
 
+/* The walkthrough's anchored advance button pulses on the same cadence as the
+   highlight ring it sits beside, so the two read as one pointer. */
+@keyframes wt-anchored-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.wt-anchored-pulse {
+  animation: wt-anchored-pulse 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wt-anchored-pulse {
+    animation: none;
+  }
+}
+
 /*
  * Primary Theme - Bauhaus Grid Styles
  *

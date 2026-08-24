@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP,
-  walkthroughStep, walkthroughIndex, assistantGreeting,
+  walkthroughStep, walkthroughIndex, stepAnchorsChoice, assistantGreeting,
 } from '../walkthrough';
 import { GUIDE_TARGETS } from '../assistant';
 import type { AppBridge } from '../assistant';
@@ -92,9 +92,21 @@ describe('walkthrough step actions', () => {
     expect(await runAll('data')).toEqual([]);
     expect(await runAll('data-added')).toContainEqual({ method: 'loadDemoData', args: [] });
     const dataStep = walkthroughStep('data')!;
-    expect(dataStep.anchorChoice).toBe(true);
+    expect(stepAnchorsChoice(dataStep)).toBe(true);
     expect(dataStep.highlight).toBe('upload-dropzone');
     expect(dataStep.choices[0].next).toBe('data-added');
+  });
+
+  it('every sidebar-pointing step anchors its advance button; panel steps do not', () => {
+    // "Any time we are showing a part of the menu bar, the next button sits by
+    // the pointer" — derived from the highlight, so new steps inherit it.
+    const anchored = WALKTHROUGH.filter(stepAnchorsChoice).map(s => s.id);
+    expect(anchored).toEqual(['data', 'data-added', 'variables', 'pca', 'cluster', 'export']);
+    // compare points at the panel's own dock chrome; welcome/done have no
+    // highlight or end the tour — all three keep their buttons in the panel.
+    expect(stepAnchorsChoice(walkthroughStep('compare')!)).toBe(false);
+    expect(stepAnchorsChoice(walkthroughStep('welcome')!)).toBe(false);
+    expect(stepAnchorsChoice(walkthroughStep('done')!)).toBe(false);
   });
 
   it('runs the Iris PCA on the four measurements, never on Id', async () => {
