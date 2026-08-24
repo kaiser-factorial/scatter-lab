@@ -174,13 +174,10 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     say:
       'The **View** section switches 2D/3D, toggles the axis grids, renames axis labels for exports, ' +
       'and starts the auto-rotation you can see now. Drag the plot to rotate it yourself, scroll to zoom.\n\n' +
-      '*Pin View* freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
+      '**Pin View** freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
       'different axes, colourings or cluster runs sit next to each other. The flat ' +
       '`PC1 × PC2` view has been pinned, and the live plot is back on the flower measurements, still ' +
-      'coloured by cluster and shaped by species.\n\n' +
-      'A pin keeps the data it was taken with — only the live view follows the sidebar — but it is ' +
-      'not a picture: drag, scroll or double-click any pane to rotate, zoom and reset **that pane** ' +
-      'on its own.',
+      'coloured by cluster and shaped by species.',
     run: [
       // Dock first: pinning into the narrow strip beside a right-docked panel
       // produces two unreadable slivers.
