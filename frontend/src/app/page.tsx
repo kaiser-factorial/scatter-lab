@@ -31,6 +31,7 @@ import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
+import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
@@ -302,6 +303,12 @@ type Dataset = {
     // (asDataMode maps anything unrecognized — including its absence in an
     // older workspace — to it).
     dataMode: DataMode,
+    // Ordered audit trail of everything that changed this dataset's in-app
+    // copy — upload, formatted-text coercion, missing-code blanking, column
+    // transfers, PCA/Cluster columns, mode switches. The original file on
+    // disk is never touched; this is how a user reconstructs what the app
+    // (or the assistant) did to the copy. Persists with workspaces/autosave.
+    provenance?: { at: string; action: string }[],
 };
 
 type InitialUploadView = {
@@ -1814,6 +1821,14 @@ export default function Home() {
   // Mode-switch dialog for an already-loaded dataset (badge in the list).
   const [modeDialog, setModeDialog] = useState<{ datasetId: number; to: DataMode } | null>(null);
   const [modeConfirmChecked, setModeConfirmChecked] = useState(false);
+  // A failed upload opens a dialog instead of relying on the small status
+  // line: the error, a local column-shape diagnosis, and — when the culprit is
+  // numbers stored as formatted text — an in-app fix.
+  const [uploadFailure, setUploadFailure] = useState<{
+    message: string; name: string; dataMode: DataMode;
+    table: DataTable | null; comp: DataTable | null; diags: ColumnDiagnosis[] | null;
+  } | null>(null);
+  const [fixCols, setFixCols] = useState<string[]>([]);
   // Sheets in the selected workbook, and which one to read. Empty string means
   // "let the parser choose", which is the right default — it picks the first
   // sheet that actually has data rather than blindly the first sheet.
@@ -2030,6 +2045,70 @@ export default function Home() {
 
   // Everything happens in the browser: parse → (optionally) project → plot.
   // No network round-trip, no server, no dataset upload.
+  // The success half of an upload — project/validate a parsed table and
+  // install it as a dataset. Split out of uploadFiles so the upload-error
+  // dialog's "fix & add" path can re-enter it with a repaired table.
+  const ingestParsed = (
+    dsTable: DataTable,
+    compTable: DataTable | null,
+    parserWarnings: string[],
+    name: string,
+    initialView: InitialUploadView | undefined,
+    dataMode: DataMode,
+    provenanceNotes: string[] = [],
+  ): DataTable => {
+    const result = processUpload(dsTable, compTable);
+    // Parser warnings describe things that silently changed the data, so they
+    // lead — the success message is the part the user can already see.
+    const warnings = [
+      ...parserWarnings,
+      // What the projection did to the numbers — coverage, fuzzy name
+      // matches, unreadable loadings, fewer than three components (C10).
+      ...result.warnings,
+    ];
+    setUploadStatus(warnings.length
+      ? `${warnings.map(w => `⚠ ${w}`).join('\n')}\n${result.message}`
+      : result.message);
+    const id = Date.now();
+    const table = result.table;
+    const axes = initialView?.axes ?? pickDefaultAxes(table);
+    const dataset: Dataset = {
+      id,
+      name,
+      table,
+      summary: result.topContributors ? { top_contributors: result.topContributors } : null,
+      axes,
+      labels: defaultLabels(axes),
+      axes2d: { x: axes.x, y: axes.y },
+      labels2d: { x: axes.x, y: axes.y },
+      dataMode,
+      provenance: [
+        `Loaded "${name}" — ${table.nRows} rows × ${table.columns.length} columns, ${dataMode} data mode` +
+          (compTable ? ', projected through a PCA components file' : ''),
+        ...provenanceNotes,
+      ].map(action => ({ at: new Date().toISOString(), action })),
+    };
+    setDatasets(prev => [...prev, dataset]);
+    setActiveId(id);
+    // Ask, don't scan: the question costs nothing, and the detector runs only
+    // if the user says yes. (Import used to scan every column here, which was
+    // measurable latency on wide survey tables.) The demo is curated and known
+    // clean — it arrives with an initialView, and is not worth interrupting.
+    if (!initialView) setShowRecode('ask');
+    setColorBy(initialView?.colorBy ?? pickDefaultColorBy(table, colorBy));
+    // Ordinary uploads preserve a compatible shape channel; the demo supplies
+    // an initial view specifically so it can start with shape unassigned.
+    if (initialView) setShapeBy(initialView.shapeBy ?? "");
+    setViewMode(initialView?.viewMode ?? (axes.z ? viewMode : "2D"));
+    // Consume the file selections so the slots are free for the next dataset
+    setDatasetFile(null);
+    setComponentsFile(null);
+    setUploadDataMode('private');
+    if (dsInputRef.current) dsInputRef.current.value = "";
+    if (compInputRef.current) compInputRef.current.value = "";
+    return table;
+  };
+
   const uploadFiles = async (
     dsFile: File,
     compFile: File | null,
@@ -2039,6 +2118,13 @@ export default function Home() {
   ): Promise<DataTable | null> => {
     setIsUploading(true);
     setUploadStatus("Processing…");
+    // Kept outside the try: when validation rejects the table AFTER parsing
+    // succeeded, this is what the error dialog diagnoses.
+    let parsedTable: DataTable | null = null;
+    let parsedComp: DataTable | null = null;
+    // Naming the sheet matters now that two sheets of one workbook can be
+    // loaded as two datasets — otherwise both arrive with the same name.
+    const name = dsFile.name.replace(/\.(csv|xlsx|parquet)$/i, '') + (sheet ? ` — ${sheet}` : '');
     try {
       // Yield a frame so the busy state paints before heavy parsing starts
       await new Promise(r => setTimeout(r, 30));
@@ -2046,59 +2132,45 @@ export default function Home() {
         readTable(dsFile, { sheet }),
         compFile ? readTable(compFile) : Promise.resolve(null),
       ]);
-      const result = processUpload(dsParsed.table, compParsed?.table ?? null);
-      // Parser warnings describe things that silently changed the data, so they
-      // lead — the success message is the part the user can already see.
-      const warnings = [
-        ...dsParsed.warnings,
-        ...(compParsed?.warnings ?? []).map(w => `Components file: ${w}`),
-        // What the projection did to the numbers — coverage, fuzzy name
-        // matches, unreadable loadings, fewer than three components (C10).
-        ...result.warnings,
-      ];
-      setUploadStatus(warnings.length
-        ? `${warnings.map(w => `⚠ ${w}`).join('\n')}\n${result.message}`
-        : result.message);
-      const id = Date.now();
-      const table = result.table;
-      const axes = initialView?.axes ?? pickDefaultAxes(table);
-      const dataset: Dataset = {
-        id,
-        // Naming the sheet matters now that two sheets of one workbook can be
-        // loaded as two datasets — otherwise both arrive with the same name.
-        name: dsFile.name.replace(/\.(csv|xlsx|parquet)$/i, '') + (sheet ? ` — ${sheet}` : ''),
-        table,
-        summary: result.topContributors ? { top_contributors: result.topContributors } : null,
-        axes,
-        labels: defaultLabels(axes),
-        axes2d: { x: axes.x, y: axes.y },
-        labels2d: { x: axes.x, y: axes.y },
-        dataMode,
-      };
-      setDatasets(prev => [...prev, dataset]);
-      setActiveId(id);
-      // Ask, don't scan: the question costs nothing, and the detector runs only
-      // if the user says yes. (Import used to scan every column here, which was
-      // measurable latency on wide survey tables.) The demo is curated and known
-      // clean — it arrives with an initialView, and is not worth interrupting.
-      if (!initialView) setShowRecode('ask');
-      setColorBy(initialView?.colorBy ?? pickDefaultColorBy(table, colorBy));
-      // Ordinary uploads preserve a compatible shape channel; the demo supplies
-      // an initial view specifically so it can start with shape unassigned.
-      if (initialView) setShapeBy(initialView.shapeBy ?? "");
-      setViewMode(initialView?.viewMode ?? (axes.z ? viewMode : "2D"));
-      // Consume the file selections so the slots are free for the next dataset
-      setDatasetFile(null);
-      setComponentsFile(null);
-      setUploadDataMode('private');
-      if (dsInputRef.current) dsInputRef.current.value = "";
-      if (compInputRef.current) compInputRef.current.value = "";
-      return table;
+      parsedTable = dsParsed.table;
+      parsedComp = compParsed?.table ?? null;
+      return ingestParsed(
+        dsParsed.table,
+        parsedComp,
+        [...dsParsed.warnings, ...(compParsed?.warnings ?? []).map(w => `Components file: ${w}`)],
+        name, initialView, dataMode,
+      );
     } catch (err: any) {
-      setUploadStatus(`Error: ${err?.message ?? err}`);
+      const message = String(err?.message ?? err);
+      setUploadStatus(`Error: ${message}`);
+      // The prominent path: a dialog with a local, column-shape diagnosis and
+      // (when the problem is formatted-text numbers) an in-app fix. Counts and
+      // column names only — no cell values — so it behaves identically in
+      // Private and Open data modes, and needs no assistant.
+      const diags = parsedTable ? diagnoseTable(parsedTable) : null;
+      setFixCols(diags?.filter(d => d.kind === 'fixable').map(d => d.col) ?? []);
+      setUploadFailure({ message, name, dataMode, table: parsedTable, comp: parsedComp, diags });
       return null;
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // "Fix & add" from the upload-error dialog: coerce the chosen formatted-text
+  // columns to numbers and run the same ingest the upload would have.
+  const retryUploadWithFix = () => {
+    if (!uploadFailure?.table || fixCols.length === 0) return;
+    const { table, comp, name, dataMode } = uploadFailure;
+    setUploadFailure(null);
+    try {
+      const fixed = applyNumericFix(table, fixCols);
+      const note = `Converted ${fixCols.length} formatted-text column${fixCols.length === 1 ? '' : 's'} to numeric: ${fixCols.join(', ')}.`;
+      ingestParsed(fixed, comp, [note], name, undefined, dataMode, [note]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`Error: ${message}`);
+      setUploadFailure({ message, name, dataMode, table, comp, diags: diagnoseTable(table) });
+      setFixCols([]);
     }
   };
 
@@ -2142,11 +2214,22 @@ export default function Home() {
       }
   };
 
+  // Append one step to a dataset's audit trail (see Dataset.provenance).
+  const logProvenance = (datasetId: number | null, action: string) => {
+      if (datasetId == null) return;
+      setDatasets(prev => prev.map(d => d.id === datasetId
+          ? { ...d, provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action }] }
+          : d));
+  };
+
   // Applies a data-mode change from the confirm dialog. open → private also
   // clears the assistant conversation: a transcript that already contains raw
   // rows cannot be redacted after the fact, so the boundary is a fresh start.
   const applyModeChange = (id: number, to: DataMode) => {
       setDatasets(prev => prev.map(d => d.id === id ? { ...d, dataMode: to } : d));
+      logProvenance(id, to === 'open'
+          ? 'Data mode switched to OPEN — assistant may read raw rows from here on'
+          : 'Data mode switched to PRIVATE — assistant sees aggregates only; conversation cleared if it held rows');
       if (to === 'private' && (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0) {
           convBridge.current.handle?.set(null);
           noteConversationChange();
@@ -2203,6 +2286,29 @@ export default function Home() {
           setWorkspaceBusy("");
           setUploadStatus(`Save failed: ${err?.message ?? err}`);
       }
+  };
+
+  // Download the active dataset's audit trail as a plain-text file — the
+  // recoverable record of every step applied to the in-app copy.
+  const downloadProvenance = () => {
+      const d = activeDataset;
+      if (!d?.provenance?.length) return;
+      const text = [
+          `Scatter Lab data trace — ${d.name}`,
+          `${d.table.nRows} rows × ${d.table.columns.length} columns, ${d.dataMode} data mode`,
+          `Exported ${new Date().toISOString()}`,
+          '',
+          ...d.provenance.map(p => `${p.at}  ${p.action}`),
+          '',
+          'The original file was never modified; these steps describe the in-app copy only.',
+      ].join('\n');
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${d.name}_trace.txt`;
+      link.click();
+      URL.revokeObjectURL(url);
   };
 
   const exportWorkspace = () => {
@@ -2429,8 +2535,9 @@ export default function Home() {
           nRows: tgt.table.nRows,
       };
       setDatasets(prev => prev.map(d => d.id === tgt.id ? { ...d, table: newTable } : d));
-      setColorBy(name);
       const filled = newCol.filter(v => v != null).length;
+      logProvenance(tgt.id, `Column "${name}" copied from "${src.name}" (${mode === 'order' ? 'by row order' : `matched on "${keyCol}"`}) — ${filled}/${tgt.table.nRows} rows filled`);
+      setColorBy(name);
       setUploadStatus(`Transferred "${sourceCol}" from ${src.name} → "${name}" (${filled}/${tgt.table.nRows} rows filled).`);
       return newTable;
   };
@@ -2545,6 +2652,7 @@ export default function Home() {
               nRows: processedData.nRows
           };
           setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
+          logProvenance(activeId, `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''} wrote the "Cluster" column`);
           // The pre-cluster coloring is the natural default for composition breakdowns
           if (colorBy !== "Cluster") setBreakdownBy(colorBy);
           setColorBy("Cluster");
@@ -2959,6 +3067,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   pcaRuns: [...(d.pcaRuns ?? []).filter(r => r.label !== res.label), run],
               };
           }));
+          logProvenance(activeId, `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing}) added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}`);
           if (res.k < 3) setViewMode('2D');
           setPcaInfo({ varianceExplained: res.varianceExplained, cumulative: res.cumulative, spectrum: res.spectrum, eigenvalues: res.eigenvalues, standardize, k: res.k, columns: res.columns });
           const pct = res.varianceExplained.map((v, i) => `${cols[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(', ');
@@ -3165,6 +3274,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           };
           freshTableRef.current = newTable;
           setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
+          logProvenance(activeId, `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''} wrote the "Cluster" column`);
           setClusterMethod(method);
           if (opts.eps != null) setEps(opts.eps);
           if (opts.min_samples != null) setMinSamples(opts.min_samples);
@@ -3997,6 +4107,35 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 ))}
               </div>
             )}
+            {(activeDataset?.provenance?.length ?? 0) > 0 && (
+              // The audit trail: everything that changed this dataset's in-app
+              // copy, in order. Saved with workspaces and the autosaved session.
+              <details className="text-[11px]" data-guide="data-history">
+                <summary className="cursor-pointer font-bold uppercase tracking-wider opacity-60 text-[10px]">
+                  Data history — {activeDataset!.provenance!.length} step{activeDataset!.provenance!.length === 1 ? '' : 's'}
+                </summary>
+                <ol className="pt-1 space-y-1 opacity-80">
+                  {activeDataset!.provenance!.map((p, i) => (
+                    <li key={i} className="leading-snug">
+                      <span className="opacity-50">{new Date(p.at).toLocaleTimeString()} — </span>{p.action}
+                    </li>
+                  ))}
+                </ol>
+                <div className="pt-1 opacity-50 leading-snug">
+                  Your original file is never modified — these steps apply only to the in-app copy (export it from section 6).
+                </div>
+                {activeDataset!.provenance!.length > 1 && (
+                  // More than the load entry = the copy has been modified;
+                  // that is the moment a downloadable record earns its place.
+                  <button
+                    onClick={downloadProvenance}
+                    className="pt-1 underline-offset-2 hover:underline opacity-60 hover:opacity-100 text-left cursor-pointer"
+                  >
+                    ⤓ Download trace file
+                  </button>
+                )}
+              </details>
+            )}
             {datasets.length >= 2 && (
               <ColumnTransfer datasets={datasets} activeId={activeId} onTransfer={handleTransfer} />
             )}
@@ -4312,6 +4451,86 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           <button onClick={() => setSessionNotice(null)} title="Dismiss" className="opacity-60 hover:opacity-100 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
+      {uploadFailure && (() => {
+        const { message, name, diags } = uploadFailure;
+        const fixable = (diags ?? []).filter(d => d.kind === 'fixable');
+        const kindLabel: Record<ColumnDiagnosis['kind'], string> = {
+          numeric: 'numeric ✓', fixable: 'numeric, stored as text',
+          'date-like': 'dates (not plottable)', text: 'text / labels', empty: 'empty',
+        };
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setUploadFailure(null)}>
+            <div
+              onClick={e => e.stopPropagation()}
+              className={`w-[460px] max-w-[92vw] max-h-[85vh] overflow-y-auto p-4 flex flex-col gap-3 text-xs border ${theme === 'primary'
+                ? 'bg-white border-[3px] border-[var(--p-red)]'
+                : 'bg-[var(--background)] border-red-500/60 text-[var(--system-green)]'}`}
+            >
+              <div className={`font-bold text-sm ${theme === 'primary' ? 'text-[var(--p-red)]' : 'text-red-400'}`}>
+                ⚠ Upload failed — {name}
+              </div>
+              <div className="leading-snug">{message}</div>
+              {diags && (
+                <>
+                  <div className="font-bold leading-snug">{summarizeDiagnosis(diags)}</div>
+                  <div className="max-h-44 overflow-y-auto border border-[var(--border)] divide-y divide-[var(--border)]">
+                    {diags.map(d => (
+                      <div key={d.col} className="flex items-center gap-2 px-2 py-1">
+                        {d.kind === 'fixable' ? (
+                          <input
+                            type="checkbox"
+                            checked={fixCols.includes(d.col)}
+                            onChange={e => setFixCols(prev => e.target.checked ? [...prev, d.col] : prev.filter(c => c !== d.col))}
+                          />
+                        ) : <span className="w-[13px]" />}
+                        <span className="font-bold truncate" title={d.col}>{d.col}</span>
+                        <span className="opacity-60 ml-auto text-right flex-shrink-0">
+                          {kindLabel[d.kind]}
+                          {d.kind === 'fixable' && ` — ${d.numericAfterFix}/${d.nonNull} values parse${d.patterns.length ? ` (${d.patterns.join(', ')})` : ''}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Column names, counts, and pattern labels only — never cell
+                      values — so this dialog is identical in Private mode. */}
+                  <div className="opacity-60 leading-snug">
+                    Diagnosed locally from column shapes: no cell values are shown here and nothing leaves your browser.
+                  </div>
+                </>
+              )}
+              <div className="flex justify-end gap-2 pt-1 flex-wrap">
+                <button onClick={() => setUploadFailure(null)} className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    askAssistantRef.current?.(
+                      `My upload of "${name}" failed with: "${message}".` +
+                      (diags ? ` The app's local diagnosis: ${summarizeDiagnosis(diags)}` : '') +
+                      ' Explain what this means for my file and how to fix it.'
+                    );
+                    setUploadFailure(null);
+                  }}
+                  className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer"
+                >
+                  ✳ Ask the assistant
+                </button>
+                {fixable.length > 0 && (
+                  <button
+                    onClick={retryUploadWithFix}
+                    disabled={fixCols.length === 0}
+                    className={`scatterlab-action-button px-3 py-1.5 font-bold disabled:opacity-40 cursor-pointer ${theme === 'primary'
+                      ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
+                      : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
+                  >
+                    Fix {fixCols.length} column{fixCols.length === 1 ? '' : 's'} & add
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {modeDialog && (() => {
         const ds = datasets.find(d => d.id === modeDialog.datasetId);
         if (!ds) return null;
@@ -4378,6 +4597,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (!activeDataset) return ['No dataset loaded.'];
           const result = applyRecode(activeDataset.table, plan);
           setDatasets(prev => prev.map(d => d.id === activeDataset.id ? { ...d, table: result.table } : d));
+          logProvenance(activeDataset.id, `Missing-value codes blanked ${result.totalReplaced} cell${result.totalReplaced === 1 ? '' : 's'} in ${result.effects.filter(e => e.replaced).length} column(s)`);
           const lines = describeRecode(result);
           setUploadStatus([
             `Blanked ${result.totalReplaced} cell${result.totalReplaced === 1 ? '' : 's'} in ${result.effects.filter(e => e.replaced).length} column(s).`,

@@ -477,6 +477,13 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     if (view === 'walkthrough') endWalkthrough('assistant');
     setOpen(true);
     setView('chat');
+    if (!apiKey) {
+      // send() drops text without a key; keep the question waiting in the
+      // composer and open setup so it survives connecting a key.
+      setInput(q);
+      setShowSettings(true);
+      return;
+    }
     setShowSettings(false);
     send(q);
   };
