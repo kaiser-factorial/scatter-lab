@@ -66,15 +66,9 @@ export const DISCLOSURES = {
     title: 'The Analyze Tools',
     text: [
       'The assistant can run five tests (Welch\'s t, Mann–Whitney U, Kruskal–Wallis, two-sample Kolmogorov–Smirnov, chi-square) and draw seven chart types (ECDF, histogram, box, violin, Q–Q, bar, line over time), all computed in the browser — just ask, e.g. "run a t test comparing X between groups A and B".',
-      'Results report the exact p-value with an effect size and, for the t-test, a 95% confidence interval — the p is bolded below 0.05, and no significance stars are used anywhere.',
-      'Every request passes the same deterministic checks first (column types, group sizes, category limits, the data mode), and a rejected request tells the assistant exactly what to change.',
+      'Results report the exact p-value with an effect size and, for the t-test, a 95% confidence interval.',
       'In Private mode, category values covering fewer than 5 rows stay withheld here too: charts pool them as an unlabeled "(rare values)" bucket or omit them with a note.',
-    ],
-    more: [
-      'Welch\'s t is the default over Student\'s t because it does not assume equal variances and costs essentially nothing when they are equal (Delacre, Lakens & Leys 2017).',
-      'Exact p-values without stars follow the ASA statement on p-values (Wasserstein & Lazar 2016): a p measures compatibility with "no difference", while the effect size measures how much difference — report both, dichotomize neither.',
-      'These are single tests on data you chose to look at. Run many comparisons and some will be "significant" by chance; treat exploratory p-values as leads to confirm, not conclusions.',
-      'Histograms share bin edges across groups, bars anchor at zero and distribution charts do not, and violins use a Gaussian kernel density (Silverman\'s bandwidth) — plotting conventions applied consistently so charts stay comparable.',
+      'Histograms share bin edges across groups, bars anchor at zero and distribution charts do not, and violins use a Gaussian kernel density (Silverman\'s bandwidth).',
     ],
     methodsTopic: 'statistical_tests',
   },
@@ -154,12 +148,8 @@ export const DISCLOSURES = {
     title: 'Standard Deviation And Group Statistics',
     text: [
       'Standard deviations here are sample values, dividing by n-1.',
-      'Eta-squared is the share of variance accounted for by group membership.',
+      'Eta-squared is the share of variance accounted for by group membership. Comparing by a column with one row per group is refused: eta-squared would be exactly 1.000 by construction.',
       'Omega-squared is the same quantity corrected for the upward bias that grows with the number of groups, and is the one to prefer when there are many.',
-      'Comparing by a column with one row per group is refused: eta-squared would be exactly 1.000 by construction.',
-    ],
-    more: [
-      'Both are descriptive effect sizes, not significance tests, and a sizable value can be driven by one small extreme group — so always read them alongside the per-group means and ns.',
     ],
     methodsTopic: 'eta_squared',
   },
