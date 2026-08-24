@@ -391,7 +391,11 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
       }
       await paintYield();
     }
-    setWtLog(prev => [...prev, ...notes, { kind: 'assistant', text: step.say, local: true }]);
+    // Anchored steps speak through their bubble ONLY — logging the same prose
+    // showed it a second time in the panel the moment the step advanced.
+    setWtLog(prev => stepAnchorsChoice(step)
+      ? [...prev, ...notes]
+      : [...prev, ...notes, { kind: 'assistant', text: step.say, local: true }]);
     setWtBusy(false);
     // After the step's own effects have painted: the section being pointed at
     // may not have existed until this step loaded the data that reveals it.
@@ -936,12 +940,11 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[120px]">
         {/* The button you pressed is echoed as your turn, and rules off the beat
             above it. Without the break the whole tour ran together as one wall
-            of text with no seam between one step and the next. */}
-        {log.map((e, i) => (
-          // The CURRENT anchored step's prose lives in its bubble, not here —
-          // rendering it twice is the split-attention problem again. It joins
-          // the transcript as history once the step advances.
-          anchored && !busy && i === log.length - 1 && e.kind === 'assistant' && e.text === step?.say ? null :
+            of text with no seam between one step and the next.
+            While a bubble leads (anchored steps — all of the tour's middle),
+            the panel minimizes to the step counter alone: the log returns when
+            a panel-voiced step (welcome, done) has the floor again. */}
+        {!anchored && log.map((e, i) => (
           e.kind === 'user' ? (
             <div
               key={i}
@@ -966,7 +969,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
         {/* Where you are and what is left. An in-app tour of unknown length is
             the one people abandon, so the whole shape of it is on screen. */}
         {!busy && (
-          <div className={`mt-3 pt-2 space-y-1 ${primary ? 'border-t border-[#111111]/20' : 'border-t border-[var(--system-green)]/20'}`}>
+          <div className={`space-y-1 ${anchored ? '' : `mt-3 pt-2 ${primary ? 'border-t border-[#111111]/20' : 'border-t border-[var(--system-green)]/20'}`}`}>
             <div className="text-[9px] uppercase tracking-widest opacity-40">
               Step {index + 1} of {WALKTHROUGH_STEPS}
             </div>
