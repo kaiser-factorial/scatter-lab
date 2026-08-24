@@ -183,7 +183,6 @@ export const DISCLOSURES = {
       'True scale makes each axis length proportional to its own span, so a unit is the same length everywhere.',
     ],
     more: [
-      'Cube is the default because it always fits the canvas and orbits evenly. A box proportional to the data can be long and thin, which swings its apparent size as it rotates and can run off the edge.',
       'Neither changes the data, the clustering or any number reported — only the shape of the box the points are drawn in. Distances judged by eye are only comparable across axes on True scale.',
       'Pins remember the setting they were taken under, and exports match whatever is on screen.',
     ],
