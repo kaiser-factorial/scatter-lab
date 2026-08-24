@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, memo, useMemo, startTransition } from 'react';
+import { createPortal } from 'react-dom';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList, Lock, Globe } from 'lucide-react';
 import {
@@ -832,6 +833,49 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
 
 // The walkthrough transcript: the same bubbles and "▸" tool chips the chat uses,
 // driven by buttons instead of typing.
+// A step-advance button pinned beside a highlighted sidebar control (portal to
+// body, fixed position), for steps with `anchorChoice`: the user has to look
+// at the thing being taught to find the way forward. Tracks the anchor's rect
+// on the same 100ms cadence as the highlight ring, and sits just below the
+// ring's 12px pad; renders nothing when the anchor is off screen.
+const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
+  target: string,
+  label: string,
+  disabled: boolean,
+  primary: boolean,
+  onClick: () => void,
+}) => {
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  useEffect(() => {
+    const place = () => {
+      const el = document.querySelector(`[data-guide="${target}"]`);
+      if (!el) return setPos(null);
+      const r = el.getBoundingClientRect();
+      setPos(prev => {
+        const next = { left: Math.round(r.left), top: Math.round(r.bottom + 18) };
+        return prev && prev.left === next.left && prev.top === next.top ? prev : next;
+      });
+    };
+    place();
+    const tracker = setInterval(place, 100);
+    return () => clearInterval(tracker);
+  }, [target]);
+  if (!pos || typeof document === 'undefined') return null;
+  return createPortal(
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{ position: 'fixed', left: pos.left, top: pos.top, zIndex: 96 }}
+      className={`py-1.5 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer shadow-lg ${primary
+        ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
+        : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+    >
+      {label} →
+    </button>,
+    document.body,
+  );
+};
+
 const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSkip }: {
   primary: boolean,
   log: ChatEntry[],
@@ -899,7 +943,24 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
         {/* Buttons sit ABOVE the composer: they are how you move, and the
             composer below them is visibly not. */}
         <div className="space-y-1.5">
-          {(step?.choices ?? []).map(choice => (
+          {step?.anchorChoice && step.highlight && step.choices[0] ? (
+            // The way forward lives beside the highlighted control instead of
+            // here — the panel just says where to look.
+            <>
+              {!busy && (
+                <AnchoredChoice
+                  target={step.highlight}
+                  label={step.choices[0].label}
+                  disabled={busy}
+                  primary={primary}
+                  onClick={() => onChoose(step.choices[0])}
+                />
+              )}
+              <div className="text-[10px] opacity-60 py-1.5 px-2">
+                ▸ The “{step.choices[0].label}” button is next to the highlighted area in the sidebar.
+              </div>
+            </>
+          ) : (step?.choices ?? []).map(choice => (
             <button
               key={choice.label}
               onClick={() => onChoose(choice)}

@@ -55,6 +55,13 @@ export type WalkthroughStep = {
    * lands — the assistant, or the workspace with the panel out of the way.
    */
   choices: { label: string; next: string | null; then?: 'assistant' | 'exit' }[];
+  /**
+   * Render this step's (single) choice button floating NEXT TO the highlighted
+   * control instead of in the panel, so advancing requires having looked at
+   * the thing being taught — used by the Data step to make sure the upload
+   * area itself is seen before the demo dataset appears through it.
+   */
+  anchorChoice?: boolean;
 };
 
 const IRIS_VARIABLES = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm'];
@@ -67,28 +74,40 @@ export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'welcome',
     title: 'Welcome',
-    // The data load lives here, in the tour's first act, rather than a step
-    // later — so "Load demo" on the empty state is a single click into a
-    // running tour with the data already on screen, and the menu route gets the
-    // same thing. Idempotent, so arriving with Iris already loaded is fine.
-    run: [b => b.loadDemoData()],
     say:
-      'This is a guided walkthrough of Scatter Lab, running on the built-in **Iris** demo — ' +
-      '150 flowers, four measurements, three species, now loaded and on screen. It takes about ' +
-      'five minutes.\n\n' +
-      'I drive the workbench as we go: assigning axes, running a PCA, clustering it, and pointing ' +
-      'at each control as I describe it.',
+      'This is a guided walkthrough of Scatter Lab, using the built-in **Iris** demo — 150 flowers, ' +
+      'four measurements, three species. It takes about five minutes.\n\n' +
+      'I drive the workbench as we go: adding the data, assigning axes, running a PCA, clustering ' +
+      'it, and pointing at each control as I describe it.',
     choices: [{ label: 'Start with the Data section', next: 'data' }],
   },
   {
     id: 'data',
     title: 'Data',
     highlight: 'upload-dropzone',
+    // The button to advance floats beside the dropzone itself (anchorChoice),
+    // and the demo loads on the NEXT step — teach the door, then walk through
+    // it. Loading here would put data on screen before the user has seen where
+    // data comes from.
+    anchorChoice: true,
     say:
-      'This is where your own data comes in — drop a **CSV, XLSX, or Parquet** file on the box I ' +
-      'am pointing at, then press *Add Dataset*. Several datasets can be open at once; clicking ' +
-      'one in the list below makes it the active one.\n\n' +
-      'Every column is profiled on the way in, and anything the parser had to interpret — ragged ' +
+      'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the box I am ' +
+      'pointing at, or click it to browse. A dialog then configures the add: the data mode, ' +
+      'missing-value scanning, and an optional components file.\n\n' +
+      'Press the button next to the dropzone and I will add the Iris demo through this same door.',
+    choices: [{ label: 'Add the Iris demo', next: 'data-added' }],
+  },
+  {
+    id: 'data-added',
+    title: 'Dataset added',
+    highlight: 'datasets-list',
+    // Idempotent, so arriving with Iris already loaded is fine.
+    run: [b => b.loadDemoData()],
+    say:
+      'The Iris dataset is in — it now sits in the list I am pointing at, with its lock/globe badge ' +
+      '(the data mode), a gear for its settings, and an ✕ to remove it. Several datasets can be ' +
+      'open at once; clicking one makes it the active one.\n\n' +
+      'Every column is profiled on the way in, and anything unusual the parser ran into — ragged ' +
       'rows, duplicate headers, numbers written with decimal commas — is reported rather than ' +
       'silently absorbed.',
     choices: [{ label: 'Look at the variables', next: 'variables' }],
