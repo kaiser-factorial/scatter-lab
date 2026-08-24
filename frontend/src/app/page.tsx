@@ -2141,8 +2141,11 @@ export default function Home() {
     // loaded as two datasets — otherwise both arrive with the same name.
     const name = dsFile.name.replace(/\.(csv|xlsx|parquet)$/i, '') + (sheet ? ` — ${sheet}` : '');
     try {
-      // Yield a frame so the busy state paints before heavy parsing starts
-      await new Promise(r => setTimeout(r, 30));
+      // Yield until the busy state has actually PAINTED before heavy parsing
+      // starts. A 30ms setTimeout sat here before, but a timer can fire ahead
+      // of the click frame's presentation, which re-attached the whole
+      // parse+ingest to the Add button's interaction (its INP flag).
+      await paintYield();
       const [dsParsed, compParsed] = await Promise.all([
         readTable(dsFile, { sheet }),
         compFile ? readTable(compFile) : Promise.resolve(null),
@@ -2659,8 +2662,9 @@ export default function Home() {
   const handleCluster = async () => {
       if (clusterMethod === "NONE" || !processedData) return;
       setIsClustering(true);
-      // Yield a frame so the busy state paints before the O(n²) work starts
-      await new Promise(r => setTimeout(r, 30));
+      // Yield until the busy state has PAINTED before the O(n²) work starts —
+      // a plain 30ms timer can fire before the click frame presents.
+      await paintYield();
       try {
           const ax = effectiveAxes(activeDataset!, viewMode);
           const rawCols = [processedData.data[ax.x], processedData.data[ax.y]];
