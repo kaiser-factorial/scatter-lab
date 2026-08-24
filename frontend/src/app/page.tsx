@@ -1174,7 +1174,7 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
             {lastRun && (
                 <div className="space-y-1 pt-1 border-t border-[var(--border)]/40">
                     <div className="font-bold uppercase tracking-wider opacity-60 text-[10px]">
-                        Scree — all components<InfoTip topic="variance_explained" />
+                        Scree — all components<InfoTip topic="scree_full_spectrum" />
                     </div>
                     {/* Every component, with the kept ones solid and the rest
                         faded (B4). Plotting only the kept ones made the chart

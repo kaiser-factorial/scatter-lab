@@ -160,16 +160,6 @@ export const DISCLOSURES = {
     methodsTopic: 'loadings_vs_scores',
   },
 
-  variance_explained: {
-    title: 'Variance Explained',
-    text: [
-      "Each bar in the variance breakdown is that component's share of the total variance across all the variables you selected.",
-    ],
-    more: [
-      'Only the components you chose to keep appear here, so this breakdown cannot be used to pick how many to keep — for that, see the scree chart, which draws the full spectrum.',
-    ],
-    methodsTopic: 'how_many_components',
-  },
 
   group_stats: {
     title: 'Standard Deviation And Group Statistics',
@@ -202,7 +192,6 @@ export const DISCLOSURES = {
       'The scree chart draws every component, with the ones you kept solid and the rest faded.',
     ],
     more: [
-      'The two rules the methods reference describes both need the full spectrum: the Cattell elbow is invisible if the chart stops at the elbow, and the Kaiser eigenvalue-above-1 count needs every eigenvalue.',
       'Kaiser is only shown for a standardized run, where each variable contributes exactly 1.',
     ],
     methodsTopic: 'how_many_components',
@@ -254,7 +243,7 @@ export const disclosure = (key: DisclosureKey): Disclosure => DISCLOSURES[key];
 export const DISCLOSURE_SECTIONS: { heading: string; keys: DisclosureKey[] }[] = [
   { heading: 'Privacy', keys: ['data_modes'] },
   { heading: 'Missing Data', keys: ['median_imputation', 'missing_value_codes'] },
-  { heading: 'PCA', keys: ['standardize_pca', 'pca_loadings', 'variance_explained', 'scree_full_spectrum'] },
+  { heading: 'PCA', keys: ['standardize_pca', 'pca_loadings', 'scree_full_spectrum'] },
   {
     heading: 'Clustering',
     keys: ['clusters_plotted_axes', 'kmeans_deterministic', 'dbscan_parameters', 'standardize_clustering', 'diagnostics_sampled'],
