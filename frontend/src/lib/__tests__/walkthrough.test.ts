@@ -109,6 +109,12 @@ describe('walkthrough step actions', () => {
     expect(stepAnchorsChoice(walkthroughStep('done')!)).toBe(false);
   });
 
+  it('anchored steps speak without a first person — their bubble is not the chat window', () => {
+    for (const step of WALKTHROUGH.filter(stepAnchorsChoice)) {
+      expect(step.say, step.id).not.toMatch(/(^|[^A-Za-z])I(['’]| am| have| will|\s)/);
+    }
+  });
+
   it('runs the Iris PCA on the four measurements, never on Id', async () => {
     const [call] = await runAll('pca');
     expect(call.method).toBe('runPCA');

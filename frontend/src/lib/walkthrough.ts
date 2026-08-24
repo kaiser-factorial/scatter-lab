@@ -95,8 +95,8 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     // data comes from. (The advance button floats beside the dropzone, like
     // every sidebar-pointing step — see stepAnchorsChoice.)
     say:
-      'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the box I am ' +
-      'pointing at, or click it to browse. A dialog then configures the add: the data mode, ' +
+      'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the ' +
+      'highlighted box, or click it to browse. A dialog then configures the add: the data mode, ' +
       'missing-value scanning, and an optional components file.',
     choices: [{ label: 'Add the Iris demo', next: 'data-added' }],
   },
@@ -109,10 +109,10 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     // the open mode the demo uses elsewhere.
     run: [b => b.loadDemoData('private')],
     say:
-      'The Iris dataset is in — it now sits in the list I am pointing at, with its locked data mode ' +
-      'badge, a gear for its settings, and an ✕ to remove it. Several datasets can be open at once; ' +
-      'clicking one makes it the active one.\n\n' +
-      'I added it in **private mode**, the default: everything computes in your browser and the AI ' +
+      'The Iris dataset is in — it now sits in this list, with its locked data mode badge, a gear ' +
+      'for its settings, and an ✕ to remove it. Several datasets can be open at once; clicking one ' +
+      'makes it the active one.\n\n' +
+      'It was added in **private mode**, the default: everything computes in your browser and the AI ' +
       'assistant sees only column names, aggregate summaries and analysis results — never raw rows. ' +
       'The mode is chosen in the add dialog and locked in for the dataset\'s lifetime.\n\n' +
       'Every column is profiled on the way in, and anything unusual the parser ran into — ragged ' +
@@ -130,11 +130,7 @@ export const WALKTHROUGH: WalkthroughStep[] = [
       '**mini histogram**. The small buttons do the plotting:\n\n' +
       '- **X**, **Y**, **Z** — put a numeric column on that axis\n' +
       '- **C** — colour the points by it\n' +
-      '- **S** — encode it as the marker shape\n\n' +
-      'The opening view was chosen for you: identifier-like columns such as `Id` are skipped as ' +
-      'axes (though you can still select them), and the first low-cardinality non-boolean column — ' +
-      'here `Species` — becomes the initial colour. You can see the three species already starting ' +
-      'to separate.',
+      '- **S** — encode it as the marker shape',
     choices: [{ label: 'Run a PCA on the measurements', next: 'pca' }],
   },
   {
@@ -143,7 +139,7 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     highlight: 'pca',
     say:
       'The **PCA** section runs a principal component analysis in the browser: tick the variables, ' +
-      'choose how many components to keep, press Run. I have just run one on the four flower ' +
+      'choose how many components to keep, press Run. One has just been run on the four flower ' +
       'measurements — `Id` is excluded, since an identifier is not a measurement.\n\n' +
       '*Standardize* is on, which makes this a correlation-based PCA. The scree bars show how much ' +
       'variance each component explains, and *Top PC contributors* lists which measurements load on ' +
@@ -158,12 +154,12 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     title: 'Clustering',
     highlight: 'cluster',
     say:
-      'I just ran k-means clustering (k=3) on those 3 PC values. **Clustering always runs on the ' +
+      'K-means clustering (k=3) has just run on those 3 PC values. **Clustering always runs on the ' +
       'plotted axes**, which is why the PCA came first.\n\n' +
       'Standardizing is off here because PC scores are already ordered by variance. For raw variables ' +
       'on mixed scales you would want it on — the checkbox defaults follow the data, and the **(i)** ' +
       'markers explain why.\n\n' +
-      'Colour is now the cluster, and I have moved `Species` onto the **shape** channel, so you are ' +
+      'Colour is now the cluster, and `Species` has moved onto the **shape** channel, so you are ' +
       'reading two variables at once: do the found clusters line up with the known species? ' +
       '*Cluster info by* below the button cross-tabulates the two, as *% of cluster* or *% of group*, ' +
       'and saves as a heatmap PNG.\n\n' +
