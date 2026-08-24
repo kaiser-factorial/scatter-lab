@@ -109,12 +109,11 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     // the open mode the demo uses elsewhere.
     run: [b => b.loadDemoData('private')],
     say:
-      'The Iris dataset is in — it now sits in this list, with its Private data mode badge, a gear ' +
-      'for its settings, and an ✕ to remove it. Several datasets can be open at once; clicking one ' +
-      'makes it the active one.\n\n' +
-      'Private mode is the default: everything computes in your browser and the AI assistant sees ' +
+      'The **Iris dataset** is in, with its Private data mode badge, a gear for its settings, and ' +
+      'an ✕ to remove it. Several datasets can be loaded at once; clicking one makes it active.\n\n' +
+      '**Private mode** is default: everything computes in your browser and the AI assistant sees ' +
       'only column names, aggregate summaries and analysis results — never raw rows. The mode is ' +
-      'chosen in the add dialog and locked in for the dataset\'s lifetime.',
+      'chosen and locked in in the add dialog.',
     choices: [{ label: 'Look at the variables', next: 'variables' }],
   },
   {
