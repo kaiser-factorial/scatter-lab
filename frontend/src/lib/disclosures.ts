@@ -87,21 +87,14 @@ export const DISCLOSURES = {
       'It does not search for the global optimum.',
       'The same data and the same k therefore always give byte-identical clusters in **this app**.',
     ],
-    more: [
-      'This tool guarantees reproducibility, not evidence of stable structure. To test whether the clusters are stable, vary k and re-run on subsamples rather than re-running unchanged.',
-    ],
     methodsTopic: 'kmeans_interpretation',
   },
 
   dbscan_parameters: {
     title: 'Eps And Min-Samples',
     text: [
-      'A point is a core point when at least "min samples" points lie within distance eps, counting itself. Clusters grow from connected core points; anything left over is labelled Noise.',
+      'A point is a core point when at least **min samples** points lie within distance **eps**, counting itself.',
       'eps is in the units of the plotted axes — or in standard deviations when Standardize is on.',
-    ],
-    more: [
-      'Too small fragments the data into Noise; too large merges everything into one cluster.',
-      'Counting the point itself is the standard convention — both scikit-learn and the original Ester et al. definition do it — but tutorials often describe min samples as neighbours excluding the point, which is a common source of off-by-one disagreement between tools.',
     ],
     methodsTopic: 'dbscan_interpretation',
   },
@@ -122,9 +115,7 @@ export const DISCLOSURES = {
     title: 'Clustering Uses The Plotted Axes',
     text: [
       'Clustering runs on the two or three columns currently assigned to X, Y and Z — nothing else.',
-    ],
-    more: [
-      'Choosing the axes is therefore choosing the features. That is a good fit for PC scores, and a weak one for two arbitrary raw columns, where the result describes only those two variables.',
+      'Choosing the axes is therefore choosing the features.',
     ],
     // Was pointing at 'standardize_clustering', which is a different subject.
     // This disclosure is about which features the clustering sees, and how much
@@ -145,9 +136,7 @@ export const DISCLOSURES = {
     title: 'Standardizing Before Clustering',
     text: [
       'Z-scoring gives every variable equal weight in the distance.',
-      'Suggested ON for mixed scales, for example age alongside Likert items.',
-      'OFF for PC scores — their declining variance is the point of PCA.',
-      'OFF by default for items sharing a response scale, where variance differences are themselves signal.',
+      'Suggested ON for mixed scales, OFF for PC scores.',
     ],
     methodsTopic: 'standardize_clustering',
   },
@@ -215,10 +204,7 @@ export const DISCLOSURES = {
     title: 'Diagnostics Are Sampled',
     text: [
       'Silhouette-by-k and the k-distance curve are O(n squared), so on large tables they are computed on a capped sample of rows (1,200 and 2,000 respectively) while the clustering itself runs on everything.',
-      'The sample is random but seeded, so repeated runs agree. Random rather than evenly spaced, because a fixed step lands on one stratum of any file ordered by wave, block or condition.',
-    ],
-    more: [
-      'Treat them as a starting point for choosing parameters rather than an exact answer.',
+      'The sample is random but seeded, so repeated runs agree.',
     ],
     methodsTopic: 'silhouette',
   },
