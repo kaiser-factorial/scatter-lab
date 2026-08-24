@@ -605,6 +605,15 @@ unbiased-sample check, held in reserve.
    - **`useMemo` is imported and unused in `AssistantPanel.tsx`**, one of the 123 lint
      problems the gate now pins.
 
+## Queued ideas
+
+- **.sav (SPSS) import support.** The sentinel detector exists because CSV
+  exports throw the codebook away — .sav (and .dta) files declare their
+  missing-value codes, value labels, and variable labels outright. Reading
+  them directly would make declared codes authoritative and demote the
+  detector to the codebook-less case. Owner asked for this to be queued
+  (2026-08-24).
+
 ## Working on it
 
 ```

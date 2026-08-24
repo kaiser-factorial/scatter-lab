@@ -196,19 +196,12 @@ export const DISCLOSURES = {
   missing_value_codes: {
     title: 'Missing Value Codes',
     text: [
-      "This app flags values that are shaped like traditional sentinel codes AND sit oddly in their column — far outside it, the wrong sign for it, or leaving a hole in a short scale — but it never removes them: which code means what is your knowledge, not the app's.",
-      'Each flag carries how sure the detector is. Certain means the value cannot be a measurement in that column, or sits an order of magnitude outside it; likely and possible mean the shape is suggestive, and possible boxes are not ticked for you.',
-      'It also checks whether the same rows carry a code across several columns, the signature of a respondent choosing "Don\'t Know" through a whole battery of items, and says how much more often than chance that happens.',
-      'Two cases cannot be detected — a code that falls inside the range of real values, and a negative code in a variable that is negative anyway. Declaring the code yourself covers both.',
+      'This app flags values that are shaped like traditional sentinel codes AND sit oddly in their column by being far outside it, the wrong sign for it, or leaving a hole in a short scale.',
+      'Each flag carries how sure the detector is. Certain means the value cannot be a measurement in that column, or sits an order of magnitude outside it; likely and possible mean the shape is suggestive.',
+      'It also checks whether the same rows carry a code across several columns and says how much more often than chance that happens.',
+      '**Two cases cannot be detected:** a code that falls inside the range of real values, and a negative code in a variable that is negative anyway. Declaring the code yourself covers both.',
     ],
-    more: [
-      'SPSS, Qualtrics and most survey platforms write "refused" or "not applicable" as out-of-range numbers — -99, -999, 9999 — and a CSV carries no sign of that alternate meaning. Read as measurements, they land in means, correlations, the PCA and the distances used for clustering.',
-      'If a flagged value is a code, replace it with a blank before analysing.',
-      'The tiers are honest about a boundary the detector cannot resolve from one column alone: a short Likert item carrying a Don\'t Know code and a skewed count with a real value in its tail are the same shape. What separates them here is how many people the value accounts for — a response option gets picked, a rare real value does not — which is a heuristic, not a law.',
-      'The cross-column check compares the code\'s rows against what independence would predict from the counts, per column rather than for the group, so a real 9 in one variable is not swept along by a Don\'t Know block running through twenty others. It only ever raises confidence: a survey may use a code in exactly one item, so the absence of a pattern is not evidence against one.',
-      'Where a codebook exists, it beats all of this — .sav and .dta files declare their missing values outright, and a CSV export throws that away.',
-    ],
-    methodsTopic: 'survey_data_notes',
+    methodsTopic: 'sentinel_detection',
   },
 
   scree_full_spectrum: {
