@@ -137,8 +137,8 @@ export const InfoDialog = ({
             to send it to — and closing the tab discards it, so <strong>save a workspace</strong> if you want it back.
           </p>
           <p className="opacity-80">
-            The assistant is the exception if you choose to connect an API key: your questions and a
-            summary of the data will be sent to the model provider. The assistant can see:
+            <strong>The assistant is the exception.</strong> If you choose to connect an API key, your
+            questions and a summary of the data will be sent to the model provider. The assistant can see:
           </p>
           <ul className="list-disc pl-5 space-y-1 opacity-80">
             <li>column names</li>

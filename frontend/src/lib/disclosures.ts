@@ -26,8 +26,9 @@
 // retrieves from. These are the short, plain-language versions of the specific
 // choices this app makes, which is a different job.
 //
-// No Markdown: these strings are rendered as plain text in both surfaces, so
-// asterisks and backticks would show up literally.
+// Formatting: **emphasis** is the ONE device these strings may carry (rendered
+// by emphasisSegments below); anything else — backticks, links — shows up
+// literally.
 
 export type Disclosure = {
   /** Short label — the tooltip heading and the About page entry title. */
@@ -52,13 +53,13 @@ export const DISCLOSURES = {
     text: [
       'Each dataset carries a data mode, chosen when it is added, that sets what the assistant may see of it.',
       'In both modes the assistant gets column names, aggregate summaries, and the results of analyses it runs — and everything else (parsing, PCA, clustering, exports) computes in the browser without uploading the dataset anywhere.',
-      'The difference is raw data. **Private mode** (the default) stops at aggregates: never raw rows, never category values covering fewer than 5 rows, never identifier columns. **Public mode**, which you must explicitly confirm, additionally lets the assistant read raw rows and full category lists.',
+      '**Private mode** (default): returns aggregates, never raw rows, category values covering fewer than 5 rows, or identifier columns. **Public mode**, which you must explicitly confirm, additionally lets the assistant read raw rows and full category lists.',
       'If any loaded dataset is private, the whole conversation runs at the private level: the row-reading tools do not exist for that conversation.',
     ],
     more: [
       'The 5-row rule is the usual small-cell threshold in statistical disclosure control: a value covering 80 rows describes a group, a value covering one row is that person.',
       'The boundary is enforced where the data leaves the app, not by asking the assistant to behave: in Private mode the row-reading tools are not offered to the model at all.',
-      'Switching a dataset from open back to private clears the assistant conversation, because a transcript that already contains rows cannot be redacted after the fact.',
+      'A dataset\'s mode is locked in when it is added — there is no switch to flip later. To change it, remove the dataset and add it again; public mode always requires re-confirming that the data holds nothing personal.',
       'Whatever the assistant does see is sent to the model API you configured, with your key. With a local runtime (Ollama, LM Studio) as the endpoint, even that never leaves your machine.',
     ],
   },

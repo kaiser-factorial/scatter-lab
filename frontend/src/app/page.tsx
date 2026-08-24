@@ -2180,8 +2180,12 @@ export default function Home() {
   // add — the declaration is per file, deliberately not sticky.
   const [uploadDataMode, setUploadDataMode] = useState<DataMode>('private');
   // Mode-switch dialog for an already-loaded dataset (badge in the list).
-  const [modeDialog, setModeDialog] = useState<{ datasetId: number; to: DataMode } | null>(null);
-  const [modeConfirmChecked, setModeConfirmChecked] = useState(false);
+  // Info-only: a dataset's mode is LOCKED at upload (owner's call) — the badge
+  // and the assistant's access chip open this explainer, never a switch.
+  const [accessInfo, setAccessInfo] = useState<number | null>(null);
+  // The no-sensitive-data confirmation lives in the ADD dialog now, since
+  // upload time is the only moment a dataset can become open.
+  const [uploadOpenConfirmed, setUploadOpenConfirmed] = useState(false);
   // A failed upload opens a dialog instead of relying on the small status
   // line: the error, a local column-shape diagnosis, and — when the culprit is
   // numbers stored as formatted text — an in-app fix.
@@ -2485,6 +2489,7 @@ export default function Home() {
     setDatasetFile(null);
     setComponentsFile(null);
     setUploadDataMode('private');
+    setUploadOpenConfirmed(false);
     setRecodeAfterAdd('configure');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
@@ -2575,6 +2580,7 @@ export default function Home() {
     setComponentsFile(null);
     setShowComponents(false);
     setUploadDataMode('private');
+    setUploadOpenConfirmed(false);
     setRecodeAfterAdd('configure');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
@@ -2624,22 +2630,6 @@ export default function Home() {
       setDatasets(prev => prev.map(d => d.id === datasetId
           ? { ...d, provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action }] }
           : d));
-  };
-
-  // Applies a data-mode change from the confirm dialog. open → private also
-  // clears the assistant conversation: a transcript that already contains raw
-  // rows cannot be redacted after the fact, so the boundary is a fresh start.
-  const applyModeChange = (id: number, to: DataMode) => {
-      setDatasets(prev => prev.map(d => d.id === id ? { ...d, dataMode: to } : d));
-      logProvenance(id, to === 'open'
-          ? 'Data mode switched to OPEN — assistant may read raw rows from here on'
-          : 'Data mode switched to PRIVATE — assistant sees aggregates only; conversation cleared if it held rows');
-      if (to === 'private' && (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0) {
-          convBridge.current.handle?.set(null);
-          noteConversationChange();
-      }
-      setModeDialog(null);
-      setModeConfirmChecked(false);
   };
 
   // --- Workspace persistence (IndexedDB — fully local) -----------------------
@@ -3637,12 +3627,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // identity changes only when the active dataset or its mode does, which is
   // when the panel re-renders anyway.
   const activeDatasetId = activeDataset?.id ?? null;
-  const activeDataMode = activeDataset?.dataMode ?? 'private';
-  const openActiveModeDialog = useCallback(() => {
+  const openActiveAccessInfo = useCallback(() => {
       if (activeDatasetId == null) return;
-      setModeConfirmChecked(false);
-      setModeDialog({ datasetId: activeDatasetId, to: activeDataMode === 'open' ? 'private' : 'open' });
-  }, [activeDatasetId, activeDataMode]);
+      setAccessInfo(activeDatasetId);
+  }, [activeDatasetId]);
 
   const changeDock = useCallback((d: 'right' | 'bottom' | 'float') => {
       setAssistantDock(d);
@@ -4493,15 +4481,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     <span className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="opacity-60">{d.table.nRows} rows</span>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setModeConfirmChecked(false); setModeDialog({ datasetId: d.id, to: d.dataMode === 'open' ? 'private' : 'open' }); }}
+                        onClick={(e) => { e.stopPropagation(); setAccessInfo(d.id); }}
                         className="hover:opacity-60"
                         title={d.dataMode === 'open'
-                          ? 'Public/open data — the assistant may read raw rows. Click to make private.'
-                          : 'Private research data — the assistant sees aggregates only. Click to change.'}
+                          ? 'Public/open data — the assistant may read raw rows. Set when the dataset was added; click for details.'
+                          : 'Private research data — the assistant sees aggregates only. Set when the dataset was added; click for details.'}
                       >
                         {d.dataMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setDatasetSettings(d.id); }} className="hover:opacity-60" title="Dataset settings — data mode, missing-value codes, delete">
+                      <button onClick={(e) => { e.stopPropagation(); setDatasetSettings(d.id); }} className="hover:opacity-60" title="Dataset settings — missing-value codes, delete">
                         <Settings2 className="w-3 h-3" />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(d.id); }} className="hover:opacity-50" title="Remove dataset (asks first)">
@@ -4856,7 +4844,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         <AssistantPanel
           accessMode={datasets.length > 0 && datasets.every(d => d.dataMode === 'open') ? 'open'
             : datasets.some(d => d.dataMode === 'open') ? 'mixed' : 'private'}
-          onAccessClick={activeDatasetId != null ? openActiveModeDialog : undefined}
+          onAccessClick={activeDatasetId != null ? openActiveAccessInfo : undefined}
           bridgeRef={bridgeRef}
           theme={theme}
           askRef={askAssistantRef}
@@ -4933,13 +4921,22 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 <label key={mode} title={hint} className={`flex items-start gap-1.5 px-1.5 py-1 border cursor-pointer ${uploadDataMode === mode
                   ? (theme === 'primary' ? 'border-[var(--border)] bg-[var(--p-yellow)]/60 font-bold' : 'border-[var(--primary)] text-[var(--primary)] bg-[var(--border)]')
                   : 'border-[var(--border)] opacity-70 hover:opacity-100'}`}>
-                  <input type="radio" name="upload-data-mode" className="mt-0.5" checked={uploadDataMode === mode} onChange={() => setUploadDataMode(mode)} />
+                  <input type="radio" name="upload-data-mode" className="mt-0.5" checked={uploadDataMode === mode} onChange={() => { setUploadDataMode(mode); setUploadOpenConfirmed(false); }} />
                   <span className="flex flex-col">
                     <span className="flex items-center gap-1"><ModeIcon className="w-3 h-3" /> {label}{mode === 'private' ? ' (default)' : ''}</span>
                     <span className="opacity-60 font-normal">{hint}</span>
                   </span>
                 </label>
               ))}
+              {/* The mode locks in at upload, so the no-sensitive-data
+                  confirmation happens HERE — the only moment open exists. */}
+              {uploadDataMode === 'open' && (
+                <label className="flex items-start gap-2 cursor-pointer pl-1.5 pt-0.5">
+                  <input type="checkbox" className="mt-0.5" checked={uploadOpenConfirmed} onChange={e => setUploadOpenConfirmed(e.target.checked)} />
+                  <span>I confirm this dataset contains no personal, sensitive, or confidential data.</span>
+                </label>
+              )}
+              <span className="opacity-50 pl-1.5">The mode is locked in when the dataset is added — to change it later, remove and re-add the dataset.</span>
             </fieldset>
             <fieldset className="flex flex-col gap-1">
               <legend className="opacity-70 pb-0.5" title="Codes like 9, -99, 999 that mean 'refused' or 'not applicable' — read as measurements they distort every statistic.">
@@ -4980,7 +4977,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               <button
                 data-guide="add-dataset"
                 onClick={handleUpload}
-                disabled={isUploading}
+                disabled={isUploading || (uploadDataMode === 'open' && !uploadOpenConfirmed)}
                 className={`scatterlab-action-button px-3 py-1.5 font-bold disabled:opacity-40 cursor-pointer ${theme === 'primary'
                   ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
                   : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
@@ -5007,12 +5004,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               <div className="flex items-center gap-2 border border-[var(--border)] px-2 py-1.5">
                 {ds.dataMode === 'open' ? <Globe className="w-3.5 h-3.5 flex-shrink-0" /> : <Lock className="w-3.5 h-3.5 flex-shrink-0" />}
                 <span>{ds.dataMode === 'open' ? 'Public / open — assistant may read raw rows' : 'Private — assistant sees aggregates only'}</span>
-                <button
-                  onClick={() => { setDatasetSettings(null); setModeConfirmChecked(false); setModeDialog({ datasetId: ds.id, to: ds.dataMode === 'open' ? 'private' : 'open' }); }}
-                  className="ml-auto flex-shrink-0 underline-offset-2 hover:underline opacity-70 hover:opacity-100 cursor-pointer font-bold"
-                >
-                  Change…
-                </button>
+                <span className="ml-auto flex-shrink-0 opacity-50" title="A dataset's mode is locked in when it is added. To change it, remove the dataset and add it again.">
+                  Set at upload
+                </span>
               </div>
               <button
                 onClick={() => { selectDataset(ds.id); setDatasetSettings(null); setShowRecode('configure'); }}
@@ -5153,13 +5147,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           </div>
         );
       })()}
-      {modeDialog && (() => {
-        const ds = datasets.find(d => d.id === modeDialog.datasetId);
+      {accessInfo != null && (() => {
+        const ds = datasets.find(d => d.id === accessInfo);
         if (!ds) return null;
-        const opening = modeDialog.to === 'open';
-        const chatNonEmpty = (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0;
+        const open = ds.dataMode === 'open';
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModeDialog(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setAccessInfo(null)}>
             <div
               onClick={e => e.stopPropagation()}
               className={`w-[380px] max-w-[90vw] p-4 flex flex-col gap-3 text-xs border ${theme === 'primary'
@@ -5167,36 +5160,20 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 : 'bg-[var(--background)] border-[var(--system-green)]/50 text-[var(--system-green)]'}`}
             >
               <div className="font-bold text-sm flex items-center gap-1.5">
-                {opening ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                {opening ? 'Open full data access?' : 'Make this dataset private?'}
+                {open ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {open ? 'Public / open data' : 'Private research data'}
               </div>
               <div className="opacity-80 leading-snug">
-                {opening
-                  ? <>The assistant will be able to read raw rows of <b>{ds.name}</b> and send them to the configured model API — including any free-text answers, identifiers, and rare values. This is meant for public or fully anonymized data.</>
-                  : <>The assistant will see only aggregate summaries of <b>{ds.name}</b> — no raw rows, no rare category values, no identifier columns.</>}
+                {open
+                  ? <>The assistant may read raw rows of <b>{ds.name}</b> and send them to the configured model API. This mode was explicitly confirmed when the dataset was added.</>
+                  : <>The assistant sees only aggregate summaries of <b>{ds.name}</b> — no raw rows, no rare category values, no identifier columns.</>}
               </div>
-              {opening ? (
-                <label className="flex items-start gap-2 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5" checked={modeConfirmChecked} onChange={e => setModeConfirmChecked(e.target.checked)} />
-                  <span>I confirm this dataset contains no personal, sensitive, or confidential data.</span>
-                </label>
-              ) : chatNonEmpty ? (
-                <div className="opacity-80 leading-snug">
-                  ⚠ The current assistant conversation may already contain raw rows and will be cleared — a transcript can’t be redacted after the fact.
-                </div>
-              ) : null}
-              <div className="flex justify-end gap-2 pt-1">
-                <button onClick={() => setModeDialog(null)} className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer">
-                  Cancel
-                </button>
-                <button
-                  onClick={() => applyModeChange(ds.id, modeDialog.to)}
-                  disabled={opening && !modeConfirmChecked}
-                  className={`scatterlab-action-button px-3 py-1.5 font-bold disabled:opacity-40 cursor-pointer ${theme === 'primary'
-                    ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
-                    : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
-                >
-                  {opening ? 'Open full access' : chatNonEmpty ? 'Make private & clear chat' : 'Make private'}
+              <div className="opacity-70 leading-snug">
+                A dataset&apos;s mode is locked in when it is added. To change it, remove the dataset and add it again with the other mode.
+              </div>
+              <div className="flex justify-end pt-1">
+                <button onClick={() => setAccessInfo(null)} className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer">
+                  Close
                 </button>
               </div>
             </div>

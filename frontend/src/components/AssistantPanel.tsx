@@ -110,7 +110,8 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // 'open' = every dataset open (row tools available), 'mixed' = some open but
   // at least one private (runs private), 'private' = aggregates only.
   accessMode?: 'private' | 'open' | 'mixed',
-  // Opens the data-mode dialog for the active dataset; absent = nothing to swap.
+  // Opens the access-info dialog for the active dataset (the mode itself is
+  // locked at upload); absent = nothing loaded to describe.
   onAccessClick?: () => void,
 }) => {
   const [open, setOpen] = useState(false);
@@ -588,19 +589,19 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
           {view !== 'walkthrough' && (
             // Session-level data access at a glance: just the icon. 'mixed'
             // runs private (the minimum of the loaded datasets' modes) and the
-            // title says why. Clicking opens the mode dialog for the active
-            // dataset — the info and the swap live there.
+            // title says why. Clicking opens the access-info dialog for the
+            // active dataset — modes themselves are locked at upload.
             <button
               onClick={onAccessClick}
               disabled={!onAccessClick}
               className={`p-0.5 border border-current/30 opacity-70 ${onAccessClick ? 'hover:opacity-100 cursor-pointer' : 'cursor-default'}`}
-              aria-label={accessMode === 'open' ? 'Full data access — click to review or change' : 'Aggregates only — click to review or change'}
+              aria-label={accessMode === 'open' ? 'Full data access — click for details' : 'Aggregates only — click for details'}
               title={(accessMode === 'open'
                 ? 'Full data access: every loaded dataset is marked public/open, so the assistant may read raw rows.'
                 : accessMode === 'mixed'
                   ? 'Aggregates only: some datasets are open, but at least one is private, so the whole conversation runs at the private level.'
                   : 'Aggregates only: the assistant sees column summaries, never raw rows.')
-                + (onAccessClick ? ' Click to review or change.' : '')}
+                + (onAccessClick ? ' Click for details — modes are set when a dataset is added.' : '')}
             >
               {accessMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
             </button>
