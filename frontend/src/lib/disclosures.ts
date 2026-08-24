@@ -109,19 +109,13 @@ export const DISCLOSURES = {
   median_imputation: {
     title: 'How Missing Values Are Handled',
     text: [
-      "Median imputation fills each gap with that variable's median.",
-      'Iterative PCA reconstructs each gap from the low-rank structure of the other variables and repeats until the fill settles (the missMDA imputePCA method).',
-      'Complete cases drops any row with a missing value.',
-      'Clustering always median-imputes.',
-    ],
-    more: [
-      'Median imputation is simple, but it ignores the correlation structure and shrinks variance.',
-      "Iterative PCA is better when variables are correlated, but it can be biased when there are many gaps. On this app's own test it recovers punched-out iris values with about half the error of the median, though it is marginally worse on noise (uncorrelated variables).",
-      'Complete cases keeps the covariance honest but reduces n and could bias the sample.',
-      'All three are single imputation, so none of them carry the uncertainty of the filled values into what follows; with substantial missingness, run more than one and compare.',
+      "**Median imputation** fills each gap with that variable's median.",
+      '**Iterative PCA** reconstructs each gap from the low-rank structure of the other variables and repeats until the fill settles (the missMDA imputePCA method).',
+      '**Complete cases** drops any row with a missing value.',
+      '**Clustering always median-imputes.**',
       'Every run reports what it filled or dropped, and in which variables.',
     ],
-    methodsTopic: 'pca_caveats',
+    methodsTopic: 'missing_data_tradeoffs',
   },
 
   clusters_plotted_axes: {
