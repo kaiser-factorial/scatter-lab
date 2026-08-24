@@ -1089,7 +1089,7 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
                 </div>
             )}
             <div className="space-y-1">
-                <span className="opacity-70">Missing values<InfoTip topic="median_imputation" /></span>
+                <span className="opacity-70">Missing values</span>
                 <div className="flex gap-1">
                     {([['median', 'Median'], ['iterative', 'Iterative PCA'], ['complete', 'Complete cases']] as const).map(([v, lbl]) => (
                         <button
@@ -1195,14 +1195,11 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
                     <div className="text-[10px] opacity-70">
                         {/* Uses the run's own column names (B6): a COMP_openness
                             run used to report its bar as "PC1". */}
-                        {lastRun.varianceExplained.map((v, i) => `${lastRun.columns?.[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(' · ')} — cumulative {(lastRun.cumulative[lastRun.cumulative.length - 1] * 100).toFixed(0)}%
-                        {screeBars.length > lastRun.varianceExplained.length && (
-                            <> · {screeBars.length - lastRun.varianceExplained.length} more component{screeBars.length - lastRun.varianceExplained.length === 1 ? '' : 's'} shown faded, not kept</>
-                        )}
+                        {lastRun.varianceExplained.map((v, i) => `${lastRun.columns?.[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(' · ')}
                     </div>
                     {lastRun.eigenvalues && lastRun.standardize && (
                         <div className="text-[10px] opacity-60">
-                            Kaiser criterion (eigenvalue &gt; 1): {lastRun.eigenvalues.filter(e => e > 1).length} component{lastRun.eigenvalues.filter(e => e > 1).length === 1 ? '' : 's'}. A rule of thumb that tends to over-extract — read it beside the elbow, not instead of it.
+                            Kaiser criterion (eigenvalue &gt; 1): {lastRun.eigenvalues.filter(e => e > 1).length} component{lastRun.eigenvalues.filter(e => e > 1).length === 1 ? '' : 's'}.
                         </div>
                     )}
                 </div>
