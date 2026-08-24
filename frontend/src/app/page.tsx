@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { UploadCloud, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2 } from "lucide-react";
+import { HardDriveUpload, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { TmuxGrid } from "@/components/TmuxGrid";
@@ -3852,7 +3852,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       return (
           <div className="flex w-full h-screen items-center justify-center bg-[var(--background)] text-[var(--foreground)]">
               <div className="flex flex-col items-center gap-3 opacity-60">
-                  <UploadCloud className="w-10 h-10" aria-hidden="true" />
+                  <HardDriveUpload className="w-10 h-10" aria-hidden="true" />
                   <span className="text-sm font-bold tracking-tight">Scatter Lab</span>
                   <span className="text-xs">Loading…</span>
               </div>
@@ -3974,7 +3974,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           <SidebarSection title="Data" step={1} theme={theme} guide="data" order={1}>
             {!processedData && (
               <div className={`flex justify-center mb-2 ${theme === 'terminal' ? 'text-[var(--system-green)] opacity-70' : 'opacity-40'}`}>
-                <UploadCloud className="w-10 h-10" />
+                <HardDriveUpload className="w-10 h-10" />
               </div>
             )}
             {/* Choosing a file (drop OR click-to-browse) opens the add-dataset
