@@ -396,7 +396,9 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     // may not have existed until this step loaded the data that reveals it.
     if (step.highlight) {
       await paintYield();
-      wtHighlight.current = bridgeRef.current.holdHighlight(step.highlight);
+      // Anchored steps bring the coach bubble, whose tail is the pointer —
+      // the ring's own arrow would be a second one aimed at the same spot.
+      wtHighlight.current = bridgeRef.current.holdHighlight(step.highlight, { arrow: !stepAnchorsChoice(step) });
     }
   };
 
@@ -833,51 +835,83 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
 
 // The walkthrough transcript: the same bubbles and "▸" tool chips the chat uses,
 // driven by buttons instead of typing.
-// A step-advance button pinned beside a highlighted sidebar control (portal to
-// body, fixed position), for sidebar-pointing steps (stepAnchorsChoice): the user has to look
-// at the thing being taught to find the way forward. Tracks the anchor's rect
-// on the same 100ms cadence as the highlight ring, and sits just below the
-// ring's 12px pad; renders nothing when the anchor is off screen.
-const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
+// The coach-mark bubble for sidebar-pointing steps (stepAnchorsChoice): ONE
+// floating callout carrying the step's title, prose, and advance button, with
+// a tail pointing at the highlighted control — so reading, looking, and
+// acting all happen at the thing being taught, instead of text on the right,
+// ring on the left, and a lone button in between. Portal to body, fixed
+// position, tracking the anchor's rect on the highlight ring's 100ms cadence;
+// renders nothing while the anchor is off screen.
+const CALLOUT_W = 300;
+const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick }: {
   target: string,
+  title: string,
+  say: string,
   label: string,
   disabled: boolean,
   primary: boolean,
   onClick: () => void,
 }) => {
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; tailTop: number } | null>(null);
+  const card = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const place = () => {
       const el = document.querySelector(`[data-guide="${target}"]`);
       if (!el) return setPos(null);
       const r = el.getBoundingClientRect();
+      // Beside the ring (12px pad + tail), vertically centered on the target,
+      // clamped into the viewport; the tail keeps aiming at the target's
+      // center even when the card had to slide to stay on screen.
+      const M = 8;
+      const h = card.current?.offsetHeight ?? 200;
+      const left = Math.min(Math.round(r.right + 28), window.innerWidth - CALLOUT_W - M);
+      const top = Math.max(M, Math.min(Math.round(r.top + r.height / 2 - h / 2), window.innerHeight - h - M));
+      const tailTop = Math.max(10, Math.min(Math.round(r.top + r.height / 2 - top - 8), h - 26));
       setPos(prev => {
-        // Beside the highlight ring's pointer arrow (which sits at
-        // right + 12px pad + 6px, vertically centered), not underneath the
-        // anchor — below the dropzone it collided with the empty-state card.
-        const next = { left: Math.round(r.right + 46), top: Math.round(r.top + r.height / 2 - 17) };
-        return prev && prev.left === next.left && prev.top === next.top ? prev : next;
+        const next = { left, top, tailTop };
+        return prev && prev.left === next.left && prev.top === next.top && prev.tailTop === next.tailTop ? prev : next;
       });
     };
     place();
     const tracker = setInterval(place, 100);
     return () => clearInterval(tracker);
   }, [target]);
-  if (!pos || typeof document === 'undefined') return null;
+  if (typeof document === 'undefined') return null;
   return createPortal(
-    <button
-      onClick={onClick}
-      disabled={disabled}
+    <div
+      ref={card}
+      role="dialog"
+      aria-label={title}
       style={{
-        position: 'fixed', left: pos.left, top: pos.top, zIndex: 96,
-        ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.65)' : 'rgba(16, 255, 80, 0.5)',
+        position: 'fixed', left: pos?.left ?? -9999, top: pos?.top ?? -9999,
+        width: CALLOUT_W, zIndex: 96,
+        ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.5)' : 'rgba(16, 255, 80, 0.4)',
       }}
-      className={`wt-anchored-glow py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer whitespace-nowrap ${primary
-        ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
-        : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+      className={`wt-anchored-glow p-3 text-xs leading-relaxed ${primary
+        ? 'bg-white border-[3px] border-[#111111] text-[#111111]'
+        : 'bg-black border border-[var(--system-green)]/60 text-[var(--foreground)]'}`}
     >
-      Next: {label}
-    </button>,
+      {/* The tail replaces the ring's bouncing arrow for these steps. */}
+      <span
+        aria-hidden
+        style={{ position: 'absolute', left: -10, top: pos?.tailTop ?? 10, width: 0, height: 0,
+          borderTop: '8px solid transparent', borderBottom: '8px solid transparent',
+          borderRight: primary ? '10px solid #111111' : '10px solid var(--system-green)' }}
+      />
+      <div className={`text-[10px] uppercase tracking-widest font-bold mb-1.5 ${primary ? 'text-[var(--p-red)]' : 'text-[var(--system-green)]'}`}>
+        {title}
+      </div>
+      <AssistantMarkdown text={say} />
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`mt-2.5 w-full py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer ${primary
+          ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
+          : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+      >
+        Next: {label}
+      </button>
+    </div>,
     document.body,
   );
 };
@@ -893,6 +927,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
 }) => {
   const index = walkthroughIndex(stepId);
   const step = walkthroughStep(stepId);
+  const anchored = !!step && stepAnchorsChoice(step);
   const accent = primary ? 'var(--p-red)' : 'var(--system-green)';
 
   return (
@@ -902,6 +937,10 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
             above it. Without the break the whole tour ran together as one wall
             of text with no seam between one step and the next. */}
         {log.map((e, i) => (
+          // The CURRENT anchored step's prose lives in its bubble, not here —
+          // rendering it twice is the split-attention problem again. It joins
+          // the transcript as history once the step advances.
+          anchored && !busy && i === log.length - 1 && e.kind === 'assistant' && e.text === step?.say ? null :
           e.kind === 'user' ? (
             <div
               key={i}
@@ -949,13 +988,15 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
         {/* Buttons sit ABOVE the composer: they are how you move, and the
             composer below them is visibly not. */}
         <div className="space-y-1.5">
-          {step && stepAnchorsChoice(step) && step.highlight ? (
-            // The way forward lives beside the highlighted control instead of
-            // here — the panel just says where to look.
+          {anchored && step?.highlight ? (
+            // This step's text AND way forward live in the bubble beside the
+            // highlighted control — the panel keeps the timeline and history.
             <>
               {!busy && (
-                <AnchoredChoice
+                <AnchoredCallout
                   target={step.highlight}
+                  title={step.title}
+                  say={step.say}
                   label={step.choices[0].label}
                   disabled={busy}
                   primary={primary}
@@ -963,7 +1004,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
                 />
               )}
               <div className="text-[10px] opacity-60 py-1.5 px-2">
-                ▸ The “{step.choices[0].label}” button is next to the highlighted area in the sidebar.
+                ▸ Follow the bubble next to the highlighted area in the sidebar.
               </div>
             </>
           ) : (step?.choices ?? []).map(choice => (

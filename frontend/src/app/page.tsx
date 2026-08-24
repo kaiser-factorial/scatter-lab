@@ -1489,7 +1489,7 @@ const GUIDE_SECTION: Record<string, string> = {
 // the assistant, which points while it is talking; in a click-to-advance tour a
 // user reading a paragraph for twenty seconds would watch the pointer die on
 // them, so the walkthrough holds the ring and drops it when the step changes.
-const flashGuide = (target: string, color: string, persist = false): (() => void) | null => {
+const flashGuide = (target: string, color: string, persist = false, showArrow = true): (() => void) | null => {
     let el = document.querySelector(`[data-guide="${target}"]`) as HTMLElement | null;
     // Puxel's Accordion only mounts an item's body while open. When the
     // assistant is aiming at a hidden control, open its titled section first
@@ -1506,7 +1506,7 @@ const flashGuide = (target: string, color: string, persist = false): (() => void
     const arrow = document.createElement('div');
     ring.style.cssText = `position:fixed;z-index:95;pointer-events:none;border:3px solid ${color};box-shadow:0 0 0 3px rgba(255,214,0,.4);border-radius:4px;`;
     arrow.textContent = '◀';
-    arrow.style.cssText = `position:fixed;z-index:95;pointer-events:none;color:${color};font-size:22px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,.35);`;
+    arrow.style.cssText = `position:fixed;z-index:95;pointer-events:none;color:${color};font-size:22px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,.35);${showArrow ? '' : 'display:none;'}`;
     document.body.append(ring, arrow);
     const place = () => {
         const current = document.querySelector(`[data-guide="${target}"]`) as HTMLElement | null ?? el;
@@ -4130,9 +4130,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `Moved the assistant panel to the ${mode === 'float' ? 'floating overlay' : `${mode} dock`}.`;
       },
 
-      holdHighlight: (target) => {
+      holdHighlight: (target, opts) => {
           if (!(GUIDE_TARGETS as readonly string[]).includes(target)) return null;
-          return flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26', true);
+          return flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26', true, opts?.arrow !== false);
       },
 
       // --- Open-mode row access ---------------------------------------------

@@ -119,8 +119,10 @@ export type AppBridge = {
   setAssistantDock: (dock: 'right' | 'bottom' | 'float') => string;
   // Same pointer, held until the returned disposer runs (null = not on screen).
   // The scripted walkthrough uses this so the ring survives a long read; the
-  // assistant keeps the timed version, which matches how it points while talking.
-  holdHighlight: (target: string) => (() => void) | null;
+  // assistant keeps the timed version, which matches how it points while
+  // talking. arrow:false drops the bouncing glyph — the walkthrough's coach
+  // bubble brings its own tail, and two pointers at one target fight.
+  holdHighlight: (target: string, opts?: { arrow?: boolean }) => (() => void) | null;
   // undo support: snapshot/restore the whole view state
   snapshot: () => unknown;
   restore: (snap: unknown) => void;
