@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP,
-  walkthroughStep, walkthroughIndex, assistantGreeting,
+  walkthroughStep, walkthroughIndex, stepAnchorsChoice, assistantGreeting,
 } from '../walkthrough';
 import { GUIDE_TARGETS } from '../assistant';
 import type { AppBridge } from '../assistant';
@@ -84,10 +84,34 @@ const runWholeTour = async () => {
 };
 
 describe('walkthrough step actions', () => {
-  it('loads the demo in its very first step', async () => {
-    // "Load demo" on the empty state is one click into a running tour, so the
-    // data load has to be the tour's own first act rather than a step later.
-    expect(await runAll(FIRST_STEP)).toContainEqual({ method: 'loadDemoData', args: [] });
+  it('loads the demo at the data-added step, through the taught door', async () => {
+    // The tour teaches the upload area FIRST (the Data step's advance button is
+    // anchored beside the dropzone), and only then adds the demo — so nothing
+    // is prepopulated before the user has seen where data comes from.
+    expect(await runAll(FIRST_STEP)).toEqual([]);
+    expect(await runAll('data')).toEqual([]);
+    expect(await runAll('data-added')).toContainEqual({ method: 'loadDemoData', args: ['private'] });
+    const dataStep = walkthroughStep('data')!;
+    expect(stepAnchorsChoice(dataStep)).toBe(true);
+    expect(dataStep.highlight).toBe('upload-dropzone');
+    expect(dataStep.choices[0].next).toBe('data-added');
+  });
+
+  it('every sidebar-pointing step anchors its advance button; panel steps do not', () => {
+    // "Any time we are showing a part of the menu bar, the next button sits by
+    // the pointer" — derived from the highlight, so new steps inherit it.
+    const anchored = WALKTHROUGH.filter(stepAnchorsChoice).map(s => s.id);
+    expect(anchored).toEqual(['data', 'data-added', 'variables', 'pca', 'cluster', 'compare', 'export']);
+    // welcome has no highlight and done ends the tour — both keep their
+    // buttons in the panel.
+    expect(stepAnchorsChoice(walkthroughStep('welcome')!)).toBe(false);
+    expect(stepAnchorsChoice(walkthroughStep('done')!)).toBe(false);
+  });
+
+  it('anchored steps speak without a first person — their bubble is not the chat window', () => {
+    for (const step of WALKTHROUGH.filter(stepAnchorsChoice)) {
+      expect(step.say, step.id).not.toMatch(/(^|[^A-Za-z])I(['’]| am| have| will|\s)/);
+    }
   });
 
   it('runs the Iris PCA on the four measurements, never on Id', async () => {

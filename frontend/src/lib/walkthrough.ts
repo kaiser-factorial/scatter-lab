@@ -57,6 +57,18 @@ export type WalkthroughStep = {
   choices: { label: string; next: string | null; then?: 'assistant' | 'exit' }[];
 };
 
+/**
+ * Whether a step's advance button floats NEXT TO the highlighted control
+ * (beside the pointer arrow) instead of sitting in the panel: every step that
+ * points at a sidebar section, so advancing always requires having looked at
+ * the thing being taught. Derived, not per-step — a new sidebar step gets the
+ * behavior for free. assistant-dock is the panel's own chrome (the button
+ * would overlap the panel), and multi-choice/ending steps stay in the panel.
+ */
+export const stepAnchorsChoice = (step: WalkthroughStep): boolean =>
+  !!step.highlight && step.highlight !== 'assistant-dock'
+  && step.choices.length === 1 && step.choices[0].next !== null;
+
 const IRIS_VARIABLES = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm'];
 
 // The 3D view the tour opens and returns to: the flower measurements themselves,
@@ -67,30 +79,41 @@ export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'welcome',
     title: 'Welcome',
-    // The data load lives here, in the tour's first act, rather than a step
-    // later — so "Load demo" on the empty state is a single click into a
-    // running tour with the data already on screen, and the menu route gets the
-    // same thing. Idempotent, so arriving with Iris already loaded is fine.
-    run: [b => b.loadDemoData()],
     say:
-      'This is a guided walkthrough of Scatter Lab, running on the built-in **Iris** demo — ' +
-      '150 flowers, four measurements, three species, now loaded and on screen. It takes about ' +
-      'five minutes.\n\n' +
-      'I drive the workbench as we go: assigning axes, running a PCA, clustering it, and pointing ' +
-      'at each control as I describe it.',
+      'This is a guided walkthrough of Scatter Lab, using the built-in **Iris** demo — 150 flowers, ' +
+      'four measurements, three species. It takes about five minutes.\n\n' +
+      'I drive the workbench as we go: adding the data, assigning axes, running a PCA, clustering ' +
+      'it, and pointing at each control as I describe it.',
     choices: [{ label: 'Start with the Data section', next: 'data' }],
   },
   {
     id: 'data',
     title: 'Data',
     highlight: 'upload-dropzone',
+    // The demo loads on the NEXT step — teach the door, then walk through it.
+    // Loading here would put data on screen before the user has seen where
+    // data comes from. (The advance button floats beside the dropzone, like
+    // every sidebar-pointing step — see stepAnchorsChoice.)
     say:
-      'This is where your own data comes in — drop a **CSV, XLSX, or Parquet** file on the box I ' +
-      'am pointing at, then press *Add Dataset*. Several datasets can be open at once; clicking ' +
-      'one in the list below makes it the active one.\n\n' +
-      'Every column is profiled on the way in, and anything the parser had to interpret — ragged ' +
-      'rows, duplicate headers, numbers written with decimal commas — is reported rather than ' +
-      'silently absorbed.',
+      'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the ' +
+      'highlighted box, or click it to browse. A dialog then configures the add: the data mode, ' +
+      'missing-value scanning, and an optional components file.',
+    choices: [{ label: 'Add the Iris demo', next: 'data-added' }],
+  },
+  {
+    id: 'data-added',
+    title: 'Dataset added',
+    highlight: 'datasets-list',
+    // Idempotent, so arriving with Iris already loaded is fine. Private mode
+    // on purpose: the tour should show the default most real data gets, not
+    // the open mode the demo uses elsewhere.
+    run: [b => b.loadDemoData('private')],
+    say:
+      'The **Iris dataset** is in, with its Private data mode badge, a gear for its settings, and ' +
+      'an ✕ to remove it. Several datasets can be loaded at once; clicking one makes it active.\n\n' +
+      '**Private mode** is default: everything computes in your browser and the AI assistant sees ' +
+      'only column names, aggregate summaries and analysis results — never raw rows. The mode is ' +
+      'chosen and locked in in the add dialog.',
     choices: [{ label: 'Look at the variables', next: 'variables' }],
   },
   {
@@ -103,11 +126,7 @@ export const WALKTHROUGH: WalkthroughStep[] = [
       '**mini histogram**. The small buttons do the plotting:\n\n' +
       '- **X**, **Y**, **Z** — put a numeric column on that axis\n' +
       '- **C** — colour the points by it\n' +
-      '- **S** — encode it as the marker shape\n\n' +
-      'The opening view was chosen for you: identifier-like columns such as `Id` are skipped as ' +
-      'axes (though you can still select them), and the first low-cardinality non-boolean column — ' +
-      'here `Species` — becomes the initial colour. You can see the three species already starting ' +
-      'to separate.',
+      '- **S** — encode it as the marker shape',
     choices: [{ label: 'Run a PCA on the measurements', next: 'pca' }],
   },
   {
@@ -115,9 +134,8 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     title: 'PCA',
     highlight: 'pca',
     say:
-      'The **PCA** section runs a principal component analysis in the browser: tick the variables, ' +
-      'choose how many components to keep, press Run. I have just run one on the four flower ' +
-      'measurements — `Id` is excluded, since an identifier is not a measurement.\n\n' +
+      'To run a PCA: tick the variables, choose how many components to keep, and press Run PCA. ' +
+      'One has just been run on the four flower measurements with `Id` excluded.\n\n' +
       '*Standardize* is on, which makes this a correlation-based PCA. The scree bars show how much ' +
       'variance each component explains, and *Top PC contributors* lists which measurements load on ' +
       'each one.\n\n' +
@@ -131,16 +149,12 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     title: 'Clustering',
     highlight: 'cluster',
     say:
-      'I just ran k-means clustering (k=3) on those 3 PC values. **Clustering always runs on the ' +
-      'plotted axes**, which is why the PCA came first.\n\n' +
-      'Standardizing is off here because PC scores are already ordered by variance. For raw variables ' +
-      'on mixed scales you would want it on — the checkbox defaults follow the data, and the **(i)** ' +
-      'markers explain why.\n\n' +
-      'Colour is now the cluster, and I have moved `Species` onto the **shape** channel, so you are ' +
+      'K-means clustering (k=3) has just run on those 3 PC values. **Clustering always runs on the ' +
+      'plotted axes**.\n\n' +
+      'Colour is now the cluster, and `Species` has moved onto the **shape** channel, so you are ' +
       'reading two variables at once: do the found clusters line up with the known species? ' +
       '*Cluster info by* below the button cross-tabulates the two, as *% of cluster* or *% of group*, ' +
-      'and saves as a heatmap PNG.\n\n' +
-      'Treat the match as exploratory — the clustering never saw the species labels.',
+      'and saves as a heatmap PNG.',
     run: [
       b => b.runClustering('KMEANS', { k: 3, standardize: false }),
       b => b.setPlot({ shape_by: 'Species' }),
@@ -151,23 +165,18 @@ export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'compare',
     title: 'Compare',
-    // Pointed at the dock buttons rather than the View section, because the
-    // panel moving out from the side is the first thing that happens here and
-    // an unexplained move is disorienting. The View section is named in the
-    // text and stays one click away.
-    highlight: 'assistant-dock',
+    // Anchored on the View section like every other sidebar step. The panel
+    // still docks to the bottom first (two plots side by side need the width;
+    // pinning beside a right-docked panel produces two unreadable slivers),
+    // but the move is no longer narrated.
+    highlight: 'view',
     say:
-      'I moved this panel to the bottom first — two plots side by side need the width, and the ' +
-      'buttons I am pointing at put it right, bottom, or floating whenever you like.\n\n' +
       'The **View** section switches 2D/3D, toggles the axis grids, renames axis labels for exports, ' +
       'and starts the auto-rotation you can see now. Drag the plot to rotate it yourself, scroll to zoom.\n\n' +
-      '*Pin View* freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
-      'different axes, colourings or cluster runs sit next to each other. I pinned the flat ' +
-      '`PC1 × PC2` view, then brought the live plot back to the flower measurements, still coloured ' +
-      'by cluster and shaped by species.\n\n' +
-      'A pin keeps the data it was taken with — only the live view follows the sidebar — but it is ' +
-      'not a picture: drag, scroll or double-click any pane to rotate, zoom and reset **that pane** ' +
-      'on its own.',
+      '**Pin View** freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
+      'different axes, colourings or cluster runs sit next to each other. The flat ' +
+      '`PC1 × PC2` view has been pinned, and the live plot is back on the flower measurements, still ' +
+      'coloured by cluster and shaped by species.',
     run: [
       // Dock first: pinning into the narrow strip beside a right-docked panel
       // produces two unreadable slivers.

@@ -17,6 +17,7 @@ const loadOpenAI = async (): Promise<typeof OpenAIType> => {
 };
 import { METHODS_TOPICS, searchMethods } from './methods';
 import { combinedPolicy, MAX_SAMPLE_ROWS, type DataMode, type DataPolicy } from './dataPolicy';
+import { MARK_KINDS, MAX_PLAN_REVISIONS, TEST_KINDS } from './analysisPlan';
 import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -86,11 +87,15 @@ export type AppBridge = {
   saveInteractiveHtml: () => Promise<string>;
   saveActiveDatasetCsv: () => string;
   pinView: () => string;
-  loadDemoData: () => Promise<string>;
+  loadDemoData: (mode?: DataMode) => Promise<string>;
   // analysis (aggregates only)
   runPCA: (opts: { variables?: string[]; n_components?: number; standardize?: boolean; label?: string; missing?: 'median' | 'complete' | 'iterative' }) => string;
   correlate: (colA: string, colB: string) => string;
   compareGroups: (numericCol: string, groupCol: string) => string;
+  // Both take a full plan object; the page validates it (validators.ts) and
+  // returns either the computed aggregate result or the typed rejection text.
+  runTest: (plan: unknown) => string;
+  plotChart: (plan: unknown) => string;
   suggestK: (maxK: number, standardize?: boolean) => string;
   suggestEps: (minSamples: number, standardize?: boolean) => string;
   // app management
@@ -114,8 +119,10 @@ export type AppBridge = {
   setAssistantDock: (dock: 'right' | 'bottom' | 'float') => string;
   // Same pointer, held until the returned disposer runs (null = not on screen).
   // The scripted walkthrough uses this so the ring survives a long read; the
-  // assistant keeps the timed version, which matches how it points while talking.
-  holdHighlight: (target: string) => (() => void) | null;
+  // assistant keeps the timed version, which matches how it points while
+  // talking. arrow:false drops the bouncing glyph — the walkthrough's coach
+  // bubble brings its own tail, and two pointers at one target fight.
+  holdHighlight: (target: string, opts?: { arrow?: boolean }) => (() => void) | null;
   // undo support: snapshot/restore the whole view state
   snapshot: () => unknown;
   restore: (snap: unknown) => void;
@@ -131,7 +138,8 @@ export type AppBridge = {
 // UI anchors the assistant can point at (data-guide attributes in the sidebar)
 export const GUIDE_TARGETS = [
   'workspace', 'upload-dropzone', 'add-dataset', 'components-toggle',
-  'datasets-list', 'data-mode', 'variables', 'pca', 'view', 'cluster', 'export',
+  'datasets-list', 'data-mode', 'variables', 'pca', 'view', 'cluster',
+  'analyze', 'table-view', 'export',
   // Not in the sidebar: the dock buttons in the assistant panel's own header.
   'assistant-dock',
 ] as const;
@@ -140,7 +148,7 @@ export const GUIDE_TARGETS = [
 export const MUTATING_TOOLS = new Set([
   'set_plot', 'run_clustering', 'pin_view', 'load_demo_data',
   'switch_dataset', 'set_category_visibility', 'transfer_column', 'remove_pin',
-  'run_pca',
+  'run_pca', 'run_test', 'plot_chart',
 ]);
 
 // Curated tutorial chunks — the single source of truth the assistant teaches
@@ -149,7 +157,7 @@ export const TUTORIAL: Record<string, string> = {
   overview:
     'Scatter Lab turns tabular data into interactive 2D/3D scatter plots. All computation runs in the browser and the dataset is never uploaded to a server (you, the assistant, are the one exception — see the privacy topic). Typical flow: add a dataset → assign variables to axes and color in the Variables panel → run PCA or cluster when useful → compare views → export. The built-in Iris demo opens in a species-colored 3D flower view; during a guided tour, demonstrate the marker-shape control by adding Species as the shape encoding after it loads (the initial view intentionally leaves shape unused).',
   load_data:
-    'Add data via the dropzone in the sidebar ("1. Data") — drag a CSV, XLSX, or Parquet file in, or click to browse. Choosing a file opens an "Add dataset" dialog where everything about the add is configured in one place: the sheet (for multi-sheet workbooks), the data mode — "Private research data" (the default; the assistant sees aggregate summaries only) or "Public / open data" (the assistant may also read raw rows) — whether to scan for sentinel/missing-value codes after adding (the checker opens right away if so), and an optional PCA components file to project through. Each dataset in the list has a lock/globe badge (click to change the data mode) and a gear (settings: mode, missing-value codes, delete — deleting always asks first). Datasets with PC score columns plot immediately. Optionally, "+ Project through a PCA components file" reveals a second dropzone: supply a loadings file and the app median-imputes, standardizes, and computes PC1–PC3 itself. Several datasets can be loaded at once; click one in the list to make it active.',
+    'Add data via the dropzone in the sidebar ("1. Data") — drag a CSV, XLSX, or Parquet file in, or click to browse. Choosing a file opens an "Add dataset" dialog where everything about the add is configured in one place: the sheet (for multi-sheet workbooks), the data mode — "Private research data" (the default; the assistant sees aggregate summaries only) or "Public / open data" (the assistant may also read raw rows) — whether to scan for sentinel/missing-value codes after adding (the checker opens right away if so), and an optional PCA components file to project through. Each dataset in the list has a lock/globe badge (click for an explanation of its access mode) and a gear (settings: missing-value codes, delete — deleting always asks first). A dataset\'s data mode is LOCKED IN when it is added — there is no way to change it afterward; to change modes, remove the dataset and add it again. Datasets with PC score columns plot immediately. Optionally, "+ Project through a PCA components file" reveals a second dropzone: supply a loadings file and the app median-imputes, standardizes, and computes PC1–PC3 itself. Several datasets can be loaded at once; click one in the list to make it active.',
   variables:
     'The Variables panel ("2. Variables") is both data profile and plot control. Every column shows its type, range or category count, missing values, and a mini-histogram. The small buttons on each row do the plotting: X, Y, Z put a numeric column on that axis; C colors the points by that column; S encodes it as the marker shape (circle, square, diamond, then open variants — offered only for columns with at most 6 distinct values, and pressed again to switch off). Color and shape are independent, so two variables can be read at once, with a shape key under the legend. If a components file was used, "Top PC contributors" shows which variables load on each PC.',
   plotting:
@@ -158,6 +166,8 @@ export const TUTORIAL: Record<string, string> = {
     'The PCA section ("3. PCA") runs a principal component analysis right in the browser: tick which numeric variables to include, choose how many components to keep, and press Run. Standardize (on by default) makes it a correlation-based PCA — the right choice when variables are on different scales. "Missing values" chooses between Median impute (default; keeps every row, shrinks variance), Iterative PCA (reconstructs each gap from the low-rank structure of the other variables — roughly half the error of the median on correlated data), and Complete cases (drops any row with a gap, so those rows get no score); the panel shows how many rows survive, flags any variable over 50% missing, and every run reports what it filled or dropped. A run on a variable subset can be given a label (auto-suggested from the item names): its columns become PC1_<label>…, or COMP_<label> when keeping just the top component — the composite-score workflow for building one named score per item group and plotting them against each other. Re-running a label replaces that run\'s columns (confirmed by a dialog); differently-labeled runs coexist. An unlabeled run adds plain PC1…PCk. The scree bars show variance explained, and "Top PC contributors" lists each component\'s strongest loadings. Alternatively, a precomputed components file can be supplied at upload time.',
   clustering:
     'In "4. Cluster", pick DBSCAN (density-based; eps = neighborhood radius, min samples = density threshold; points in no cluster become gray "Noise") or K-Means (choose k). Clustering runs on the currently plotted axes and adds a Cluster column, which also becomes the point coloring. The "Standardize variables (z-score)" checkbox gives every variable equal weight in the distance — its default follows the data: on for mixed scales, off for PC scores and shared-scale items (where it is a deliberate methodological choice). Below the button, "Cluster info by" cross-tabulates clusters against any categorical variable — "% of cluster" shows composition, "% of group" normalizes away base rates. Choose Viridis, Inferno, or Greens and use "Save heatmap" to download a PNG with its 0–100% colour scale legend.',
+  analyze:
+    'Statistical tests and charts run through YOU, via the run_test and plot_chart tools — there is currently no sidebar section for them, so do not direct the user to one. run_test covers Welch\'s t, Mann–Whitney U, Kruskal–Wallis, Kolmogorov–Smirnov, and chi-square; plot_chart covers ECDF, histogram, box, violin, normal Q–Q, bar (vertical/horizontal), and line over a time column. Results appear as panes on the canvas next to the live view — a results card for tests (exact p bolded below 0.05, effect size, CI; no significance stars) or the drawn chart, each closable with its X. The canvas holds the live view plus 3 extra panes (pins and analyses combined). Separately, "View dataset table" in the Data section opens a read-only, sortable, filterable table of the raw rows — purely local, available in both data modes.',
   compare_pin:
     '"Pin View" (section 5, View) freezes the current plot as a snapshot; the canvas tiles into a grid (up to 4 panes) so different axis choices, colorings, or cluster runs can be compared side by side. The live view keeps updating; pins do not.',
   transfer:
@@ -173,7 +183,7 @@ export const TUTORIAL: Record<string, string> = {
   workspaces:
     'The Workspace section saves the entire session — datasets, pins, notes, settings — locally in the browser (IndexedDB). "Export as file" downloads a workspace as a shareable file; "Import file" loads one. Nothing syncs to any server.',
   privacy:
-    'All parsing, projection, and clustering run in the browser, and the dataset itself is never uploaded to a server. Do not tell the user that nothing leaves their machine — that is not true while you are connected. You are the one opt-in exception: what you see is sent to the configured model API, using the user\'s own key. How much you see is the dataset\'s data mode, chosen per dataset at upload (badge in the datasets list to change it): in Private mode (the default) that is column names and aggregate summaries only — never raw rows, never category values covering fewer than 5 rows, never identifier columns. In Public/open mode — which the user must explicitly confirm — you can additionally sample raw rows and list full category breakdowns. If ANY loaded dataset is private, the whole conversation runs in Private mode. Switching a dataset from open back to private clears the assistant conversation, because a transcript that already contains rows cannot be redacted after the fact.',
+    'All parsing, projection, and clustering run in the browser, and the dataset itself is never uploaded to a server. Do not tell the user that nothing leaves their machine — that is not true while you are connected. You are the one opt-in exception: what you see is sent to the configured model API, using the user\'s own key. How much you see is the dataset\'s data mode, chosen per dataset at upload (badge in the datasets list to change it): in Private mode (the default) that is column names and aggregate summaries only — never raw rows, never category values covering fewer than 5 rows, never identifier columns. In Public/open mode — which the user must explicitly confirm — you can additionally sample raw rows and list full category breakdowns. If ANY loaded dataset is private, the whole conversation runs in Private mode.',
 };
 
 export const TUTORIAL_TOPICS = Object.keys(TUTORIAL);
@@ -395,6 +405,47 @@ const BASE_TOOLS: ChatCompletionTool[] = [
           group_col: { type: 'string', description: 'Categorical column defining the groups' },
         },
         required: ['numeric_col', 'group_col'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_test',
+      description:
+        `Run a statistical test on the active dataset, computed in the browser: 't' (Welch's unequal-variances t, two groups), 'mann_whitney' (rank-based two-group), 'kruskal_wallis' (rank-based, 2+ groups), 'ks' (two-sample Kolmogorov–Smirnov, compares whole distributions), 'chi_square' (independence of two categoricals; \`column\` is then the second categorical and \`groups\` must be omitted). Results report the statistic, df, EXACT p, an effect size, and for t a 95% CI on the mean difference — relay those numbers as given, without adding significance stars. The plan is checked by a deterministic validator BEFORE anything runs; a rejection lists what failed ([code], the fix, and the legal options) — revise the plan from that and call again, at most ${MAX_PLAN_REVISIONS} revisions, then report the failures to the user instead. All output is aggregate, so this works in Private data mode.`,
+      parameters: {
+        type: 'object',
+        properties: {
+          test: { type: 'string', enum: TEST_KINDS as unknown as string[] },
+          column: { type: 'string', description: 'Numeric outcome column (chi_square: the second categorical)' },
+          group_by: { type: 'string', description: 'Categorical column defining the groups' },
+          groups: { type: 'array', items: { type: 'string' }, description: 'Which groups to compare: exactly 2 for t/mann_whitney/ks; 2+ for kruskal_wallis (omit for all); omit for chi_square' },
+        },
+        required: ['test', 'column', 'group_by'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'plot_chart',
+      description:
+        `Render a statistical chart of the active dataset as a new analysis view the user sees on the canvas: 'ecdf' (cumulative distribution; pairs with the ks test), 'histogram' (shared bins across groups; optional \`bins\`), 'box', 'violin', 'qq' (normal Q–Q), 'bar' (categorical counts — \`column\` is then a categorical; \`orientation\` 'vertical'/'horizontal'), 'line' (a numeric over a temporal \`x\` column, aggregated per day by \`agg\`). Group any numeric mark with \`group_by\`. The same deterministic validator as run_test gates the plan — revise from the rejection's fix/options, at most ${MAX_PLAN_REVISIONS} revisions. The chart renders fully for the user; what YOU get back is its aggregate description (quantiles, bin counts, category totals), which is all you should quote.`,
+      parameters: {
+        type: 'object',
+        properties: {
+          mark: { type: 'string', enum: MARK_KINDS as unknown as string[] },
+          column: { type: 'string', description: 'Numeric column (bar: the categorical; line: the y value)' },
+          group_by: { type: 'string', description: 'Categorical column to split into series' },
+          orientation: { type: 'string', enum: ['vertical', 'horizontal'], description: 'bar only (default vertical; prefer horizontal above ~8 categories)' },
+          x: { type: 'string', description: 'line only: temporal column for the x axis' },
+          agg: { type: 'string', enum: ['mean', 'median', 'sum', 'count'], description: 'bar/line aggregation (line default: mean)' },
+          bins: { type: 'integer', description: 'histogram only: 5–100 (omit for automatic)' },
+        },
+        required: ['mark', 'column'],
         additionalProperties: false,
       },
     },
@@ -661,7 +712,7 @@ export const buildSystemPrompt = (bridge: AppBridge): string => {
 
   return `You are the built-in assistant of Scatter Lab, a browser-based workbench where researchers explore tabular data as interactive 2D/3D scatter plots, project data through PCA components, run DBSCAN/K-Means clustering, and compare pinned views. The user is typically a survey researcher.
 
-You can drive the app with your tools: change plot axes, coloring and marker shape, switch 2D/3D or the active dataset, run clustering, read cluster compositions, configure and save a cluster-composition heatmap, save PNG, interactive HTML, rotating GIF, or active-dataset CSV exports, mute/hide legend categories, transfer columns between datasets, pin/remove views, and save workspaces. You also have aggregate analysis tools: run_pca (in-browser principal component analysis — use it when the user wants to reduce dimensions or "see the structure" of a set of scale items; it reports how much data was imputed or dropped, which you should mention when it is not negligible), correlate (Pearson/Spearman), compare_groups (means by category + eta-squared), and clustering diagnostics (suggest_k silhouette scores, suggest_eps k-distance percentiles) — prefer running these over guessing parameters or relationships. Use tools to act, then summarize what you did in one or two sentences. When the user asks a question about their data, answer from the column profiles and aggregate tool results — never invent numbers you have not seen in this conversation.
+You can drive the app with your tools: change plot axes, coloring and marker shape, switch 2D/3D or the active dataset, run clustering, read cluster compositions, configure and save a cluster-composition heatmap, save PNG, interactive HTML, rotating GIF, or active-dataset CSV exports, mute/hide legend categories, transfer columns between datasets, pin/remove views, and save workspaces. You also have aggregate analysis tools: run_pca (in-browser principal component analysis — use it when the user wants to reduce dimensions or "see the structure" of a set of scale items; it reports how much data was imputed or dropped, which you should mention when it is not negligible), correlate (Pearson/Spearman), compare_groups (means by category + eta-squared), run_test (Welch's t, Mann–Whitney, Kruskal–Wallis, Kolmogorov–Smirnov, chi-square — exact p, CI, effect size), plot_chart (ECDF, histogram, box, violin, Q–Q, bar, line — rendered for the user as analysis views), and clustering diagnostics (suggest_k silhouette scores, suggest_eps k-distance percentiles) — prefer running these over guessing parameters or relationships. run_test and plot_chart take a PLAN that a deterministic validator gates: on rejection, revise using the [code]/Fix/Available in the result and call again — after ${MAX_PLAN_REVISIONS} rejected revisions, stop and put the failures to the user. Report exact p-values with the effect size and CI; never add significance stars. Use tools to act, then summarize what you did in one or two sentences. When the user asks a question about their data, answer from the column profiles and aggregate tool results — never invent numbers you have not seen in this conversation.
 
 ${accessParagraph}
 
@@ -786,6 +837,18 @@ export const runAssistantTurn = async (
   const send = transport ?? (await openAITransport(apiKey, baseURL));
   const messages: ChatCompletionMessageParam[] = [...history, { role: 'user', content: userText }];
 
+  // The revision cap, enforced rather than merely prompted: after
+  // MAX_PLAN_REVISIONS rejected plans in ONE user turn, further rejections
+  // tell the model to stop retrying and put the failures to the user.
+  let planRejections = 0;
+  const countRejection = (result: string): string => {
+    if (!result.startsWith('Plan rejected')) return result;
+    planRejections++;
+    return planRejections > MAX_PLAN_REVISIONS
+      ? `${result}\n[Revision limit reached (${MAX_PLAN_REVISIONS}): do NOT retry. Summarize these failures for the user and ask how to proceed.]`
+      : result;
+  };
+
   const executeTool = async (name: string, argsJson: string): Promise<string> => {
     const bridge = bridgeRef.current; // fresh closures as of the latest commit
     let input: any = {};
@@ -831,6 +894,20 @@ export const runAssistantTurn = async (
           return bridge.correlate(input.col_a, input.col_b);
         case 'compare_groups':
           return bridge.compareGroups(input.numeric_col, input.group_col);
+        case 'run_test':
+          return countRejection(bridge.runTest({
+            kind: 'test', test: input.test, column: input.column,
+            groupBy: input.group_by, ...(input.groups !== undefined ? { groups: input.groups } : {}),
+          }));
+        case 'plot_chart':
+          return countRejection(bridge.plotChart({
+            kind: 'chart', mark: input.mark, column: input.column,
+            ...(input.group_by !== undefined ? { groupBy: input.group_by } : {}),
+            ...(input.orientation !== undefined ? { orientation: input.orientation } : {}),
+            ...(input.x !== undefined ? { x: input.x } : {}),
+            ...(input.agg !== undefined ? { agg: input.agg } : {}),
+            ...(input.bins !== undefined ? { bins: input.bins } : {}),
+          }));
         case 'suggest_k':
           return bridge.suggestK(Math.min(input?.max_k ?? 8, 12), input?.standardize);
         case 'suggest_eps':

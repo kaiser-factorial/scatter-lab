@@ -2,7 +2,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { DISCLOSURES, DISCLOSURE_SECTIONS } from '@/lib/disclosures';
+import { DISCLOSURES, DISCLOSURE_SECTIONS, emphasisSegments } from '@/lib/disclosures';
+
+// Disclosure lines may carry **emphasis**; render it, nothing more.
+const DisclosureLine = ({ line }: { line: string }) => (
+  <>{emphasisSegments(line).map((s, i) => s.bold ? <strong key={i}>{s.text}</strong> : <span key={i}>{s.text}</span>)}</>
+);
 import { METHODS } from '@/lib/methods';
 
 // The long-form companion to the (i) tooltips.
@@ -124,26 +129,16 @@ export const InfoDialog = ({
         <div className="px-4 py-4 space-y-5 text-[12px] leading-relaxed">
           <p className="opacity-80">
             Scatter Lab is an <strong>exploratory data analysis</strong> tool. It plots high-dimensional data in
-            two or three dimensions and runs PCA and clustering over it, so you can see what structure is there. It is built for looking, not for confirming: components and
-            clusters found here are descriptions of this particular sample, not tested hypotheses.{' '}
-            <strong>Validate anything you intend to report</strong> — against held-out data, a preregistered
-            analysis, or a purpose-built statistical package — before treating it as a result.
+            two or three dimensions and runs PCA and clustering over it, so you can see what structure is there.
           </p>
           <p className="opacity-80">
             <strong>All computation happens in this browser tab.</strong> Parsing, PCA, clustering and
             statistics run on your own machine, your dataset is never uploaded to a server — there is no backend
             to send it to — and closing the tab discards it, so <strong>save a workspace</strong> if you want it back.
           </p>
-          {/* Spaces at a tag or comment seam must be written as {' '}: a text node
-              that opens with whitespace and then wraps loses that leading space.
-              This paragraph silently read "summaryof the data" until it did. Note
-              a JSX comment splits the text the same way a tag does — do not put
-              one mid-sentence. */}
           <p className="opacity-80">
-            The one exception is the assistant. If you connect an API key, your questions and a{' '}
-            <em>summary</em>{' '}
-            of the data do leave the browser, going to whichever provider the key belongs to.
-            The assistant can see:
+            <strong>The assistant is the exception.</strong> If you choose to connect an API key, your
+            questions and a summary of the data will be sent to the model provider. The assistant can see:
           </p>
           <ul className="list-disc pl-5 space-y-1 opacity-80">
             <li>column names</li>
@@ -153,8 +148,8 @@ export const InfoDialog = ({
           </ul>
           <p className="opacity-80">
             <strong>It never sees individual rows.</strong> A categorical value is only named if it covers at
-            least five rows: this keeps ordinary variables useful even with many levels, while an email address,
-            a name or a free-text answer — where each value belongs to one person — is never sent, only counted.
+            least five rows, which reduces the chance of the model seeing an email address, name or
+            free-text answer.
           </p>
           <p className="opacity-80">
             If this is more than you are comfortable with, leave the assistant disconnected; everything else
@@ -186,10 +181,10 @@ export const InfoDialog = ({
                         <h4 className="font-bold">{d.title}</h4>
                         <ul className="list-disc pl-5 space-y-1">
                           {d.text.map((line, i) => (
-                            <li key={`t${i}`} className="opacity-80">{line}</li>
+                            <li key={`t${i}`} className="opacity-80"><DisclosureLine line={line} /></li>
                           ))}
                           {(d as { more?: readonly string[] }).more?.map((line, i) => (
-                            <li key={`m${i}`} className="opacity-60">{line}</li>
+                            <li key={`m${i}`} className="opacity-60"><DisclosureLine line={line} /></li>
                           ))}
                         </ul>
                       </div>

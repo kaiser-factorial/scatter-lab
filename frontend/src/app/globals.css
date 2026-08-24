@@ -227,6 +227,23 @@ body {
   }
 }
 
+/* The walkthrough's anchored advance button glows on the same cadence as the
+   highlight ring it sits beside. A glow rather than motion: a size pulse
+   fought visually with the ring's bouncing arrow, and a glowing target never
+   moves under the cursor. --wt-glow carries the theme's colour. */
+@keyframes wt-anchored-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--wt-glow); }
+  50% { box-shadow: 0 0 16px 6px var(--wt-glow); }
+}
+.wt-anchored-glow {
+  animation: wt-anchored-glow 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wt-anchored-glow {
+    animation: none;
+  }
+}
+
 /*
  * Primary Theme - Bauhaus Grid Styles
  *

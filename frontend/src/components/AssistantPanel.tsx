@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, memo, useMemo, startTransition } from 'react';
+import { createPortal } from 'react-dom';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList, Lock, Globe } from 'lucide-react';
 import {
@@ -8,7 +9,7 @@ import {
 } from '@/lib/assistant';
 import {
   WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP,
-  walkthroughStep, walkthroughIndex, assistantGreeting,
+  walkthroughStep, walkthroughIndex, stepAnchorsChoice, assistantGreeting,
 } from '@/lib/walkthrough';
 import { WalkthroughStartDialog } from '@/components/WalkthroughStartDialog';
 import ReactMarkdown from 'react-markdown';
@@ -109,7 +110,8 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // 'open' = every dataset open (row tools available), 'mixed' = some open but
   // at least one private (runs private), 'private' = aggregates only.
   accessMode?: 'private' | 'open' | 'mixed',
-  // Opens the data-mode dialog for the active dataset; absent = nothing to swap.
+  // Opens the access-info dialog for the active dataset (the mode itself is
+  // locked at upload); absent = nothing loaded to describe.
   onAccessClick?: () => void,
 }) => {
   const [open, setOpen] = useState(false);
@@ -389,13 +391,19 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
       }
       await paintYield();
     }
-    setWtLog(prev => [...prev, ...notes, { kind: 'assistant', text: step.say, local: true }]);
+    // Anchored steps speak through their bubble ONLY — logging the same prose
+    // showed it a second time in the panel the moment the step advanced.
+    setWtLog(prev => stepAnchorsChoice(step)
+      ? [...prev, ...notes]
+      : [...prev, ...notes, { kind: 'assistant', text: step.say, local: true }]);
     setWtBusy(false);
     // After the step's own effects have painted: the section being pointed at
     // may not have existed until this step loaded the data that reveals it.
     if (step.highlight) {
       await paintYield();
-      wtHighlight.current = bridgeRef.current.holdHighlight(step.highlight);
+      // Anchored steps bring the coach bubble, whose tail is the pointer —
+      // the ring's own arrow would be a second one aimed at the same spot.
+      wtHighlight.current = bridgeRef.current.holdHighlight(step.highlight, { arrow: !stepAnchorsChoice(step) });
     }
   };
 
@@ -585,19 +593,19 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
           {view !== 'walkthrough' && (
             // Session-level data access at a glance: just the icon. 'mixed'
             // runs private (the minimum of the loaded datasets' modes) and the
-            // title says why. Clicking opens the mode dialog for the active
-            // dataset — the info and the swap live there.
+            // title says why. Clicking opens the access-info dialog for the
+            // active dataset — modes themselves are locked at upload.
             <button
               onClick={onAccessClick}
               disabled={!onAccessClick}
               className={`p-0.5 border border-current/30 opacity-70 ${onAccessClick ? 'hover:opacity-100 cursor-pointer' : 'cursor-default'}`}
-              aria-label={accessMode === 'open' ? 'Full data access — click to review or change' : 'Aggregates only — click to review or change'}
+              aria-label={accessMode === 'open' ? 'Full data access — click for details' : 'Aggregates only — click for details'}
               title={(accessMode === 'open'
                 ? 'Full data access: every loaded dataset is marked public/open, so the assistant may read raw rows.'
                 : accessMode === 'mixed'
                   ? 'Aggregates only: some datasets are open, but at least one is private, so the whole conversation runs at the private level.'
                   : 'Aggregates only: the assistant sees column summaries, never raw rows.')
-                + (onAccessClick ? ' Click to review or change.' : '')}
+                + (onAccessClick ? ' Click for details — modes are set when a dataset is added.' : '')}
             >
               {accessMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
             </button>
@@ -832,6 +840,87 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
 
 // The walkthrough transcript: the same bubbles and "▸" tool chips the chat uses,
 // driven by buttons instead of typing.
+// The coach-mark bubble for sidebar-pointing steps (stepAnchorsChoice): ONE
+// floating callout carrying the step's title, prose, and advance button, with
+// a tail pointing at the highlighted control — so reading, looking, and
+// acting all happen at the thing being taught, instead of text on the right,
+// ring on the left, and a lone button in between. Portal to body, fixed
+// position, tracking the anchor's rect on the highlight ring's 100ms cadence;
+// renders nothing while the anchor is off screen.
+const CALLOUT_W = 300;
+const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick }: {
+  target: string,
+  title: string,
+  say: string,
+  label: string,
+  disabled: boolean,
+  primary: boolean,
+  onClick: () => void,
+}) => {
+  const [pos, setPos] = useState<{ left: number; top: number; tailTop: number } | null>(null);
+  const card = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const place = () => {
+      const el = document.querySelector(`[data-guide="${target}"]`);
+      if (!el) return setPos(null);
+      const r = el.getBoundingClientRect();
+      // Beside the ring (12px pad + tail), vertically centered on the target,
+      // clamped into the viewport; the tail keeps aiming at the target's
+      // center even when the card had to slide to stay on screen.
+      const M = 8;
+      const h = card.current?.offsetHeight ?? 200;
+      const left = Math.min(Math.round(r.right + 28), window.innerWidth - CALLOUT_W - M);
+      const top = Math.max(M, Math.min(Math.round(r.top + r.height / 2 - h / 2), window.innerHeight - h - M));
+      const tailTop = Math.max(10, Math.min(Math.round(r.top + r.height / 2 - top - 8), h - 26));
+      setPos(prev => {
+        const next = { left, top, tailTop };
+        return prev && prev.left === next.left && prev.top === next.top && prev.tailTop === next.tailTop ? prev : next;
+      });
+    };
+    place();
+    const tracker = setInterval(place, 100);
+    return () => clearInterval(tracker);
+  }, [target]);
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      ref={card}
+      role="dialog"
+      aria-label={title}
+      style={{
+        position: 'fixed', left: pos?.left ?? -9999, top: pos?.top ?? -9999,
+        width: CALLOUT_W, zIndex: 96,
+        ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.5)' : 'rgba(16, 255, 80, 0.4)',
+      }}
+      className={`wt-anchored-glow p-3 text-xs leading-relaxed ${primary
+        ? 'bg-white border-[3px] border-[#111111] text-[#111111]'
+        : 'bg-black border border-[var(--system-green)]/60 text-[var(--foreground)]'}`}
+    >
+      {/* The tail replaces the ring's bouncing arrow for these steps. */}
+      <span
+        aria-hidden
+        style={{ position: 'absolute', left: -10, top: pos?.tailTop ?? 10, width: 0, height: 0,
+          borderTop: '8px solid transparent', borderBottom: '8px solid transparent',
+          borderRight: primary ? '10px solid #111111' : '10px solid var(--system-green)' }}
+      />
+      <div className={`text-[10px] uppercase tracking-widest font-bold mb-1.5 ${primary ? 'text-[var(--p-red)]' : 'text-[var(--system-green)]'}`}>
+        {title}
+      </div>
+      <AssistantMarkdown text={say} />
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`mt-2.5 w-full py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer ${primary
+          ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
+          : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+      >
+        Next: {label}
+      </button>
+    </div>,
+    document.body,
+  );
+};
+
 const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSkip }: {
   primary: boolean,
   log: ChatEntry[],
@@ -843,6 +932,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
 }) => {
   const index = walkthroughIndex(stepId);
   const step = walkthroughStep(stepId);
+  const anchored = !!step && stepAnchorsChoice(step);
   const accent = primary ? 'var(--p-red)' : 'var(--system-green)';
 
   return (
@@ -850,8 +940,11 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[120px]">
         {/* The button you pressed is echoed as your turn, and rules off the beat
             above it. Without the break the whole tour ran together as one wall
-            of text with no seam between one step and the next. */}
-        {log.map((e, i) => (
+            of text with no seam between one step and the next.
+            While a bubble leads (anchored steps — all of the tour's middle),
+            the panel minimizes to the step counter alone: the log returns when
+            a panel-voiced step (welcome, done) has the floor again. */}
+        {!anchored && log.map((e, i) => (
           e.kind === 'user' ? (
             <div
               key={i}
@@ -876,7 +969,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
         {/* Where you are and what is left. An in-app tour of unknown length is
             the one people abandon, so the whole shape of it is on screen. */}
         {!busy && (
-          <div className={`mt-3 pt-2 space-y-1 ${primary ? 'border-t border-[#111111]/20' : 'border-t border-[var(--system-green)]/20'}`}>
+          <div className={`space-y-1 ${anchored ? '' : `mt-3 pt-2 ${primary ? 'border-t border-[#111111]/20' : 'border-t border-[var(--system-green)]/20'}`}`}>
             <div className="text-[9px] uppercase tracking-widest opacity-40">
               Step {index + 1} of {WALKTHROUGH_STEPS}
             </div>
@@ -891,27 +984,48 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
                 <span className={i < index ? 'line-through' : ''}>{s.title}</span>
               </div>
             ))}
+            {/* In-chat steps (no bubble to anchor to) put the way forward HERE,
+                right under the timeline the eye is already on — the same big
+                yellow glowing button the bubbles use, not a small blue one lost
+                at the panel's very bottom. */}
+            {!anchored && (step?.choices ?? []).map(choice => (
+              <button
+                key={choice.label}
+                onClick={() => onChoose(choice)}
+                style={{ ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.5)' : 'rgba(16, 255, 80, 0.4)' }}
+                className={`wt-anchored-glow mt-2 w-full py-2.5 px-3 text-xs font-bold cursor-pointer ${primary
+                  ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
+                  : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+              >
+                {choice.next ? `Next: ${choice.label}` : choice.label}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
       <div className="px-3 pb-2 pt-1 flex-shrink-0 space-y-1.5">
-        {/* Buttons sit ABOVE the composer: they are how you move, and the
-            composer below them is visibly not. */}
-        <div className="space-y-1.5">
-          {(step?.choices ?? []).map(choice => (
-            <button
-              key={choice.label}
-              onClick={() => onChoose(choice)}
-              disabled={busy}
-              className={`w-full py-1.5 px-2 text-[11px] font-bold text-left disabled:opacity-30 cursor-pointer ${primary
-                ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
-                : 'border border-[var(--system-green)]/60 text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
-            >
-              {choice.next ? `${choice.label} →` : choice.label}
-            </button>
-          ))}
-        </div>
+        {/* The way forward never lives down here: anchored steps carry it in
+            their bubble, in-chat steps put it at the end of the timeline above.
+            This strip only hosts the bubble portal and its pointer hint. */}
+        {anchored && step?.highlight && (
+          <>
+            {!busy && (
+              <AnchoredCallout
+                target={step.highlight}
+                title={step.title}
+                say={step.say}
+                label={step.choices[0].label}
+                disabled={busy}
+                primary={primary}
+                onClick={() => onChoose(step.choices[0])}
+              />
+            )}
+            <div className="text-[10px] opacity-60 py-1.5 px-2">
+              ▸ Follow the bubble next to the highlighted area in the sidebar.
+            </div>
+          </>
+        )}
 
         {/* The way out lives on the end of the dead composer rather than as a
             link under it: that row is where the eye already goes when typing

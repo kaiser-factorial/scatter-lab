@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { HardDriveUpload, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2 } from "lucide-react";
+import { HardDriveUpload, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { TmuxGrid } from "@/components/TmuxGrid";
@@ -37,6 +37,10 @@ import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
 import { RecodeDialog } from "@/components/RecodeDialog";
 import { buildClusterCrosstab, buildClusterHeatmap, downloadClusterHeatmapPng, HEATMAP_PALETTES, sortClusterLabels, type BreakdownDirection, type HeatmapPalette } from "@/lib/clusterBreakdown";
+import { MARK_KINDS, TEST_KINDS, formatFailures, type AnalysisPlan, type ChartPlan, type TestPlan, type ValidationFailure } from "@/lib/analysisPlan";
+import { analysisProfileOf, validatePlan } from "@/lib/validators";
+import { formatTestResult, runTestPlan, type TestResult } from "@/lib/statTests";
+import { compileChart, type CompiledChart } from "@/lib/chartCompile";
 
 
 const Plot = dynamic(() => import('@/components/PlotlyPlot'), { ssr: false });
@@ -810,16 +814,20 @@ const VariablesPanel = ({ dataset, viewMode, colorBy, shapeBy, theme, onAxis, on
 
 // First-run landing: an abstract scatter built from the Bauhaus glyphs, three
 // steps, and a zero-friction demo loader. Occupies the otherwise-blank canvas.
-const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | undefined, onLoadDemo: () => void, onUpload: () => void, busy: boolean }) => {
+const EmptyState = ({ theme, onLoadDemo, onUpload, busy, dimmed }: { theme: string | undefined, onLoadDemo: () => void, onUpload: () => void, busy: boolean, dimmed: boolean }) => {
     const steps = [
         "Add a dataset — CSV, XLSX, or Parquet",
         "Assign variables to X · Y · Z and color",
         "Cluster, pin comparisons, export",
     ];
+    // During the walkthrough the card is scenery, not a control surface: the
+    // tour's own anchored button is the one way forward, and two more live
+    // buttons underneath it would compete with it (and the dropzone pointer).
+    const dimCls = dimmed ? ' opacity-40 pointer-events-none select-none' : '';
 
     if (theme === 'terminal') {
         return (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className={`w-full h-full flex items-center justify-center${dimCls}`} aria-hidden={dimmed || undefined}>
                 <div className="max-w-md w-full mx-6 border border-[var(--system-green)]/40 bg-black/60 p-8 space-y-5">
                     <div className="text-[var(--system-green)] text-lg font-bold tracking-widest uppercase system-green-glow">Awaiting data_</div>
                     <div className="space-y-2">
@@ -855,7 +863,7 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy }: { theme: string | und
     }
 
     return (
-        <div className="w-full h-full flex items-center justify-center">
+        <div className={`w-full h-full flex items-center justify-center${dimCls}`} aria-hidden={dimmed || undefined}>
             <div className="max-w-md w-full mx-6 bg-white border-[3px] border-[#111111] shadow-[8px_8px_0px_#111111] p-8 space-y-6">
                 <svg viewBox="0 0 336 120" className="w-full" aria-hidden="true">
                     {/* faint grid */}
@@ -1081,7 +1089,7 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
                 </div>
             )}
             <div className="space-y-1">
-                <span className="opacity-70">Missing values<InfoTip topic="median_imputation" /></span>
+                <span className="opacity-70">Missing values</span>
                 <div className="flex gap-1">
                     {([['median', 'Median'], ['iterative', 'Iterative PCA'], ['complete', 'Complete cases']] as const).map(([v, lbl]) => (
                         <button
@@ -1166,7 +1174,7 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
             {lastRun && (
                 <div className="space-y-1 pt-1 border-t border-[var(--border)]/40">
                     <div className="font-bold uppercase tracking-wider opacity-60 text-[10px]">
-                        Scree — all components<InfoTip topic="variance_explained" />
+                        Scree — all components<InfoTip topic="scree_full_spectrum" />
                     </div>
                     {/* Every component, with the kept ones solid and the rest
                         faded (B4). Plotting only the kept ones made the chart
@@ -1187,14 +1195,11 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
                     <div className="text-[10px] opacity-70">
                         {/* Uses the run's own column names (B6): a COMP_openness
                             run used to report its bar as "PC1". */}
-                        {lastRun.varianceExplained.map((v, i) => `${lastRun.columns?.[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(' · ')} — cumulative {(lastRun.cumulative[lastRun.cumulative.length - 1] * 100).toFixed(0)}%
-                        {screeBars.length > lastRun.varianceExplained.length && (
-                            <> · {screeBars.length - lastRun.varianceExplained.length} more component{screeBars.length - lastRun.varianceExplained.length === 1 ? '' : 's'} shown faded, not kept</>
-                        )}
+                        {lastRun.varianceExplained.map((v, i) => `${lastRun.columns?.[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(' · ')}
                     </div>
                     {lastRun.eigenvalues && lastRun.standardize && (
                         <div className="text-[10px] opacity-60">
-                            Kaiser criterion (eigenvalue &gt; 1): {lastRun.eigenvalues.filter(e => e > 1).length} component{lastRun.eigenvalues.filter(e => e > 1).length === 1 ? '' : 's'}. A rule of thumb that tends to over-extract — read it beside the elbow, not instead of it.
+                            Kaiser criterion (eigenvalue &gt; 1): {lastRun.eigenvalues.filter(e => e > 1).length} component{lastRun.eigenvalues.filter(e => e > 1).length === 1 ? '' : 's'}.
                         </div>
                     )}
                 </div>
@@ -1469,6 +1474,8 @@ const GUIDE_SECTION: Record<string, string> = {
     variables: 'variables',
     pca: 'pca',
     cluster: 'cluster',
+    analyze: 'analyze',
+    'table-view': 'data',
     view: 'view',
     export: 'export',
 };
@@ -1479,7 +1486,7 @@ const GUIDE_SECTION: Record<string, string> = {
 // the assistant, which points while it is talking; in a click-to-advance tour a
 // user reading a paragraph for twenty seconds would watch the pointer die on
 // them, so the walkthrough holds the ring and drops it when the step changes.
-const flashGuide = (target: string, color: string, persist = false): (() => void) | null => {
+const flashGuide = (target: string, color: string, persist = false, showArrow = true): (() => void) | null => {
     let el = document.querySelector(`[data-guide="${target}"]`) as HTMLElement | null;
     // Puxel's Accordion only mounts an item's body while open. When the
     // assistant is aiming at a hidden control, open its titled section first
@@ -1496,7 +1503,7 @@ const flashGuide = (target: string, color: string, persist = false): (() => void
     const arrow = document.createElement('div');
     ring.style.cssText = `position:fixed;z-index:95;pointer-events:none;border:3px solid ${color};box-shadow:0 0 0 3px rgba(255,214,0,.4);border-radius:4px;`;
     arrow.textContent = '◀';
-    arrow.style.cssText = `position:fixed;z-index:95;pointer-events:none;color:${color};font-size:22px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,.35);`;
+    arrow.style.cssText = `position:fixed;z-index:95;pointer-events:none;color:${color};font-size:22px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,.35);${showArrow ? '' : 'display:none;'}`;
     document.body.append(ring, arrow);
     const place = () => {
         const current = document.querySelector(`[data-guide="${target}"]`) as HTMLElement | null ?? el;
@@ -1810,6 +1817,357 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
 });
 ViewPlot.displayName = 'ViewPlot';
 
+// --- Analysis views (run_test results, plot_chart charts) -------------------
+// A third kind of pane alongside the live view and pins: the outputs of the
+// Analyze panel and the assistant's run_test/plot_chart tools. Charts arrive
+// pre-compiled (chartCompile.ts) as plain scatter traces; a test result is a
+// styled card, no Plotly involved. They share the pins' 3-extra-pane budget so
+// the grid never silently drops one.
+
+export type AnalysisView = {
+    id: number;
+    kind: 'analysis';
+    label: string;
+    chart?: CompiledChart;
+    test?: TestResult;
+};
+
+const fmtStat = (v: number) => (Math.abs(v) >= 1000 ? v.toFixed(0) : Math.round(v * 1000) / 1000);
+const fmtP = (p: number) => (p < 0.001 ? p.toExponential(2) : String(Math.round(p * 10000) / 10000));
+
+const TestResultCard = ({ result, dark }: { result: TestResult; dark: boolean }) => {
+    const sig = result.p < 0.05;
+    const NAMES: Record<string, string> = {
+        t: "Welch's t-test", mann_whitney: 'Mann–Whitney U', kruskal_wallis: 'Kruskal–Wallis',
+        ks: 'Kolmogorov–Smirnov (2-sample)', chi_square: 'Chi-square independence',
+    };
+    return (
+        <div className="w-full h-full overflow-auto p-4 flex flex-col gap-3 text-sm">
+            <div className="font-bold">{NAMES[result.test] ?? result.test}</div>
+            <div className="text-2xl font-bold tracking-tight">
+                {result.statLabel} = {fmtStat(result.statistic)}
+                {result.df !== null && <span className="text-sm font-normal opacity-70">  df = {fmtStat(result.df)}</span>}
+            </div>
+            {/* Exact p, bolded (and red) below alpha = .05 — never stars. */}
+            <div className={sig ? `font-bold ${dark ? 'text-[#10ff50]' : 'text-[var(--p-red,#D23B72)]'}` : ''}>
+                p = {fmtP(result.p)}
+            </div>
+            <div>
+                {result.effect.label} = <b>{fmtStat(result.effect.value)}</b>
+                {result.ci95 && <span className="block opacity-80">95% CI on the mean difference: [{fmtStat(result.ci95[0])}, {fmtStat(result.ci95[1])}]</span>}
+            </div>
+            <div className="opacity-70 text-xs">
+                {result.groups.map(g => `${g.group} (n=${g.n})`).join(' · ')}
+            </div>
+            {result.caveats.map((c, i) => (
+                <div key={i} className="text-xs leading-snug border-l-2 pl-2 opacity-80 border-current">{c}</div>
+            ))}
+        </div>
+    );
+};
+
+const AnalysisPane = memo(({ view }: { view: AnalysisView }) => {
+    const { theme } = useTheme();
+    const dark = theme === 'terminal';
+    const chart = view.chart;
+    const layout = useMemo(() => {
+        if (!chart) return null;
+        const c = dark ? PLOT_CHROME.dark : PLOT_CHROME.light;
+        const axis = (title: string, isTickAxis: boolean) => ({
+            showgrid: true, gridcolor: c.grid2d, zerolinecolor: c.zero,
+            tickfont: { color: c.tick, size: 10 },
+            title: { text: title, font: { color: c.fg, size: 11 } },
+            ...(isTickAxis && chart.ticks
+                ? { tickvals: chart.ticks.vals, ticktext: chart.ticks.text, showgrid: false }
+                : {}),
+            ...(chart.xIsDate && !isTickAxis ? {} : {}),
+        });
+        const xaxis: Record<string, unknown> = axis(chart.xTitle, chart.ticks?.axis === 'x');
+        const yaxis: Record<string, unknown> = axis(chart.yTitle, chart.ticks?.axis === 'y');
+        if (chart.xIsDate) xaxis.type = 'date';
+        // House zero policy: bars anchor at zero; distributions autoscale.
+        if (chart.zeroBased) (chart.ticks?.axis === 'y' ? xaxis : yaxis).rangemode = 'tozero';
+        return {
+            autosize: true, margin: { l: 55, r: 16, b: 45, t: dark ? 12 : 40 },
+            ...(dark ? {} : { title: { text: chart.title, font: { color: c.fg, size: 13 } } }),
+            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+            showlegend: chart.traces.some(t => t.showlegend !== false && t.name),
+            legend: { font: { color: c.fg, size: 10 } },
+        // xaxis/yaxis attached below so the tick branches above stay readable
+            xaxis, yaxis,
+        };
+    }, [chart, dark]);
+    if (view.test) return <TestResultCard result={view.test} dark={dark} />;
+    if (!chart || !layout) return null;
+    return (
+        <div className="w-full h-full relative flex flex-col">
+            <div className="flex-grow min-h-0">
+                <Plot
+                    data={chart.traces.map(t => ({ type: 'scatter', ...t }))}
+                    layout={layout}
+                    config={{ displayModeBar: false, responsive: true }}
+                    style={{ width: '100%', height: '100%' }}
+                    useResizeHandler
+                />
+            </div>
+            {chart.notes.length > 0 && (
+                <div className="px-3 pb-2 text-[10px] leading-snug opacity-60">
+                    {chart.notes.join(' ')}
+                </div>
+            )}
+        </div>
+    );
+});
+AnalysisPane.displayName = 'AnalysisPane';
+
+// Tabled: the sidebar section rendering this panel is behind
+// ANALYZE_PANEL_ENABLED (currently off) while the analysis engine is being
+// polished. The component and its gate stay wired and tested for the flip.
+const ANALYZE_PANEL_ENABLED = false;
+
+// The Analyze panel: the assistant-free path to run_test/plot_chart. Its
+// dropdowns are populated from the SAME AnalysisProfile the validator reads,
+// so the UI can barely express an invalid plan — and whatever it expresses
+// still goes through the one shared gate (runAnalysisPlan), never around it.
+const AnalyzePanel = ({ profile, theme, onRun }: {
+    profile: import('@/lib/analysisPlan').AnalysisProfile | null;
+    theme: string | undefined;
+    onRun: (plan: AnalysisPlan) => string;
+}) => {
+    const [kind, setKind] = useState<'test' | 'chart'>('test');
+    const [test, setTest] = useState<TestPlan['test']>('t');
+    const [mark, setMark] = useState<ChartPlan['mark']>('ecdf');
+    const [column, setColumn] = useState('');
+    const [groupBy, setGroupBy] = useState('');
+    const [groupA, setGroupA] = useState('');
+    const [groupB, setGroupB] = useState('');
+    const [orientation, setOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+    const [xCol, setXCol] = useState('');
+    const [bins, setBins] = useState('');
+    const [agg, setAgg] = useState<'mean' | 'median' | 'sum' | 'count'>('mean');
+    const [feedback, setFeedback] = useState('');
+
+    const numeric = (profile?.columns ?? []).filter(c => c.isNumeric && !c.isIdentifier).map(c => c.name);
+    const categorical = (profile?.columns ?? []).filter(c => c.isCategorical && !c.isIdentifier).map(c => c.name);
+    const temporal = (profile?.columns ?? []).filter(c => c.isTemporal).map(c => c.name);
+    const groupOptions = (profile?.columns.find(c => c.name === groupBy)?.groups ?? [])
+        .filter(g => !g.withheld).map(g => g.value);
+    const twoGroup = kind === 'test' && (test === 't' || test === 'mann_whitney' || test === 'ks');
+    const wantsCategorical = kind === 'test' ? test === 'chi_square' : mark === 'bar';
+    const columnOptions = wantsCategorical ? categorical : numeric;
+
+    const TEST_LABELS: Record<TestPlan['test'], string> = {
+        t: "Welch's t-test (2 group means)", mann_whitney: 'Mann–Whitney U (2 groups, ranks)',
+        kruskal_wallis: 'Kruskal–Wallis (2+ groups, ranks)', ks: 'Kolmogorov–Smirnov (2 distributions)',
+        chi_square: 'Chi-square (two categoricals)',
+    };
+    const MARK_LABELS: Record<ChartPlan['mark'], string> = {
+        ecdf: 'ECDF (cumulative distribution)', histogram: 'Histogram', box: 'Box plot',
+        violin: 'Violin plot', qq: 'Normal Q–Q', bar: 'Bar chart (counts)', line: 'Line (over time)',
+    };
+
+    const run = () => {
+        const plan: AnalysisPlan = kind === 'test'
+            ? {
+                kind: 'test', test, column, groupBy,
+                ...(twoGroup && groupA && groupB ? { groups: [groupA, groupB] } : {}),
+            }
+            : {
+                kind: 'chart', mark, column,
+                ...(groupBy && mark !== 'bar' ? { groupBy } : {}),
+                ...(mark === 'bar' ? { orientation } : {}),
+                ...(mark === 'line' ? { x: xCol, agg } : {}),
+                ...(mark === 'histogram' && bins.trim() !== '' ? { bins: Number(bins) } : {}),
+            };
+        setFeedback(onRun(plan));
+    };
+
+    const isError = /^(Plan rejected|Analysis error|Pane limit|No dataset)/.test(feedback);
+    const selectCls = "w-full bg-[var(--input)] border border-[var(--border)] p-1.5 text-xs outline-none";
+    const labelCls = "block text-[10px] uppercase tracking-wider opacity-60 pt-1";
+    return (
+        <div className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-1 text-xs">
+                {(['test', 'chart'] as const).map(k => (
+                    <button key={k} onClick={() => { setKind(k); setFeedback(''); setColumn(''); }}
+                        className={`py-1.5 font-bold border ${kind === k
+                            ? (theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'border-[var(--primary)] text-[var(--primary)] bg-[var(--border)]')
+                            : 'border-[var(--border)] bg-[var(--input)] opacity-70 hover:opacity-100'}`}>
+                        {k === 'test' ? 'Statistical test' : 'Chart'}
+                    </button>
+                ))}
+            </div>
+            {kind === 'test' ? (
+                <select aria-label="Test" className={selectCls} value={test} onChange={e => { setTest(e.target.value as TestPlan['test']); setFeedback(''); setColumn(''); }}>
+                    {TEST_KINDS.map(t => <option key={t} value={t}>{TEST_LABELS[t]}</option>)}
+                </select>
+            ) : (
+                <select aria-label="Chart type" className={selectCls} value={mark} onChange={e => { setMark(e.target.value as ChartPlan['mark']); setFeedback(''); setColumn(''); }}>
+                    {MARK_KINDS.map(m => <option key={m} value={m}>{MARK_LABELS[m]}</option>)}
+                </select>
+            )}
+            <label className={labelCls}>{wantsCategorical ? 'Categorical column' : kind === 'chart' && mark === 'line' ? 'Value column' : 'Numeric column'}</label>
+            <select aria-label="Column" className={selectCls} value={column} onChange={e => setColumn(e.target.value)}>
+                <option value="">— choose —</option>
+                {columnOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {(kind === 'test' || (mark !== 'bar')) && (
+                <>
+                    <label className={labelCls}>{kind === 'test' ? (test === 'chi_square' ? 'Against categorical' : 'Group by') : 'Group by (optional)'}</label>
+                    <select aria-label="Group by" className={selectCls} value={groupBy} onChange={e => { setGroupBy(e.target.value); setGroupA(''); setGroupB(''); }}>
+                        <option value="">{kind === 'chart' ? '— none —' : '— choose —'}</option>
+                        {categorical.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </>
+            )}
+            {twoGroup && groupOptions.length > 0 && (
+                <div className="grid grid-cols-2 gap-1">
+                    <select aria-label="Group A" className={selectCls} value={groupA} onChange={e => setGroupA(e.target.value)}>
+                        <option value="">Group A</option>
+                        {groupOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <select aria-label="Group B" className={selectCls} value={groupB} onChange={e => setGroupB(e.target.value)}>
+                        <option value="">Group B</option>
+                        {groupOptions.filter(g => g !== groupA).map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                </div>
+            )}
+            {kind === 'chart' && mark === 'bar' && (
+                <select aria-label="Orientation" className={selectCls} value={orientation} onChange={e => setOrientation(e.target.value as 'vertical' | 'horizontal')}>
+                    <option value="vertical">Vertical bars</option>
+                    <option value="horizontal">Horizontal bars</option>
+                </select>
+            )}
+            {kind === 'chart' && mark === 'line' && (
+                <>
+                    <label className={labelCls}>Time column</label>
+                    <select aria-label="Time column" className={selectCls} value={xCol} onChange={e => setXCol(e.target.value)}>
+                        <option value="">— choose —</option>
+                        {temporal.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select aria-label="Aggregation" className={selectCls} value={agg} onChange={e => setAgg(e.target.value as typeof agg)}>
+                        {(['mean', 'median', 'sum', 'count'] as const).map(a => <option key={a} value={a}>daily {a}</option>)}
+                    </select>
+                </>
+            )}
+            {kind === 'chart' && mark === 'histogram' && (
+                <input aria-label="Bins" type="number" min={5} max={100} placeholder="bins (auto)" value={bins}
+                    onChange={e => setBins(e.target.value)}
+                    className="w-full bg-[var(--input)] border border-[var(--border)] p-1.5 text-xs outline-none" />
+            )}
+            <button onClick={run} disabled={!column || (kind === 'test' && !groupBy) || (kind === 'chart' && mark === 'line' && !xCol)}
+                className={`w-full text-sm font-bold py-2 disabled:opacity-50 ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--border)] hover:bg-[var(--border)] text-[var(--abaci)]'}`}>
+                {kind === 'test' ? 'Run test' : 'Draw chart'}
+            </button>
+            {feedback && (
+                <pre className={`whitespace-pre-wrap text-[10px] leading-snug max-h-40 overflow-auto ${isError
+                    ? (theme === 'primary' ? 'text-[var(--p-red)] font-bold' : 'text-red-400 font-bold')
+                    : 'opacity-70'}`}>
+                    {feedback}
+                </pre>
+            )}
+            <p className="text-[10px] leading-snug opacity-60">
+                Exact p-values with effect size and CI — no significance stars. Results and charts appear as panes on the canvas.
+                <InfoTip topic="statistical_tests" />
+            </p>
+        </div>
+    );
+};
+
+// Read-only raw-rows viewer: sortable, filterable, paged. Renders locally in
+// both data modes — the modes gate what reaches the assistant's endpoint,
+// never what the user may see of their own data.
+const TableViewDialog = ({ table, name, onClose }: { table: DataTable; name: string; onClose: () => void }) => {
+    const [sortCol, setSortCol] = useState<string | null>(null);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const [filter, setFilter] = useState('');
+    const [page, setPage] = useState(0);
+    const PAGE = 100;
+
+    const rows = useMemo(() => {
+        let idx = Array.from({ length: table.nRows }, (_, i) => i);
+        const f = filter.trim().toLowerCase();
+        if (f) {
+            idx = idx.filter(i => table.columns.some(c => String(table.data[c]?.[i] ?? '').toLowerCase().includes(f)));
+        }
+        if (sortCol) {
+            const vals = table.data[sortCol] ?? [];
+            const dir = sortDir === 'asc' ? 1 : -1;
+            idx = [...idx].sort((a, b) => {
+                const va = vals[a], vb = vals[b];
+                if (va == null) return 1;           // nulls last either direction
+                if (vb == null) return -1;
+                const na = asNumber(va), nb = asNumber(vb);
+                if (na !== null && nb !== null) return (na - nb) * dir;
+                return String(va).localeCompare(String(vb), undefined, { numeric: true }) * dir;
+            });
+        }
+        return idx;
+    }, [table, filter, sortCol, sortDir]);
+
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+    const cur = Math.min(page, pages - 1);
+    const slice = rows.slice(cur * PAGE, cur * PAGE + PAGE);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+            <div className="bg-[var(--background)] border-2 border-[var(--border)] w-[min(92vw,1100px)] h-[min(85vh,760px)] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 p-3 border-b border-[var(--border)]">
+                    <span className="font-bold text-sm truncate">{name} — {table.nRows} rows × {table.columns.length} columns</span>
+                    <input
+                        aria-label="Filter rows" placeholder="Filter…" value={filter}
+                        onChange={e => { setFilter(e.target.value); setPage(0); }}
+                        className="ml-auto w-40 bg-[var(--input)] border border-[var(--border)] px-2 py-1 text-xs outline-none"
+                    />
+                    <span className="text-xs opacity-60 flex-shrink-0">{rows.length} match{rows.length === 1 ? '' : 'es'}</span>
+                    <button onClick={onClose} className="border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--border)]" aria-label="Close table view">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+                <div className="flex-grow overflow-auto">
+                    <table className="text-xs border-collapse min-w-full">
+                        <thead className="sticky top-0 bg-[var(--background)]">
+                            <tr>
+                                <th className="text-left px-2 py-1 border-b border-[var(--border)] opacity-50 font-normal">#</th>
+                                {table.columns.map(c => (
+                                    <th key={c}
+                                        onClick={() => {
+                                            if (sortCol === c) { if (sortDir === 'asc') setSortDir('desc'); else { setSortCol(null); setSortDir('asc'); } }
+                                            else { setSortCol(c); setSortDir('asc'); }
+                                        }}
+                                        className="text-left px-2 py-1 border-b border-[var(--border)] font-bold cursor-pointer select-none whitespace-nowrap hover:opacity-70"
+                                        title="Click to sort">
+                                        {c}{sortCol === c ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {slice.map(i => (
+                                <tr key={i} className="odd:bg-[var(--input)]/40">
+                                    <td className="px-2 py-0.5 opacity-40">{i + 1}</td>
+                                    {table.columns.map(c => (
+                                        <td key={c} className="px-2 py-0.5 whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis" title={String(table.data[c]?.[i] ?? '')}>
+                                            {table.data[c]?.[i] == null ? <span className="opacity-30">·</span> : String(table.data[c][i])}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {pages > 1 && (
+                    <div className="flex items-center justify-center gap-3 p-2 border-t border-[var(--border)] text-xs">
+                        <button disabled={cur === 0} onClick={() => setPage(cur - 1)} className="px-2 py-0.5 border border-[var(--border)] disabled:opacity-30">‹ Prev</button>
+                        <span className="opacity-70">Page {cur + 1} / {pages}</span>
+                        <button disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)} className="px-2 py-0.5 border border-[var(--border)] disabled:opacity-30">Next ›</button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -1819,8 +2177,12 @@ export default function Home() {
   // add — the declaration is per file, deliberately not sticky.
   const [uploadDataMode, setUploadDataMode] = useState<DataMode>('private');
   // Mode-switch dialog for an already-loaded dataset (badge in the list).
-  const [modeDialog, setModeDialog] = useState<{ datasetId: number; to: DataMode } | null>(null);
-  const [modeConfirmChecked, setModeConfirmChecked] = useState(false);
+  // Info-only: a dataset's mode is LOCKED at upload (owner's call) — the badge
+  // and the assistant's access chip open this explainer, never a switch.
+  const [accessInfo, setAccessInfo] = useState<number | null>(null);
+  // The no-sensitive-data confirmation lives in the ADD dialog now, since
+  // upload time is the only moment a dataset can become open.
+  const [uploadOpenConfirmed, setUploadOpenConfirmed] = useState(false);
   // A failed upload opens a dialog instead of relying on the small status
   // line: the error, a local column-shape diagnosis, and — when the culprit is
   // numbers stored as formatted text — an in-app fix.
@@ -1843,6 +2205,7 @@ export default function Home() {
   // "let the parser choose", which is the right default — it picks the first
   // sheet that actually has data rather than blindly the first sheet.
   const [showInfo, setShowInfo] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sheetOptions, setSheetOptions] = useState<SheetInfo[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -1886,6 +2249,13 @@ export default function Home() {
 
   // Feature state
   const [pinnedViews, setPinnedViews] = useState<any[]>([]); // array of { id, data, colorBy, axes, labels, viewMode, label }
+  // Analysis outputs (test cards, statistical charts) — pane peers of pins,
+  // sharing their 3-extra-pane budget so the grid never silently drops one.
+  const [analysisViews, setAnalysisViews] = useState<AnalysisView[]>([]);
+  // Raw-rows table view (read-only). Pure local rendering, so it exists in
+  // BOTH data modes: the modes gate what reaches the assistant's endpoint,
+  // never what the user may see of their own data.
+  const [showTableView, setShowTableView] = useState(false);
   const [notes, setNotes] = useState("");
   // Legend mute states for the active view's colorBy, keyed by String(value)
   const [mutedMap, setMutedMap] = useState<MuteMap>({});
@@ -2117,6 +2487,7 @@ export default function Home() {
     setDatasetFile(null);
     setComponentsFile(null);
     setUploadDataMode('private');
+    setUploadOpenConfirmed(false);
     setRecodeAfterAdd('configure');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
@@ -2207,6 +2578,7 @@ export default function Home() {
     setComponentsFile(null);
     setShowComponents(false);
     setUploadDataMode('private');
+    setUploadOpenConfirmed(false);
     setRecodeAfterAdd('configure');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
@@ -2214,7 +2586,7 @@ export default function Home() {
 
   // Demo data ships with the app (public/demo) so the empty state can offer a
   // zero-friction first run: the public Iris CSV, no projection file required.
-  const loadDemo = async (): Promise<DataTable | null> => {
+  const loadDemo = async (mode: DataMode = 'open'): Promise<DataTable | null> => {
     setIsUploading(true);
     setUploadStatus("Loading demo data…");
     try {
@@ -2230,9 +2602,10 @@ export default function Home() {
           viewMode: '3D',
         },
         undefined,
-        // Iris is a textbook-public dataset, so the demo arrives in open mode —
-        // it doubles as the zero-risk way to try the row-access tools.
-        'open',
+        // Iris is textbook-public, so the demo defaults to open mode — the
+        // zero-risk way to try the row-access tools. The walkthrough loads it
+        // private instead, so the tour shows the mode most real data gets.
+        mode,
       );
     } catch {
       setUploadStatus("Demo data failed to load.");
@@ -2258,22 +2631,6 @@ export default function Home() {
           : d));
   };
 
-  // Applies a data-mode change from the confirm dialog. open → private also
-  // clears the assistant conversation: a transcript that already contains raw
-  // rows cannot be redacted after the fact, so the boundary is a fresh start.
-  const applyModeChange = (id: number, to: DataMode) => {
-      setDatasets(prev => prev.map(d => d.id === id ? { ...d, dataMode: to } : d));
-      logProvenance(id, to === 'open'
-          ? 'Data mode switched to OPEN — assistant may read raw rows from here on'
-          : 'Data mode switched to PRIVATE — assistant sees aggregates only; conversation cleared if it held rows');
-      if (to === 'private' && (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0) {
-          convBridge.current.handle?.set(null);
-          noteConversationChange();
-      }
-      setModeDialog(null);
-      setModeConfirmChecked(false);
-  };
-
   // --- Workspace persistence (IndexedDB — fully local) -----------------------
   const refreshWorkspaces = async () => {
       try {
@@ -2297,7 +2654,7 @@ export default function Home() {
       registry.forEach((id, tbl) => { tables[id] = tbl; });
       return {
           version: wsStore.WORKSPACE_VERSION,
-          tables, datasets: datasetsOut, pinnedViews: pinsOut,
+          tables, datasets: datasetsOut, pinnedViews: pinsOut, analysisViews,
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
           notes, mutedMap,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
@@ -2393,6 +2750,9 @@ export default function Home() {
           // modes existed carry none, and must load as private (fail closed).
           setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode) })));
           setPinnedViews((ws.pinnedViews ?? []).map((v: any) => ({ ...v, data: rehydrate(v.data) })));
+          // Analysis views are self-contained (compiled traces / result cards,
+          // no table references) — restore verbatim, tolerate their absence.
+          setAnalysisViews(Array.isArray(ws.analysisViews) ? ws.analysisViews : []);
           setActiveId(ws.activeId ?? null);
           setColorBy(ws.colorBy ?? "");
           setShapeBy(ws.shapeBy ?? "");
@@ -2458,7 +2818,7 @@ export default function Home() {
           sessionSaveTimer.current = null;
           wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* IndexedDB unavailable */ });
       }, 1500);
-  }, [datasets, pinnedViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
+  }, [datasets, pinnedViews, analysisViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
       notes, mutedMap, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
       breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
 
@@ -3033,9 +3393,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // which has to be its value at click time.
   const [isPinning, startPinning] = useTransition();
 
+  // Pins and analysis views share the grid's 3 extra panes.
+  const extraPanes = () => pinnedViews.length + analysisViews.length;
+
   const pinCurrentView = () => {
-      if (pinnedViews.length >= 3) {
-          setUploadStatus("Pin limit reached — the grid holds the live view plus 3 pins. Remove one to pin another.");
+      if (extraPanes() >= 3) {
+          setUploadStatus("Pane limit reached — the grid holds the live view plus 3 panels (pins or analyses). Remove one first.");
           return;
       }
       const pin = (
@@ -3065,6 +3428,42 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       // Unmounting a pane re-splits the grid and resizes the survivors, so it
       // costs what pinning costs. Same treatment.
       startPinning(() => setPinnedViews(prev => prev.filter(v => v.id !== id)));
+  };
+
+  const removeAnalysisView = (id: number) => {
+      startPinning(() => setAnalysisViews(prev => prev.filter(v => v.id !== id)));
+  };
+
+  // The one gate every analysis request goes through — the Analyze panel and
+  // the assistant's run_test/plot_chart meet HERE, so the validator, the
+  // pane budget, provenance, and the mode fence can never diverge between
+  // the two entry points. Returns the aggregate text the caller may show or
+  // hand to the model; a rejection returns the typed failures, formatted.
+  const runAnalysisPlan = (plan: unknown): string => {
+      const t = latestTable();
+      if (!t || !activeDataset) return 'No dataset loaded.';
+      const profile = analysisProfileOf(t, activePolicy);
+      const failures: ValidationFailure[] = validatePlan(plan, profile);
+      if (failures.length) return formatFailures(failures);
+      if (extraPanes() >= 3) {
+          return 'Pane limit reached — the grid holds the live view plus 3 panels (pins or analyses). Remove one first (the X on the pane, or remove_pin for pins).';
+      }
+      const p = plan as AnalysisPlan;
+      try {
+          if (p.kind === 'test') {
+              const result = runTestPlan(p, t, profile);
+              const label = `${result.statLabel}: ${p.column} by ${p.groupBy}`;
+              startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label, test: result }]));
+              logProvenance(activeId, `Ran ${p.test} test: ${p.column} by ${p.groupBy}${p.groups ? ` (groups: ${p.groups.join(', ')})` : ''}`);
+              return `${formatTestResult(result)}\nA results card was added to the canvas.`;
+          }
+          const chart = compileChart(p, t, profile);
+          startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label: chart.title, chart }]));
+          logProvenance(activeId, `Plotted ${p.mark} chart: ${chart.title}`);
+          return `${chart.summary}${chart.notes.length ? `\nNotes: ${chart.notes.join(' ')}` : ''}\nThe chart was added to the canvas.`;
+      } catch (err) {
+          return `Analysis error: ${(err as Error)?.message ?? err}`;
+      }
   };
 
   const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
@@ -3136,6 +3535,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // describe one dataset. (The tool list is stricter: combinedPolicy over all
   // loaded datasets, because tools can cross dataset boundaries.)
   const activePolicy = policyFor(activeDataset?.dataMode ?? 'private');
+  // The Analyze panel's option lists come from the same profile the validator
+  // reads. Memoized on the table + mode, not on activePolicy (fresh object
+  // identity every render).
+  const analysisProfile = useMemo(
+      () => (processedData ? analysisProfileOf(processedData, policyFor(activeDataset?.dataMode ?? 'private')) : null),
+      [processedData, activeDataset?.dataMode],
+  );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
 
   const columnProfiles = (): ColumnProfile[] => {
@@ -3220,12 +3626,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // identity changes only when the active dataset or its mode does, which is
   // when the panel re-renders anyway.
   const activeDatasetId = activeDataset?.id ?? null;
-  const activeDataMode = activeDataset?.dataMode ?? 'private';
-  const openActiveModeDialog = useCallback(() => {
+  const openActiveAccessInfo = useCallback(() => {
       if (activeDatasetId == null) return;
-      setModeConfirmChecked(false);
-      setModeDialog({ datasetId: activeDatasetId, to: activeDataMode === 'open' ? 'private' : 'open' });
-  }, [activeDatasetId, activeDataMode]);
+      setAccessInfo(activeDatasetId);
+  }, [activeDatasetId]);
 
   const changeDock = useCallback((d: 'right' | 'bottom' | 'float') => {
       setAssistantDock(d);
@@ -3434,14 +3838,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `Pinned the current view. ${pinnedViews.length + 1}/3 pins used.`;
       },
 
-      loadDemoData: async () => {
+      loadDemoData: async (mode) => {
           const existing = datasets.find(d => d.name === 'iris');
           if (existing) {
               if (existing.id !== activeId) selectDataset(existing.id);
               freshTableRef.current = existing.table;
               return `The demo dataset is already loaded (${existing.table.nRows} rows) and is now the active dataset — no need to load it again.`;
           }
-          const table = await loadDemo();
+          const table = await loadDemo(mode);
           if (!table) return 'Demo data failed to load.';
           freshTableRef.current = table;
           return `Iris demo loaded: ${table.nRows} flowers, columns: ${table.columns.join(', ')}. It is now active in 3D: petal length × petal width × sepal length, colored by species. Marker shape is available for the tour to demonstrate.`;
@@ -3473,6 +3877,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (pearson == null) return `Not enough complete pairs (n=${n}) to correlate ${colA} and ${colB}.`;
           return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).`;
       },
+
+      // Both go through the ONE analysis gate (validator → executor → pane →
+      // provenance) shared with the Analyze panel.
+      runTest: (plan) => runAnalysisPlan(plan),
+      plotChart: (plan) => runAnalysisPlan(plan),
 
       compareGroups: (numericCol, groupCol) => {
           const t = latestTable();
@@ -3708,9 +4117,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `Moved the assistant panel to the ${mode === 'float' ? 'floating overlay' : `${mode} dock`}.`;
       },
 
-      holdHighlight: (target) => {
+      holdHighlight: (target, opts) => {
           if (!(GUIDE_TARGETS as readonly string[]).includes(target)) return null;
-          return flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26', true);
+          return flashGuide(target, theme === 'terminal' ? '#10ff50' : '#EB1A26', true, opts?.arrow !== false);
       },
 
       // --- Open-mode row access ---------------------------------------------
@@ -3740,7 +4149,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       snapshot: () => ({
-          datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews,
+          datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap,
       }),
 
@@ -3755,6 +4164,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setShowAxes(snap.showAxes);
           if (snap.aspect) setAspect(snap.aspect);
           setPinnedViews(snap.pinnedViews);
+          setAnalysisViews(snap.analysisViews ?? []);
           setClusterMethod(snap.clusterMethod);
           setEps(snap.eps);
           setMinSamples(snap.minSamples);
@@ -3813,12 +4223,26 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   }, []);
 
   const renderView = (view: any, index: number) => {
-      // view object is either the active state or a pinned state
+      // view object is the active state, a pinned state, or an analysis output
+      if (view.kind === 'analysis') {
+          return (
+              <div className="w-full h-full relative">
+                  <button
+                      onClick={() => removeAnalysisView(view.id)}
+                      className="absolute top-2 right-2 z-20 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] text-xs px-2 py-1 transition-colors"
+                      aria-label={`Close ${view.label}`}
+                  >
+                      <X className="w-4 h-4" />
+                  </button>
+                  <AnalysisPane view={view} />
+              </div>
+          );
+      }
       const isPinned = view.id !== 'active';
       return (
           <div className="w-full h-full relative">
               {isPinned && (
-                  <button 
+                  <button
                       onClick={() => removePin(view.id)}
                       className="absolute top-2 right-2 z-20 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] text-xs px-2 py-1 transition-colors"
                   >
@@ -3858,8 +4282,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset, colorBy, shapeBy, viewMode, showAxes, aspect, mutedMap],
   );
   const allViews = useMemo(
-      () => (activeView ? [activeView, ...pinnedViews] : []),
-      [activeView, pinnedViews],
+      () => (activeView ? [activeView, ...pinnedViews, ...analysisViews] : []),
+      [activeView, pinnedViews, analysisViews],
   );
 
   // Theme-neutral shell until next-themes reports the client's theme.
@@ -3888,7 +4312,27 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   return (
     <div className={`flex w-full h-screen bg-[var(--background)] text-[var(--foreground)] ${theme === 'terminal' ? 'moving-scanlines' : ''}`}>
       
-      {/* Sidebar Controls */}
+      {/* Sidebar Controls. Collapsible to a thin rail — but never during the
+          walkthrough, whose coach bubbles anchor to sidebar sections that
+          would unmount with it. */}
+      {sidebarCollapsed && !walkthroughActive ? (
+        <aside className="w-11 h-full bg-[var(--card)] border-r border-[var(--border)] flex flex-col items-center py-3 gap-3 relative z-10 flex-shrink-0">
+          <button
+            onClick={() => setSidebarCollapsed(false)}
+            title="Expand the menu"
+            aria-label="Expand the menu"
+            className={`p-1.5 border cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-white text-[var(--border)]' : 'border-[var(--border)] hover:bg-[var(--border)] text-[var(--system-green)] rounded'}`}
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+          <span
+            className={`text-[10px] font-bold tracking-widest uppercase opacity-60 select-none ${theme === 'terminal' ? 'text-[var(--system-green)]' : ''}`}
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            {APP_NAME}
+          </span>
+        </aside>
+      ) : (
       <aside className="w-[320px] h-full bg-[var(--card)] border-r border-[var(--border)] flex flex-col p-6 overflow-y-auto relative z-10 flex-shrink-0">
         <div className="flex justify-between items-center mb-2">
             <h1 className={`flex items-center gap-2 text-xl font-bold tracking-tight ${theme === 'terminal' ? 'text-[var(--system-green)] system-green-glow' : ''}`}>
@@ -3917,22 +4361,22 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
             >
                 <Monitor className="w-4 h-4" />
             </button>
+            {!walkthroughActive && (
+                <button
+                    onClick={() => setSidebarCollapsed(true)}
+                    title="Collapse the menu"
+                    aria-label="Collapse the menu"
+                    className={`p-2 border cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-white text-[var(--border)]' : 'border-[var(--border)] hover:bg-[var(--border)] text-[var(--system-green)] rounded'}`}
+                >
+                    <PanelLeftClose className="w-4 h-4" />
+                </button>
+            )}
         </div>
 
-        {/* The privacy claim is the app's headline promise, so it links to the
-            page that explains its one exception (the assistant) rather than
-            relying on a `title` nobody sees on touch.
-            It claims local COMPUTATION and no dataset upload — not that nothing
-            ever leaves the tab, which the assistant makes untrue. A promise the
-            app cannot keep in every configuration is worse than a narrower one. */}
-        <button
-          onClick={() => setShowInfo(true)}
-          className="flex items-center gap-1.5 mb-6 text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100 cursor-pointer text-left"
-          title="All parsing, projection, and clustering run in your browser, and your dataset is never uploaded to a server. The optional assistant is the one exception — it sends summaries, never raw rows. Click to read more."
-        >
-          <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-          Computed locally — your dataset is never uploaded
-        </button>
+        {/* The privacy story lives in the info dialog and the per-dataset
+            lock/globe badges now — the always-on headline banner here was
+            retired as sidebar noise (owner's call). */}
+        <div className="mb-4" />
 
         <SidebarGroup theme={theme}>
 
@@ -4066,15 +4510,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     <span className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="opacity-60">{d.table.nRows} rows</span>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setModeConfirmChecked(false); setModeDialog({ datasetId: d.id, to: d.dataMode === 'open' ? 'private' : 'open' }); }}
+                        onClick={(e) => { e.stopPropagation(); setAccessInfo(d.id); }}
                         className="hover:opacity-60"
                         title={d.dataMode === 'open'
-                          ? 'Public/open data — the assistant may read raw rows. Click to make private.'
-                          : 'Private research data — the assistant sees aggregates only. Click to change.'}
+                          ? 'Public/open data — the assistant may read raw rows. Set when the dataset was added; click for details.'
+                          : 'Private research data — the assistant sees aggregates only. Set when the dataset was added; click for details.'}
                       >
                         {d.dataMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setDatasetSettings(d.id); }} className="hover:opacity-60" title="Dataset settings — data mode, missing-value codes, delete">
+                      <button onClick={(e) => { e.stopPropagation(); setDatasetSettings(d.id); }} className="hover:opacity-60" title="Dataset settings — missing-value codes, delete">
                         <Settings2 className="w-3 h-3" />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(d.id); }} className="hover:opacity-50" title="Remove dataset (asks first)">
@@ -4084,6 +4528,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   </div>
                 ))}
               </div>
+            )}
+            {activeDataset && (
+              <button
+                onClick={() => setShowTableView(true)}
+                data-guide="table-view"
+                className="w-full text-left text-[11px] underline-offset-2 hover:underline opacity-70 hover:opacity-100 cursor-pointer"
+              >
+                ⊞ View dataset table ({activeDataset.table.nRows} rows)
+              </button>
             )}
             {(activeDataset?.provenance?.length ?? 0) > 0 && (
               // The audit trail: everything that changed this dataset's in-app
@@ -4346,6 +4799,18 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
                   </SidebarSection>
 
+              {/* Tabled for now at the owner's request while the rest of the
+                  analysis engine is polished — the machinery stays live (the
+                  assistant's run_test/plot_chart, runAnalysisPlan, tests);
+                  only this assistant-free entry point is off. Flip the flag to
+                  bring the section back; order ties with Cluster (4) so the
+                  later DOM position places it right after Cluster. */}
+              {ANALYZE_PANEL_ENABLED && (
+                <SidebarSection title="Analyze" hasBorder theme={theme} guide="analyze" order={4}>
+                    <AnalyzePanel profile={analysisProfile} theme={theme} onRun={runAnalysisPlan} />
+                </SidebarSection>
+              )}
+
               <SidebarSection title="Export" step={6} hasBorder theme={theme} guide="export" order={6}>
                   <div className="grid grid-cols-3 gap-2">
                     <button onClick={exportPNG} disabled={!!isExporting} title="Save PNG of the active view" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-blue)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
@@ -4370,6 +4835,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           )}
         </SidebarGroup>
       </aside>
+      )}
+
+      {showTableView && activeDataset && (
+          <TableViewDialog table={activeDataset.table} name={activeDataset.name} onClose={() => setShowTableView(false)} />
+      )}
 
       {/* Dynamic Divider for Terminal Theme */}
       {theme === 'terminal' && (
@@ -4397,13 +4867,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 onLoadDemo={() => { if (startWalkthroughRef.current) startWalkthroughRef.current(); else void loadDemo(); }}
                 onUpload={() => dsInputRef.current?.click()}
                 busy={isUploading}
+                dimmed={walkthroughActive}
               />
           )}
         </div>
         <AssistantPanel
           accessMode={datasets.length > 0 && datasets.every(d => d.dataMode === 'open') ? 'open'
             : datasets.some(d => d.dataMode === 'open') ? 'mixed' : 'private'}
-          onAccessClick={activeDatasetId != null ? openActiveModeDialog : undefined}
+          onAccessClick={activeDatasetId != null ? openActiveAccessInfo : undefined}
           bridgeRef={bridgeRef}
           theme={theme}
           askRef={askAssistantRef}
@@ -4480,13 +4951,22 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 <label key={mode} title={hint} className={`flex items-start gap-1.5 px-1.5 py-1 border cursor-pointer ${uploadDataMode === mode
                   ? (theme === 'primary' ? 'border-[var(--border)] bg-[var(--p-yellow)]/60 font-bold' : 'border-[var(--primary)] text-[var(--primary)] bg-[var(--border)]')
                   : 'border-[var(--border)] opacity-70 hover:opacity-100'}`}>
-                  <input type="radio" name="upload-data-mode" className="mt-0.5" checked={uploadDataMode === mode} onChange={() => setUploadDataMode(mode)} />
+                  <input type="radio" name="upload-data-mode" className="mt-0.5" checked={uploadDataMode === mode} onChange={() => { setUploadDataMode(mode); setUploadOpenConfirmed(false); }} />
                   <span className="flex flex-col">
                     <span className="flex items-center gap-1"><ModeIcon className="w-3 h-3" /> {label}{mode === 'private' ? ' (default)' : ''}</span>
                     <span className="opacity-60 font-normal">{hint}</span>
                   </span>
                 </label>
               ))}
+              {/* The mode locks in at upload, so the no-sensitive-data
+                  confirmation happens HERE — the only moment open exists. */}
+              {uploadDataMode === 'open' && (
+                <label className="flex items-start gap-2 cursor-pointer pl-1.5 pt-0.5">
+                  <input type="checkbox" className="mt-0.5" checked={uploadOpenConfirmed} onChange={e => setUploadOpenConfirmed(e.target.checked)} />
+                  <span>I confirm this dataset contains no personal, sensitive, or confidential data.</span>
+                </label>
+              )}
+              <span className="opacity-50 pl-1.5">The mode is locked in when the dataset is added — to change it later, remove and re-add the dataset.</span>
             </fieldset>
             <fieldset className="flex flex-col gap-1">
               <legend className="opacity-70 pb-0.5" title="Codes like 9, -99, 999 that mean 'refused' or 'not applicable' — read as measurements they distort every statistic.">
@@ -4527,7 +5007,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               <button
                 data-guide="add-dataset"
                 onClick={handleUpload}
-                disabled={isUploading}
+                disabled={isUploading || (uploadDataMode === 'open' && !uploadOpenConfirmed)}
                 className={`scatterlab-action-button px-3 py-1.5 font-bold disabled:opacity-40 cursor-pointer ${theme === 'primary'
                   ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
                   : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
@@ -4554,12 +5034,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               <div className="flex items-center gap-2 border border-[var(--border)] px-2 py-1.5">
                 {ds.dataMode === 'open' ? <Globe className="w-3.5 h-3.5 flex-shrink-0" /> : <Lock className="w-3.5 h-3.5 flex-shrink-0" />}
                 <span>{ds.dataMode === 'open' ? 'Public / open — assistant may read raw rows' : 'Private — assistant sees aggregates only'}</span>
-                <button
-                  onClick={() => { setDatasetSettings(null); setModeConfirmChecked(false); setModeDialog({ datasetId: ds.id, to: ds.dataMode === 'open' ? 'private' : 'open' }); }}
-                  className="ml-auto flex-shrink-0 underline-offset-2 hover:underline opacity-70 hover:opacity-100 cursor-pointer font-bold"
-                >
-                  Change…
-                </button>
+                <span className="ml-auto flex-shrink-0 opacity-50" title="A dataset's mode is locked in when it is added. To change it, remove the dataset and add it again.">
+                  Set at upload
+                </span>
               </div>
               <button
                 onClick={() => { selectDataset(ds.id); setDatasetSettings(null); setShowRecode('configure'); }}
@@ -4700,13 +5177,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           </div>
         );
       })()}
-      {modeDialog && (() => {
-        const ds = datasets.find(d => d.id === modeDialog.datasetId);
+      {accessInfo != null && (() => {
+        const ds = datasets.find(d => d.id === accessInfo);
         if (!ds) return null;
-        const opening = modeDialog.to === 'open';
-        const chatNonEmpty = (convBridge.current.handle?.get()?.entries?.length ?? 0) > 0;
+        const open = ds.dataMode === 'open';
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModeDialog(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setAccessInfo(null)}>
             <div
               onClick={e => e.stopPropagation()}
               className={`w-[380px] max-w-[90vw] p-4 flex flex-col gap-3 text-xs border ${theme === 'primary'
@@ -4714,36 +5190,20 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 : 'bg-[var(--background)] border-[var(--system-green)]/50 text-[var(--system-green)]'}`}
             >
               <div className="font-bold text-sm flex items-center gap-1.5">
-                {opening ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                {opening ? 'Open full data access?' : 'Make this dataset private?'}
+                {open ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {open ? 'Public / open data' : 'Private research data'}
               </div>
               <div className="opacity-80 leading-snug">
-                {opening
-                  ? <>The assistant will be able to read raw rows of <b>{ds.name}</b> and send them to the configured model API — including any free-text answers, identifiers, and rare values. This is meant for public or fully anonymized data.</>
-                  : <>The assistant will see only aggregate summaries of <b>{ds.name}</b> — no raw rows, no rare category values, no identifier columns.</>}
+                {open
+                  ? <>The assistant may read raw rows of <b>{ds.name}</b> and send them to the configured model API. This mode was explicitly confirmed when the dataset was added.</>
+                  : <>The assistant sees only aggregate summaries of <b>{ds.name}</b> — no raw rows, no rare category values, no identifier columns.</>}
               </div>
-              {opening ? (
-                <label className="flex items-start gap-2 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5" checked={modeConfirmChecked} onChange={e => setModeConfirmChecked(e.target.checked)} />
-                  <span>I confirm this dataset contains no personal, sensitive, or confidential data.</span>
-                </label>
-              ) : chatNonEmpty ? (
-                <div className="opacity-80 leading-snug">
-                  ⚠ The current assistant conversation may already contain raw rows and will be cleared — a transcript can’t be redacted after the fact.
-                </div>
-              ) : null}
-              <div className="flex justify-end gap-2 pt-1">
-                <button onClick={() => setModeDialog(null)} className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer">
-                  Cancel
-                </button>
-                <button
-                  onClick={() => applyModeChange(ds.id, modeDialog.to)}
-                  disabled={opening && !modeConfirmChecked}
-                  className={`scatterlab-action-button px-3 py-1.5 font-bold disabled:opacity-40 cursor-pointer ${theme === 'primary'
-                    ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
-                    : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
-                >
-                  {opening ? 'Open full access' : chatNonEmpty ? 'Make private & clear chat' : 'Make private'}
+              <div className="opacity-70 leading-snug">
+                A dataset&apos;s mode is locked in when it is added. To change it, remove the dataset and add it again with the other mode.
+              </div>
+              <div className="flex justify-end pt-1">
+                <button onClick={() => setAccessInfo(null)} className="scatterlab-action-button px-3 py-1.5 border border-[var(--border)] font-bold cursor-pointer">
+                  Close
                 </button>
               </div>
             </div>
