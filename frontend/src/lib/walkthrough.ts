@@ -135,9 +135,8 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     title: 'PCA',
     highlight: 'pca',
     say:
-      'The **PCA** section runs a principal component analysis in the browser: tick the variables, ' +
-      'choose how many components to keep, press Run. One has just been run on the four flower ' +
-      'measurements — `Id` is excluded, since an identifier is not a measurement.\n\n' +
+      'To run a PCA: tick the variables, choose how many components to keep, and press Run PCA. ' +
+      'One has just been run on the four flower measurements with `Id` excluded.\n\n' +
       '*Standardize* is on, which makes this a correlation-based PCA. The scree bars show how much ' +
       'variance each component explains, and *Top PC contributors* lists which measurements load on ' +
       'each one.\n\n' +
