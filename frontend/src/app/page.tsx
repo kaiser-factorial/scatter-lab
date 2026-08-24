@@ -4482,11 +4482,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                             checked={fixCols.includes(d.col)}
                             onChange={e => setFixCols(prev => e.target.checked ? [...prev, d.col] : prev.filter(c => c !== d.col))}
                           />
-                        ) : <span className="w-[13px]" />}
-                        <span className="font-bold truncate" title={d.col}>{d.col}</span>
-                        <span className="opacity-60 ml-auto text-right flex-shrink-0">
+                        ) : <span className="w-[13px] flex-shrink-0" />}
+                        <span className="font-bold flex-shrink-0" title={d.col}>{d.col}</span>
+                        <span
+                          className="opacity-60 ml-auto text-right truncate"
+                          title={`${kindLabel[d.kind]}${d.kind === 'fixable' ? ` — ${d.numericAfterFix}/${d.nonNull} values parse (${d.patterns.join(', ')})` : ''}`}
+                        >
                           {kindLabel[d.kind]}
-                          {d.kind === 'fixable' && ` — ${d.numericAfterFix}/${d.nonNull} values parse${d.patterns.length ? ` (${d.patterns.join(', ')})` : ''}`}
+                          {d.kind === 'fixable' && ` — ${d.numericAfterFix}/${d.nonNull} parse${d.patterns.length ? ` (${d.patterns.join(', ')})` : ''}`}
                         </span>
                       </div>
                     ))}
