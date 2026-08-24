@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { HardDriveUpload, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2 } from "lucide-react";
+import { HardDriveUpload, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { TmuxGrid } from "@/components/TmuxGrid";
@@ -2205,6 +2205,7 @@ export default function Home() {
   // "let the parser choose", which is the right default — it picks the first
   // sheet that actually has data rather than blindly the first sheet.
   const [showInfo, setShowInfo] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sheetOptions, setSheetOptions] = useState<SheetInfo[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -4311,7 +4312,27 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   return (
     <div className={`flex w-full h-screen bg-[var(--background)] text-[var(--foreground)] ${theme === 'terminal' ? 'moving-scanlines' : ''}`}>
       
-      {/* Sidebar Controls */}
+      {/* Sidebar Controls. Collapsible to a thin rail — but never during the
+          walkthrough, whose coach bubbles anchor to sidebar sections that
+          would unmount with it. */}
+      {sidebarCollapsed && !walkthroughActive ? (
+        <aside className="w-11 h-full bg-[var(--card)] border-r border-[var(--border)] flex flex-col items-center py-3 gap-3 relative z-10 flex-shrink-0">
+          <button
+            onClick={() => setSidebarCollapsed(false)}
+            title="Expand the menu"
+            aria-label="Expand the menu"
+            className={`p-1.5 border cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-white text-[var(--border)]' : 'border-[var(--border)] hover:bg-[var(--border)] text-[var(--system-green)] rounded'}`}
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+          <span
+            className={`text-[10px] font-bold tracking-widest uppercase opacity-60 select-none ${theme === 'terminal' ? 'text-[var(--system-green)]' : ''}`}
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            {APP_NAME}
+          </span>
+        </aside>
+      ) : (
       <aside className="w-[320px] h-full bg-[var(--card)] border-r border-[var(--border)] flex flex-col p-6 overflow-y-auto relative z-10 flex-shrink-0">
         <div className="flex justify-between items-center mb-2">
             <h1 className={`flex items-center gap-2 text-xl font-bold tracking-tight ${theme === 'terminal' ? 'text-[var(--system-green)] system-green-glow' : ''}`}>
@@ -4340,6 +4361,16 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
             >
                 <Monitor className="w-4 h-4" />
             </button>
+            {!walkthroughActive && (
+                <button
+                    onClick={() => setSidebarCollapsed(true)}
+                    title="Collapse the menu"
+                    aria-label="Collapse the menu"
+                    className={`p-2 border cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-white text-[var(--border)]' : 'border-[var(--border)] hover:bg-[var(--border)] text-[var(--system-green)] rounded'}`}
+                >
+                    <PanelLeftClose className="w-4 h-4" />
+                </button>
+            )}
         </div>
 
         {/* The privacy story lives in the info dialog and the per-dataset
@@ -4804,6 +4835,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           )}
         </SidebarGroup>
       </aside>
+      )}
 
       {showTableView && activeDataset && (
           <TableViewDialog table={activeDataset.table} name={activeDataset.name} onClose={() => setShowTableView(false)} />
