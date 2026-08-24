@@ -37,6 +37,10 @@ import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
 import { RecodeDialog } from "@/components/RecodeDialog";
 import { buildClusterCrosstab, buildClusterHeatmap, downloadClusterHeatmapPng, HEATMAP_PALETTES, sortClusterLabels, type BreakdownDirection, type HeatmapPalette } from "@/lib/clusterBreakdown";
+import { MARK_KINDS, TEST_KINDS, formatFailures, type AnalysisPlan, type ChartPlan, type TestPlan, type ValidationFailure } from "@/lib/analysisPlan";
+import { analysisProfileOf, validatePlan } from "@/lib/validators";
+import { formatTestResult, runTestPlan, type TestResult } from "@/lib/statTests";
+import { compileChart, type CompiledChart } from "@/lib/chartCompile";
 
 
 const Plot = dynamic(() => import('@/components/PlotlyPlot'), { ssr: false });
@@ -1469,6 +1473,8 @@ const GUIDE_SECTION: Record<string, string> = {
     variables: 'variables',
     pca: 'pca',
     cluster: 'cluster',
+    analyze: 'analyze',
+    'table-view': 'data',
     view: 'view',
     export: 'export',
 };
@@ -1810,6 +1816,352 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
 });
 ViewPlot.displayName = 'ViewPlot';
 
+// --- Analysis views (run_test results, plot_chart charts) -------------------
+// A third kind of pane alongside the live view and pins: the outputs of the
+// Analyze panel and the assistant's run_test/plot_chart tools. Charts arrive
+// pre-compiled (chartCompile.ts) as plain scatter traces; a test result is a
+// styled card, no Plotly involved. They share the pins' 3-extra-pane budget so
+// the grid never silently drops one.
+
+export type AnalysisView = {
+    id: number;
+    kind: 'analysis';
+    label: string;
+    chart?: CompiledChart;
+    test?: TestResult;
+};
+
+const fmtStat = (v: number) => (Math.abs(v) >= 1000 ? v.toFixed(0) : Math.round(v * 1000) / 1000);
+const fmtP = (p: number) => (p < 0.001 ? p.toExponential(2) : String(Math.round(p * 10000) / 10000));
+
+const TestResultCard = ({ result, dark }: { result: TestResult; dark: boolean }) => {
+    const sig = result.p < 0.05;
+    const NAMES: Record<string, string> = {
+        t: "Welch's t-test", mann_whitney: 'Mann–Whitney U', kruskal_wallis: 'Kruskal–Wallis',
+        ks: 'Kolmogorov–Smirnov (2-sample)', chi_square: 'Chi-square independence',
+    };
+    return (
+        <div className="w-full h-full overflow-auto p-4 flex flex-col gap-3 text-sm">
+            <div className="font-bold">{NAMES[result.test] ?? result.test}</div>
+            <div className="text-2xl font-bold tracking-tight">
+                {result.statLabel} = {fmtStat(result.statistic)}
+                {result.df !== null && <span className="text-sm font-normal opacity-70">  df = {fmtStat(result.df)}</span>}
+            </div>
+            {/* Exact p, bolded (and red) below alpha = .05 — never stars. */}
+            <div className={sig ? `font-bold ${dark ? 'text-[#10ff50]' : 'text-[var(--p-red,#D23B72)]'}` : ''}>
+                p = {fmtP(result.p)}
+            </div>
+            <div>
+                {result.effect.label} = <b>{fmtStat(result.effect.value)}</b>
+                {result.ci95 && <span className="block opacity-80">95% CI on the mean difference: [{fmtStat(result.ci95[0])}, {fmtStat(result.ci95[1])}]</span>}
+            </div>
+            <div className="opacity-70 text-xs">
+                {result.groups.map(g => `${g.group} (n=${g.n})`).join(' · ')}
+            </div>
+            {result.caveats.map((c, i) => (
+                <div key={i} className="text-xs leading-snug border-l-2 pl-2 opacity-80 border-current">{c}</div>
+            ))}
+        </div>
+    );
+};
+
+const AnalysisPane = memo(({ view }: { view: AnalysisView }) => {
+    const { theme } = useTheme();
+    const dark = theme === 'terminal';
+    const chart = view.chart;
+    const layout = useMemo(() => {
+        if (!chart) return null;
+        const c = dark ? PLOT_CHROME.dark : PLOT_CHROME.light;
+        const axis = (title: string, isTickAxis: boolean) => ({
+            showgrid: true, gridcolor: c.grid2d, zerolinecolor: c.zero,
+            tickfont: { color: c.tick, size: 10 },
+            title: { text: title, font: { color: c.fg, size: 11 } },
+            ...(isTickAxis && chart.ticks
+                ? { tickvals: chart.ticks.vals, ticktext: chart.ticks.text, showgrid: false }
+                : {}),
+            ...(chart.xIsDate && !isTickAxis ? {} : {}),
+        });
+        const xaxis: Record<string, unknown> = axis(chart.xTitle, chart.ticks?.axis === 'x');
+        const yaxis: Record<string, unknown> = axis(chart.yTitle, chart.ticks?.axis === 'y');
+        if (chart.xIsDate) xaxis.type = 'date';
+        // House zero policy: bars anchor at zero; distributions autoscale.
+        if (chart.zeroBased) (chart.ticks?.axis === 'y' ? xaxis : yaxis).rangemode = 'tozero';
+        return {
+            autosize: true, margin: { l: 55, r: 16, b: 45, t: dark ? 12 : 40 },
+            ...(dark ? {} : { title: { text: chart.title, font: { color: c.fg, size: 13 } } }),
+            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+            showlegend: chart.traces.some(t => t.showlegend !== false && t.name),
+            legend: { font: { color: c.fg, size: 10 } },
+        // xaxis/yaxis attached below so the tick branches above stay readable
+            xaxis, yaxis,
+        };
+    }, [chart, dark]);
+    if (view.test) return <TestResultCard result={view.test} dark={dark} />;
+    if (!chart || !layout) return null;
+    return (
+        <div className="w-full h-full relative flex flex-col">
+            <div className="flex-grow min-h-0">
+                <Plot
+                    data={chart.traces.map(t => ({ type: 'scatter', ...t }))}
+                    layout={layout}
+                    config={{ displayModeBar: false, responsive: true }}
+                    style={{ width: '100%', height: '100%' }}
+                    useResizeHandler
+                />
+            </div>
+            {chart.notes.length > 0 && (
+                <div className="px-3 pb-2 text-[10px] leading-snug opacity-60">
+                    {chart.notes.join(' ')}
+                </div>
+            )}
+        </div>
+    );
+});
+AnalysisPane.displayName = 'AnalysisPane';
+
+// The Analyze panel: the assistant-free path to run_test/plot_chart. Its
+// dropdowns are populated from the SAME AnalysisProfile the validator reads,
+// so the UI can barely express an invalid plan — and whatever it expresses
+// still goes through the one shared gate (runAnalysisPlan), never around it.
+const AnalyzePanel = ({ profile, theme, onRun }: {
+    profile: import('@/lib/analysisPlan').AnalysisProfile | null;
+    theme: string | undefined;
+    onRun: (plan: AnalysisPlan) => string;
+}) => {
+    const [kind, setKind] = useState<'test' | 'chart'>('test');
+    const [test, setTest] = useState<TestPlan['test']>('t');
+    const [mark, setMark] = useState<ChartPlan['mark']>('ecdf');
+    const [column, setColumn] = useState('');
+    const [groupBy, setGroupBy] = useState('');
+    const [groupA, setGroupA] = useState('');
+    const [groupB, setGroupB] = useState('');
+    const [orientation, setOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+    const [xCol, setXCol] = useState('');
+    const [bins, setBins] = useState('');
+    const [agg, setAgg] = useState<'mean' | 'median' | 'sum' | 'count'>('mean');
+    const [feedback, setFeedback] = useState('');
+
+    const numeric = (profile?.columns ?? []).filter(c => c.isNumeric && !c.isIdentifier).map(c => c.name);
+    const categorical = (profile?.columns ?? []).filter(c => c.isCategorical && !c.isIdentifier).map(c => c.name);
+    const temporal = (profile?.columns ?? []).filter(c => c.isTemporal).map(c => c.name);
+    const groupOptions = (profile?.columns.find(c => c.name === groupBy)?.groups ?? [])
+        .filter(g => !g.withheld).map(g => g.value);
+    const twoGroup = kind === 'test' && (test === 't' || test === 'mann_whitney' || test === 'ks');
+    const wantsCategorical = kind === 'test' ? test === 'chi_square' : mark === 'bar';
+    const columnOptions = wantsCategorical ? categorical : numeric;
+
+    const TEST_LABELS: Record<TestPlan['test'], string> = {
+        t: "Welch's t-test (2 group means)", mann_whitney: 'Mann–Whitney U (2 groups, ranks)',
+        kruskal_wallis: 'Kruskal–Wallis (2+ groups, ranks)', ks: 'Kolmogorov–Smirnov (2 distributions)',
+        chi_square: 'Chi-square (two categoricals)',
+    };
+    const MARK_LABELS: Record<ChartPlan['mark'], string> = {
+        ecdf: 'ECDF (cumulative distribution)', histogram: 'Histogram', box: 'Box plot',
+        violin: 'Violin plot', qq: 'Normal Q–Q', bar: 'Bar chart (counts)', line: 'Line (over time)',
+    };
+
+    const run = () => {
+        const plan: AnalysisPlan = kind === 'test'
+            ? {
+                kind: 'test', test, column, groupBy,
+                ...(twoGroup && groupA && groupB ? { groups: [groupA, groupB] } : {}),
+            }
+            : {
+                kind: 'chart', mark, column,
+                ...(groupBy && mark !== 'bar' ? { groupBy } : {}),
+                ...(mark === 'bar' ? { orientation } : {}),
+                ...(mark === 'line' ? { x: xCol, agg } : {}),
+                ...(mark === 'histogram' && bins.trim() !== '' ? { bins: Number(bins) } : {}),
+            };
+        setFeedback(onRun(plan));
+    };
+
+    const isError = /^(Plan rejected|Analysis error|Pane limit|No dataset)/.test(feedback);
+    const selectCls = "w-full bg-[var(--input)] border border-[var(--border)] p-1.5 text-xs outline-none";
+    const labelCls = "block text-[10px] uppercase tracking-wider opacity-60 pt-1";
+    return (
+        <div className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-1 text-xs">
+                {(['test', 'chart'] as const).map(k => (
+                    <button key={k} onClick={() => { setKind(k); setFeedback(''); setColumn(''); }}
+                        className={`py-1.5 font-bold border ${kind === k
+                            ? (theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'border-[var(--primary)] text-[var(--primary)] bg-[var(--border)]')
+                            : 'border-[var(--border)] bg-[var(--input)] opacity-70 hover:opacity-100'}`}>
+                        {k === 'test' ? 'Statistical test' : 'Chart'}
+                    </button>
+                ))}
+            </div>
+            {kind === 'test' ? (
+                <select aria-label="Test" className={selectCls} value={test} onChange={e => { setTest(e.target.value as TestPlan['test']); setFeedback(''); setColumn(''); }}>
+                    {TEST_KINDS.map(t => <option key={t} value={t}>{TEST_LABELS[t]}</option>)}
+                </select>
+            ) : (
+                <select aria-label="Chart type" className={selectCls} value={mark} onChange={e => { setMark(e.target.value as ChartPlan['mark']); setFeedback(''); setColumn(''); }}>
+                    {MARK_KINDS.map(m => <option key={m} value={m}>{MARK_LABELS[m]}</option>)}
+                </select>
+            )}
+            <label className={labelCls}>{wantsCategorical ? 'Categorical column' : kind === 'chart' && mark === 'line' ? 'Value column' : 'Numeric column'}</label>
+            <select aria-label="Column" className={selectCls} value={column} onChange={e => setColumn(e.target.value)}>
+                <option value="">— choose —</option>
+                {columnOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {(kind === 'test' || (mark !== 'bar')) && (
+                <>
+                    <label className={labelCls}>{kind === 'test' ? (test === 'chi_square' ? 'Against categorical' : 'Group by') : 'Group by (optional)'}</label>
+                    <select aria-label="Group by" className={selectCls} value={groupBy} onChange={e => { setGroupBy(e.target.value); setGroupA(''); setGroupB(''); }}>
+                        <option value="">{kind === 'chart' ? '— none —' : '— choose —'}</option>
+                        {categorical.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </>
+            )}
+            {twoGroup && groupOptions.length > 0 && (
+                <div className="grid grid-cols-2 gap-1">
+                    <select aria-label="Group A" className={selectCls} value={groupA} onChange={e => setGroupA(e.target.value)}>
+                        <option value="">Group A</option>
+                        {groupOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <select aria-label="Group B" className={selectCls} value={groupB} onChange={e => setGroupB(e.target.value)}>
+                        <option value="">Group B</option>
+                        {groupOptions.filter(g => g !== groupA).map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                </div>
+            )}
+            {kind === 'chart' && mark === 'bar' && (
+                <select aria-label="Orientation" className={selectCls} value={orientation} onChange={e => setOrientation(e.target.value as 'vertical' | 'horizontal')}>
+                    <option value="vertical">Vertical bars</option>
+                    <option value="horizontal">Horizontal bars</option>
+                </select>
+            )}
+            {kind === 'chart' && mark === 'line' && (
+                <>
+                    <label className={labelCls}>Time column</label>
+                    <select aria-label="Time column" className={selectCls} value={xCol} onChange={e => setXCol(e.target.value)}>
+                        <option value="">— choose —</option>
+                        {temporal.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select aria-label="Aggregation" className={selectCls} value={agg} onChange={e => setAgg(e.target.value as typeof agg)}>
+                        {(['mean', 'median', 'sum', 'count'] as const).map(a => <option key={a} value={a}>daily {a}</option>)}
+                    </select>
+                </>
+            )}
+            {kind === 'chart' && mark === 'histogram' && (
+                <input aria-label="Bins" type="number" min={5} max={100} placeholder="bins (auto)" value={bins}
+                    onChange={e => setBins(e.target.value)}
+                    className="w-full bg-[var(--input)] border border-[var(--border)] p-1.5 text-xs outline-none" />
+            )}
+            <button onClick={run} disabled={!column || (kind === 'test' && !groupBy) || (kind === 'chart' && mark === 'line' && !xCol)}
+                className={`w-full text-sm font-bold py-2 disabled:opacity-50 ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--border)] hover:bg-[var(--border)] text-[var(--abaci)]'}`}>
+                {kind === 'test' ? 'Run test' : 'Draw chart'}
+            </button>
+            {feedback && (
+                <pre className={`whitespace-pre-wrap text-[10px] leading-snug max-h-40 overflow-auto ${isError
+                    ? (theme === 'primary' ? 'text-[var(--p-red)] font-bold' : 'text-red-400 font-bold')
+                    : 'opacity-70'}`}>
+                    {feedback}
+                </pre>
+            )}
+            <p className="text-[10px] leading-snug opacity-60">
+                Exact p-values with effect size and CI — no significance stars. Results and charts appear as panes on the canvas.
+                <InfoTip topic="statistical_tests" />
+            </p>
+        </div>
+    );
+};
+
+// Read-only raw-rows viewer: sortable, filterable, paged. Renders locally in
+// both data modes — the modes gate what reaches the assistant's endpoint,
+// never what the user may see of their own data.
+const TableViewDialog = ({ table, name, onClose }: { table: DataTable; name: string; onClose: () => void }) => {
+    const [sortCol, setSortCol] = useState<string | null>(null);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const [filter, setFilter] = useState('');
+    const [page, setPage] = useState(0);
+    const PAGE = 100;
+
+    const rows = useMemo(() => {
+        let idx = Array.from({ length: table.nRows }, (_, i) => i);
+        const f = filter.trim().toLowerCase();
+        if (f) {
+            idx = idx.filter(i => table.columns.some(c => String(table.data[c]?.[i] ?? '').toLowerCase().includes(f)));
+        }
+        if (sortCol) {
+            const vals = table.data[sortCol] ?? [];
+            const dir = sortDir === 'asc' ? 1 : -1;
+            idx = [...idx].sort((a, b) => {
+                const va = vals[a], vb = vals[b];
+                if (va == null) return 1;           // nulls last either direction
+                if (vb == null) return -1;
+                const na = asNumber(va), nb = asNumber(vb);
+                if (na !== null && nb !== null) return (na - nb) * dir;
+                return String(va).localeCompare(String(vb), undefined, { numeric: true }) * dir;
+            });
+        }
+        return idx;
+    }, [table, filter, sortCol, sortDir]);
+
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+    const cur = Math.min(page, pages - 1);
+    const slice = rows.slice(cur * PAGE, cur * PAGE + PAGE);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+            <div className="bg-[var(--background)] border-2 border-[var(--border)] w-[min(92vw,1100px)] h-[min(85vh,760px)] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 p-3 border-b border-[var(--border)]">
+                    <span className="font-bold text-sm truncate">{name} — {table.nRows} rows × {table.columns.length} columns</span>
+                    <input
+                        aria-label="Filter rows" placeholder="Filter…" value={filter}
+                        onChange={e => { setFilter(e.target.value); setPage(0); }}
+                        className="ml-auto w-40 bg-[var(--input)] border border-[var(--border)] px-2 py-1 text-xs outline-none"
+                    />
+                    <span className="text-xs opacity-60 flex-shrink-0">{rows.length} match{rows.length === 1 ? '' : 'es'}</span>
+                    <button onClick={onClose} className="border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--border)]" aria-label="Close table view">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+                <div className="flex-grow overflow-auto">
+                    <table className="text-xs border-collapse min-w-full">
+                        <thead className="sticky top-0 bg-[var(--background)]">
+                            <tr>
+                                <th className="text-left px-2 py-1 border-b border-[var(--border)] opacity-50 font-normal">#</th>
+                                {table.columns.map(c => (
+                                    <th key={c}
+                                        onClick={() => {
+                                            if (sortCol === c) { if (sortDir === 'asc') setSortDir('desc'); else { setSortCol(null); setSortDir('asc'); } }
+                                            else { setSortCol(c); setSortDir('asc'); }
+                                        }}
+                                        className="text-left px-2 py-1 border-b border-[var(--border)] font-bold cursor-pointer select-none whitespace-nowrap hover:opacity-70"
+                                        title="Click to sort">
+                                        {c}{sortCol === c ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {slice.map(i => (
+                                <tr key={i} className="odd:bg-[var(--input)]/40">
+                                    <td className="px-2 py-0.5 opacity-40">{i + 1}</td>
+                                    {table.columns.map(c => (
+                                        <td key={c} className="px-2 py-0.5 whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis" title={String(table.data[c]?.[i] ?? '')}>
+                                            {table.data[c]?.[i] == null ? <span className="opacity-30">·</span> : String(table.data[c][i])}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {pages > 1 && (
+                    <div className="flex items-center justify-center gap-3 p-2 border-t border-[var(--border)] text-xs">
+                        <button disabled={cur === 0} onClick={() => setPage(cur - 1)} className="px-2 py-0.5 border border-[var(--border)] disabled:opacity-30">‹ Prev</button>
+                        <span className="opacity-70">Page {cur + 1} / {pages}</span>
+                        <button disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)} className="px-2 py-0.5 border border-[var(--border)] disabled:opacity-30">Next ›</button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -1886,6 +2238,13 @@ export default function Home() {
 
   // Feature state
   const [pinnedViews, setPinnedViews] = useState<any[]>([]); // array of { id, data, colorBy, axes, labels, viewMode, label }
+  // Analysis outputs (test cards, statistical charts) — pane peers of pins,
+  // sharing their 3-extra-pane budget so the grid never silently drops one.
+  const [analysisViews, setAnalysisViews] = useState<AnalysisView[]>([]);
+  // Raw-rows table view (read-only). Pure local rendering, so it exists in
+  // BOTH data modes: the modes gate what reaches the assistant's endpoint,
+  // never what the user may see of their own data.
+  const [showTableView, setShowTableView] = useState(false);
   const [notes, setNotes] = useState("");
   // Legend mute states for the active view's colorBy, keyed by String(value)
   const [mutedMap, setMutedMap] = useState<MuteMap>({});
@@ -2297,7 +2656,7 @@ export default function Home() {
       registry.forEach((id, tbl) => { tables[id] = tbl; });
       return {
           version: wsStore.WORKSPACE_VERSION,
-          tables, datasets: datasetsOut, pinnedViews: pinsOut,
+          tables, datasets: datasetsOut, pinnedViews: pinsOut, analysisViews,
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
           notes, mutedMap,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
@@ -2393,6 +2752,9 @@ export default function Home() {
           // modes existed carry none, and must load as private (fail closed).
           setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode) })));
           setPinnedViews((ws.pinnedViews ?? []).map((v: any) => ({ ...v, data: rehydrate(v.data) })));
+          // Analysis views are self-contained (compiled traces / result cards,
+          // no table references) — restore verbatim, tolerate their absence.
+          setAnalysisViews(Array.isArray(ws.analysisViews) ? ws.analysisViews : []);
           setActiveId(ws.activeId ?? null);
           setColorBy(ws.colorBy ?? "");
           setShapeBy(ws.shapeBy ?? "");
@@ -2458,7 +2820,7 @@ export default function Home() {
           sessionSaveTimer.current = null;
           wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* IndexedDB unavailable */ });
       }, 1500);
-  }, [datasets, pinnedViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
+  }, [datasets, pinnedViews, analysisViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
       notes, mutedMap, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
       breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
 
@@ -3033,9 +3395,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // which has to be its value at click time.
   const [isPinning, startPinning] = useTransition();
 
+  // Pins and analysis views share the grid's 3 extra panes.
+  const extraPanes = () => pinnedViews.length + analysisViews.length;
+
   const pinCurrentView = () => {
-      if (pinnedViews.length >= 3) {
-          setUploadStatus("Pin limit reached — the grid holds the live view plus 3 pins. Remove one to pin another.");
+      if (extraPanes() >= 3) {
+          setUploadStatus("Pane limit reached — the grid holds the live view plus 3 panels (pins or analyses). Remove one first.");
           return;
       }
       const pin = (
@@ -3065,6 +3430,42 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       // Unmounting a pane re-splits the grid and resizes the survivors, so it
       // costs what pinning costs. Same treatment.
       startPinning(() => setPinnedViews(prev => prev.filter(v => v.id !== id)));
+  };
+
+  const removeAnalysisView = (id: number) => {
+      startPinning(() => setAnalysisViews(prev => prev.filter(v => v.id !== id)));
+  };
+
+  // The one gate every analysis request goes through — the Analyze panel and
+  // the assistant's run_test/plot_chart meet HERE, so the validator, the
+  // pane budget, provenance, and the mode fence can never diverge between
+  // the two entry points. Returns the aggregate text the caller may show or
+  // hand to the model; a rejection returns the typed failures, formatted.
+  const runAnalysisPlan = (plan: unknown): string => {
+      const t = latestTable();
+      if (!t || !activeDataset) return 'No dataset loaded.';
+      const profile = analysisProfileOf(t, activePolicy);
+      const failures: ValidationFailure[] = validatePlan(plan, profile);
+      if (failures.length) return formatFailures(failures);
+      if (extraPanes() >= 3) {
+          return 'Pane limit reached — the grid holds the live view plus 3 panels (pins or analyses). Remove one first (the X on the pane, or remove_pin for pins).';
+      }
+      const p = plan as AnalysisPlan;
+      try {
+          if (p.kind === 'test') {
+              const result = runTestPlan(p, t, profile);
+              const label = `${result.statLabel}: ${p.column} by ${p.groupBy}`;
+              startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label, test: result }]));
+              logProvenance(activeId, `Ran ${p.test} test: ${p.column} by ${p.groupBy}${p.groups ? ` (groups: ${p.groups.join(', ')})` : ''}`);
+              return `${formatTestResult(result)}\nA results card was added to the canvas.`;
+          }
+          const chart = compileChart(p, t, profile);
+          startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label: chart.title, chart }]));
+          logProvenance(activeId, `Plotted ${p.mark} chart: ${chart.title}`);
+          return `${chart.summary}${chart.notes.length ? `\nNotes: ${chart.notes.join(' ')}` : ''}\nThe chart was added to the canvas.`;
+      } catch (err) {
+          return `Analysis error: ${(err as Error)?.message ?? err}`;
+      }
   };
 
   const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
@@ -3136,6 +3537,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // describe one dataset. (The tool list is stricter: combinedPolicy over all
   // loaded datasets, because tools can cross dataset boundaries.)
   const activePolicy = policyFor(activeDataset?.dataMode ?? 'private');
+  // The Analyze panel's option lists come from the same profile the validator
+  // reads. Memoized on the table + mode, not on activePolicy (fresh object
+  // identity every render).
+  const analysisProfile = useMemo(
+      () => (processedData ? analysisProfileOf(processedData, policyFor(activeDataset?.dataMode ?? 'private')) : null),
+      [processedData, activeDataset?.dataMode],
+  );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
 
   const columnProfiles = (): ColumnProfile[] => {
@@ -3474,6 +3882,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).`;
       },
 
+      // Both go through the ONE analysis gate (validator → executor → pane →
+      // provenance) shared with the Analyze panel.
+      runTest: (plan) => runAnalysisPlan(plan),
+      plotChart: (plan) => runAnalysisPlan(plan),
+
       compareGroups: (numericCol, groupCol) => {
           const t = latestTable();
           if (!t) return 'No dataset loaded.';
@@ -3740,7 +4153,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       snapshot: () => ({
-          datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews,
+          datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap,
       }),
 
@@ -3755,6 +4168,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setShowAxes(snap.showAxes);
           if (snap.aspect) setAspect(snap.aspect);
           setPinnedViews(snap.pinnedViews);
+          setAnalysisViews(snap.analysisViews ?? []);
           setClusterMethod(snap.clusterMethod);
           setEps(snap.eps);
           setMinSamples(snap.minSamples);
@@ -3813,12 +4227,26 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   }, []);
 
   const renderView = (view: any, index: number) => {
-      // view object is either the active state or a pinned state
+      // view object is the active state, a pinned state, or an analysis output
+      if (view.kind === 'analysis') {
+          return (
+              <div className="w-full h-full relative">
+                  <button
+                      onClick={() => removeAnalysisView(view.id)}
+                      className="absolute top-2 right-2 z-20 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] text-xs px-2 py-1 transition-colors"
+                      aria-label={`Close ${view.label}`}
+                  >
+                      <X className="w-4 h-4" />
+                  </button>
+                  <AnalysisPane view={view} />
+              </div>
+          );
+      }
       const isPinned = view.id !== 'active';
       return (
           <div className="w-full h-full relative">
               {isPinned && (
-                  <button 
+                  <button
                       onClick={() => removePin(view.id)}
                       className="absolute top-2 right-2 z-20 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] text-xs px-2 py-1 transition-colors"
                   >
@@ -3858,8 +4286,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset, colorBy, shapeBy, viewMode, showAxes, aspect, mutedMap],
   );
   const allViews = useMemo(
-      () => (activeView ? [activeView, ...pinnedViews] : []),
-      [activeView, pinnedViews],
+      () => (activeView ? [activeView, ...pinnedViews, ...analysisViews] : []),
+      [activeView, pinnedViews, analysisViews],
   );
 
   // Theme-neutral shell until next-themes reports the client's theme.
@@ -4084,6 +4512,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   </div>
                 ))}
               </div>
+            )}
+            {activeDataset && (
+              <button
+                onClick={() => setShowTableView(true)}
+                data-guide="table-view"
+                className="w-full text-left text-[11px] underline-offset-2 hover:underline opacity-70 hover:opacity-100 cursor-pointer"
+              >
+                ⊞ View dataset table ({activeDataset.table.nRows} rows)
+              </button>
             )}
             {(activeDataset?.provenance?.length ?? 0) > 0 && (
               // The audit trail: everything that changed this dataset's in-app
@@ -4346,6 +4783,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
                   </SidebarSection>
 
+              {/* order ties with Cluster (4); later DOM position places it
+                  right after Cluster, before View, without renumbering steps. */}
+              <SidebarSection title="Analyze" hasBorder theme={theme} guide="analyze" order={4}>
+                  <AnalyzePanel profile={analysisProfile} theme={theme} onRun={runAnalysisPlan} />
+              </SidebarSection>
+
               <SidebarSection title="Export" step={6} hasBorder theme={theme} guide="export" order={6}>
                   <div className="grid grid-cols-3 gap-2">
                     <button onClick={exportPNG} disabled={!!isExporting} title="Save PNG of the active view" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-blue)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
@@ -4370,6 +4813,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           )}
         </SidebarGroup>
       </aside>
+
+      {showTableView && activeDataset && (
+          <TableViewDialog table={activeDataset.table} name={activeDataset.name} onClose={() => setShowTableView(false)} />
+      )}
 
       {/* Dynamic Divider for Terminal Theme */}
       {theme === 'terminal' && (

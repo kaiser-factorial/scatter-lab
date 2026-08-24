@@ -63,6 +63,23 @@ export const DISCLOSURES = {
     ],
   },
 
+  statistical_tests: {
+    title: 'The Analyze Tools',
+    text: [
+      'Analyze runs five tests (Welch\'s t, Mann–Whitney U, Kruskal–Wallis, two-sample Kolmogorov–Smirnov, chi-square) and seven chart types (ECDF, histogram, box, violin, Q–Q, bar, line over time), all computed in the browser.',
+      'Results report the exact p-value with an effect size and, for the t-test, a 95% confidence interval — the p is bolded below 0.05, and no significance stars are used anywhere.',
+      'Every request — yours from this panel or the assistant\'s — passes the same deterministic checks first (column types, group sizes, category limits, the data mode), and a rejected request says exactly what to change.',
+      'In Private mode, category values covering fewer than 5 rows stay withheld here too: charts pool them as an unlabeled "(rare values)" bucket or omit them with a note.',
+    ],
+    more: [
+      'Welch\'s t is the default over Student\'s t because it does not assume equal variances and costs essentially nothing when they are equal (Delacre, Lakens & Leys 2017).',
+      'Exact p-values without stars follow the ASA statement on p-values (Wasserstein & Lazar 2016): a p measures compatibility with "no difference", while the effect size measures how much difference — report both, dichotomize neither.',
+      'These are single tests on data you chose to look at. Run many comparisons and some will be "significant" by chance; treat exploratory p-values as leads to confirm, not conclusions.',
+      'Histograms share bin edges across groups, bars anchor at zero and distribution charts do not, and violins use a Gaussian kernel density (Silverman\'s bandwidth) — plotting conventions applied consistently so charts stay comparable.',
+    ],
+    methodsTopic: 'statistical_tests',
+  },
+
   kmeans_deterministic: {
     title: 'K-Means Is Reproducible, Not Optimal',
     text: [
@@ -252,6 +269,6 @@ export const DISCLOSURE_SECTIONS: { heading: string; keys: DisclosureKey[] }[] =
     heading: 'Clustering',
     keys: ['clusters_plotted_axes', 'kmeans_deterministic', 'dbscan_parameters', 'standardize_clustering', 'diagnostics_sampled'],
   },
-  { heading: 'Statistics', keys: ['group_stats'] },
+  { heading: 'Statistics', keys: ['group_stats', 'statistical_tests'] },
   { heading: 'The Plot Itself', keys: ['aspect_mode'] },
 ];
