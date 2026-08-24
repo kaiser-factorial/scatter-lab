@@ -3210,6 +3210,19 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   }, []);
   // useCallback so memoizing AssistantPanel is not defeated by a fresh closure
   // on every Home render (F10).
+  // The panel header's lock/globe icon opens the mode dialog for the active
+  // dataset — the info and the swap confirmation both live there. useCallback
+  // so memoizing AssistantPanel is not defeated by a fresh closure (F10); its
+  // identity changes only when the active dataset or its mode does, which is
+  // when the panel re-renders anyway.
+  const activeDatasetId = activeDataset?.id ?? null;
+  const activeDataMode = activeDataset?.dataMode ?? 'private';
+  const openActiveModeDialog = useCallback(() => {
+      if (activeDatasetId == null) return;
+      setModeConfirmChecked(false);
+      setModeDialog({ datasetId: activeDatasetId, to: activeDataMode === 'open' ? 'private' : 'open' });
+  }, [activeDatasetId, activeDataMode]);
+
   const changeDock = useCallback((d: 'right' | 'bottom' | 'float') => {
       setAssistantDock(d);
       localStorage.setItem('scatterlab.assistant.dock', d);
@@ -4386,6 +4399,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         <AssistantPanel
           accessMode={datasets.length > 0 && datasets.every(d => d.dataMode === 'open') ? 'open'
             : datasets.some(d => d.dataMode === 'open') ? 'mixed' : 'private'}
+          onAccessClick={activeDatasetId != null ? openActiveModeDialog : undefined}
           bridgeRef={bridgeRef}
           theme={theme}
           askRef={askAssistantRef}
