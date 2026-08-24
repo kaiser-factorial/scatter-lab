@@ -81,9 +81,11 @@ export const DISCLOSURES = {
   },
 
   kmeans_deterministic: {
-    title: 'K-Means Is Reproducible, Not Optimal',
+    title: 'K-Means Clustering',
     text: [
-      '**This app** runs K-Means from 10 fixed k-means++ starting points and keeps the run whose clusters end tightest (the smallest within-cluster sum of squares). Each run refines its clusters until no point changes assignment, with a 300-round safety cap. It does not search for the global optimum.',
+      '**This app** runs K-Means from 10 fixed k-means++ starting points and keeps the run whose clusters have the lowest inertia.',
+      'Each run refines its clusters until no point changes assignment, with a 300-round safety cap.',
+      'It does not search for the global optimum.',
       'The same data and the same k therefore always give byte-identical clusters in **this app**.',
     ],
     more: [

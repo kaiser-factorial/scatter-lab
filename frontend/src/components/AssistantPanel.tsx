@@ -868,8 +868,11 @@ const AnchoredChoice = ({ target, label, disabled, primary, onClick }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      style={{ position: 'fixed', left: pos.left, top: pos.top, zIndex: 96 }}
-      className={`wt-anchored-pulse py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer shadow-lg whitespace-nowrap ${primary
+      style={{
+        position: 'fixed', left: pos.left, top: pos.top, zIndex: 96,
+        ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.65)' : 'rgba(16, 255, 80, 0.5)',
+      }}
+      className={`wt-anchored-glow py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer whitespace-nowrap ${primary
         ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
         : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
     >

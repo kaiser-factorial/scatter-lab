@@ -227,25 +227,19 @@ body {
   }
 }
 
-/* The walkthrough's anchored advance button pulses on the same cadence as the
-   highlight ring it sits beside, so the two read as one pointer. A size pulse,
-   not opacity — a fading button reads as disabled; a swelling one reads as
-   "press me". Runs until the click removes the button with its step. */
-@keyframes wt-anchored-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+/* The walkthrough's anchored advance button glows on the same cadence as the
+   highlight ring it sits beside. A glow rather than motion: a size pulse
+   fought visually with the ring's bouncing arrow, and a glowing target never
+   moves under the cursor. --wt-glow carries the theme's colour. */
+@keyframes wt-anchored-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--wt-glow); }
+  50% { box-shadow: 0 0 16px 6px var(--wt-glow); }
 }
-.wt-anchored-pulse {
-  animation: wt-anchored-pulse 0.9s ease-in-out infinite;
-  transform-origin: left center;
-}
-/* Hold still under the cursor — a target that keeps moving as you aim is the
-   one thing a call-to-action must not do. */
-.wt-anchored-pulse:hover {
-  animation-play-state: paused;
+.wt-anchored-glow {
+  animation: wt-anchored-glow 0.9s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .wt-anchored-pulse {
+  .wt-anchored-glow {
     animation: none;
   }
 }
