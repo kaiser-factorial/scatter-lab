@@ -51,16 +51,16 @@ export const DISCLOSURES = {
   data_modes: {
     title: 'Assistant Access: Private vs Public Mode',
     text: [
-      'Each dataset carries a data mode, chosen when it is added, that sets what the assistant may see of it.',
-      'In both modes the assistant gets column names, aggregate summaries, and the results of analyses it runs — and everything else (parsing, PCA, clustering, exports) computes in the browser without uploading the dataset anywhere.',
-      '**Private mode** (default): returns aggregates, never raw rows, category values covering fewer than 5 rows, or identifier columns. **Public mode**, which you must explicitly confirm, additionally lets the assistant read raw rows and full category lists.',
-      'If any loaded dataset is private, the whole conversation runs at the private level: the row-reading tools do not exist for that conversation.',
+      'For each dataset added, you will choose a privacy mode that sets what the assistant may see of it. In both modes the assistant gets column names, aggregate summaries, and the results of analyses it runs. Everything else (parsing, PCA, clustering, exports) computes in the browser without uploading the dataset anywhere.',
+      '**Private mode** (default) returns aggregates: never raw rows, identifier columns, or category values covering fewer than 5 rows.',
+      '**Public mode** lets the assistant read raw rows and full category lists.',
+      'If any loaded dataset is private, the whole conversation runs at the private level: row-reading tools do not exist for that conversation.',
+      'With a local runtime (Ollama, LM Studio) as the assistant endpoint, even the assistant\'s summaries never leave your machine.',
     ],
     more: [
       'The 5-row rule is the usual small-cell threshold in statistical disclosure control: a value covering 80 rows describes a group, a value covering one row is that person.',
       'The boundary is enforced where the data leaves the app, not by asking the assistant to behave: in Private mode the row-reading tools are not offered to the model at all.',
       'A dataset\'s mode is locked in when it is added — there is no switch to flip later. To change it, remove the dataset and add it again; public mode always requires re-confirming that the data holds nothing personal.',
-      'Whatever the assistant does see is sent to the model API you configured, with your key. With a local runtime (Ollama, LM Studio) as the endpoint, even that never leaves your machine.',
     ],
   },
 
