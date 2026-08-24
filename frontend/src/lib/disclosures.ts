@@ -48,12 +48,12 @@ export type Disclosure = {
 
 export const DISCLOSURES = {
   data_modes: {
-    title: 'What The Assistant Can See',
+    title: 'Assistant Access: Private vs Public Mode',
     text: [
-      'Each dataset carries a data mode, chosen when it is added. In Private mode (the default) the assistant is sent column names and aggregate summaries only — never raw rows, never category values covering fewer than 5 rows, never identifier columns.',
-      'In Public/open mode, which you must explicitly confirm, the assistant can also read raw rows and full category lists of that dataset.',
+      'Each dataset carries a data mode, chosen when it is added, that sets what the assistant may see of it.',
+      'In both modes the assistant gets column names, aggregate summaries, and the results of analyses it runs — and everything else (parsing, PCA, clustering, exports) computes in the browser without uploading the dataset anywhere.',
+      'The difference is raw data. **Private mode** (the default) stops at aggregates: never raw rows, never category values covering fewer than 5 rows, never identifier columns. **Public mode**, which you must explicitly confirm, additionally lets the assistant read raw rows and full category lists.',
       'If any loaded dataset is private, the whole conversation runs at the private level: the row-reading tools do not exist for that conversation.',
-      'Everything else — parsing, PCA, clustering, exports — runs in the browser in both modes and never uploads the dataset anywhere.',
     ],
     more: [
       'The 5-row rule is the usual small-cell threshold in statistical disclosure control: a value covering 80 rows describes a group, a value covering one row is that person.',
