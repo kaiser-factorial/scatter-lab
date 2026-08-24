@@ -58,8 +58,6 @@ export const DISCLOSURES = {
       'With a local runtime (Ollama, LM Studio) as the assistant endpoint, even the assistant\'s summaries never leave your machine.',
     ],
     more: [
-      'The 5-row rule is the usual small-cell threshold in statistical disclosure control: a value covering 80 rows describes a group, a value covering one row is that person.',
-      'The boundary is enforced where the data leaves the app, not by asking the assistant to behave: in Private mode the row-reading tools are not offered to the model at all.',
       'A dataset\'s mode is locked in when it is added — there is no switch to flip later. To change it, remove the dataset and add it again; public mode always requires re-confirming that the data holds nothing personal.',
     ],
   },
