@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, memo, useMemo } from 'react';
+import { useEffect, useRef, useState, memo, useMemo, startTransition } from 'react';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList } from 'lucide-react';
+import { Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList, Lock, Globe } from 'lucide-react';
 import {
   AppBridge, DEFAULT_BASE_URL, DEFAULT_MODEL, MUTATING_TOOLS, ModelInfo,
   runAssistantTurn, fetchModels, suggestModels, describeApiError, paintYield,
@@ -90,7 +90,7 @@ const AssistantMarkdown = memo(({ text }: { text: string }) => (
 ));
 AssistantMarkdown.displayName = 'AssistantMarkdown';
 
-const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef }: {
+const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef, accessMode = 'private' }: {
   bridgeRef: React.MutableRefObject<AppBridge>,
   theme: string | undefined,
   askRef?: React.MutableRefObject<((q: string) => void) | null>,
@@ -105,6 +105,10 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // "Load demo" on the empty state opens the panel straight into the tour,
   // which loads the data itself as its first act.
   startWalkthroughRef?: React.MutableRefObject<(() => void) | null>,
+  // What the assistant may see, decided by the loaded datasets' data modes:
+  // 'open' = every dataset open (row tools available), 'mixed' = some open but
+  // at least one private (runs private), 'private' = aggregates only.
+  accessMode?: 'private' | 'open' | 'mixed',
 }) => {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -360,6 +364,11 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     dropHighlight();
     setWtStepId(id);
     setWtBusy(true);
+    // Let the click's own frame paint (pressed button, busy state) BEFORE the
+    // step's actions run. Without this, loading the demo or running a PCA
+    // executes in the same task as the click and blocks that first paint —
+    // a ~200ms INP on the "Begin" button, measured on the Vercel preview.
+    await paintYield();
     const notes: ChatEntry[] = [];
     for (const action of step.run ?? []) {
       try {
@@ -468,6 +477,13 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     if (view === 'walkthrough') endWalkthrough('assistant');
     setOpen(true);
     setView('chat');
+    if (!apiKey) {
+      // send() drops text without a key; keep the question waiting in the
+      // composer and open setup so it survives connecting a key.
+      setInput(q);
+      setShowSettings(true);
+      return;
+    }
     setShowSettings(false);
     send(q);
   };
@@ -497,7 +513,10 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     // chrome rather than the way in to the assistant.
     return (
       <button
-        onClick={() => setOpen(true)}
+        // startTransition: mounting the whole panel (dynamic chunks, markdown
+        // pipeline) in the click's own task blocked the pressed-state frame
+        // for ~300ms — the launcher's INP flag on the preview deployment.
+        onClick={() => startTransition(() => setOpen(true))}
         title="Open the assistant"
         className={`absolute bottom-4 z-40 flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-150 ${primary
           ? 'bauhaus-btn bg-[var(--p-red)] text-white'
@@ -556,6 +575,21 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
           {view === 'walkthrough'
             ? <><Compass className="w-3.5 h-3.5" /> Walkthrough</>
             : <><Sparkles className="w-3.5 h-3.5" /> Assistant</>}
+          {view !== 'walkthrough' && (
+            // Session-level data access at a glance. 'mixed' runs private (the
+            // minimum of the loaded datasets' modes) and the title says why.
+            <span
+              className="flex items-center gap-1 px-1.5 py-0.5 border border-current/30 text-[9px] font-bold normal-case tracking-normal opacity-70"
+              title={accessMode === 'open'
+                ? 'Full data access: every loaded dataset is marked public/open, so the assistant may read raw rows.'
+                : accessMode === 'mixed'
+                  ? 'Aggregates only: some datasets are open, but at least one is private, so the whole conversation runs at the private level.'
+                  : 'Aggregates only: the assistant sees column summaries, never raw rows.'}
+            >
+              {accessMode === 'open' ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+              {accessMode === 'open' ? 'Full data access' : accessMode === 'mixed' ? 'Aggregates only (mixed)' : 'Aggregates only'}
+            </span>
+          )}
         </span>
         <span className="flex items-center gap-1" onPointerDown={e => e.stopPropagation()}>
           {/* The menu stops being the front door after the first visit, so it

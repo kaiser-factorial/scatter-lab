@@ -181,8 +181,8 @@ describe('assistant handoff greeting', () => {
   it('names the active dataset and its size when one is loaded', () => {
     const greeting = assistantGreeting(state({
       datasets: [
-        { name: 'spare-dataset', nRows: 5, active: false },
-        { name: 'survey', nRows: 3105, active: true },
+        { name: 'spare-dataset', nRows: 5, active: false, dataMode: 'private' as const },
+        { name: 'survey', nRows: 3105, active: true, dataMode: 'private' as const },
       ],
       columns: [{ name: 'age' }, { name: 'score' }] as never,
     }));
@@ -194,7 +194,7 @@ describe('assistant handoff greeting', () => {
 
   it('does not say "1 columns"', () => {
     const greeting = assistantGreeting(state({
-      datasets: [{ name: 'x', nRows: 1, active: true }],
+      datasets: [{ name: 'x', nRows: 1, active: true, dataMode: 'private' as const }],
       columns: [{ name: 'only' }] as never,
     }));
     expect(greeting).toContain('1 column');
