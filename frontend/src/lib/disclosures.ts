@@ -66,9 +66,9 @@ export const DISCLOSURES = {
   statistical_tests: {
     title: 'The Analyze Tools',
     text: [
-      'Analyze runs five tests (Welch\'s t, Mann–Whitney U, Kruskal–Wallis, two-sample Kolmogorov–Smirnov, chi-square) and seven chart types (ECDF, histogram, box, violin, Q–Q, bar, line over time), all computed in the browser.',
+      'The assistant can run five tests (Welch\'s t, Mann–Whitney U, Kruskal–Wallis, two-sample Kolmogorov–Smirnov, chi-square) and draw seven chart types (ECDF, histogram, box, violin, Q–Q, bar, line over time), all computed in the browser — just ask, e.g. "run a t test comparing X between groups A and B".',
       'Results report the exact p-value with an effect size and, for the t-test, a 95% confidence interval — the p is bolded below 0.05, and no significance stars are used anywhere.',
-      'Every request — yours from this panel or the assistant\'s — passes the same deterministic checks first (column types, group sizes, category limits, the data mode), and a rejected request says exactly what to change.',
+      'Every request passes the same deterministic checks first (column types, group sizes, category limits, the data mode), and a rejected request tells the assistant exactly what to change.',
       'In Private mode, category values covering fewer than 5 rows stay withheld here too: charts pool them as an unlabeled "(rare values)" bucket or omit them with a note.',
     ],
     more: [

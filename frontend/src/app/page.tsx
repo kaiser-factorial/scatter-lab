@@ -1923,6 +1923,11 @@ const AnalysisPane = memo(({ view }: { view: AnalysisView }) => {
 });
 AnalysisPane.displayName = 'AnalysisPane';
 
+// Tabled: the sidebar section rendering this panel is behind
+// ANALYZE_PANEL_ENABLED (currently off) while the analysis engine is being
+// polished. The component and its gate stay wired and tested for the flip.
+const ANALYZE_PANEL_ENABLED = false;
+
 // The Analyze panel: the assistant-free path to run_test/plot_chart. Its
 // dropdowns are populated from the SAME AnalysisProfile the validator reads,
 // so the UI can barely express an invalid plan — and whatever it expresses
@@ -4787,11 +4792,17 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
                   </SidebarSection>
 
-              {/* order ties with Cluster (4); later DOM position places it
-                  right after Cluster, before View, without renumbering steps. */}
-              <SidebarSection title="Analyze" hasBorder theme={theme} guide="analyze" order={4}>
-                  <AnalyzePanel profile={analysisProfile} theme={theme} onRun={runAnalysisPlan} />
-              </SidebarSection>
+              {/* Tabled for now at the owner's request while the rest of the
+                  analysis engine is polished — the machinery stays live (the
+                  assistant's run_test/plot_chart, runAnalysisPlan, tests);
+                  only this assistant-free entry point is off. Flip the flag to
+                  bring the section back; order ties with Cluster (4) so the
+                  later DOM position places it right after Cluster. */}
+              {ANALYZE_PANEL_ENABLED && (
+                <SidebarSection title="Analyze" hasBorder theme={theme} guide="analyze" order={4}>
+                    <AnalyzePanel profile={analysisProfile} theme={theme} onRun={runAnalysisPlan} />
+                </SidebarSection>
+              )}
 
               <SidebarSection title="Export" step={6} hasBorder theme={theme} guide="export" order={6}>
                   <div className="grid grid-cols-3 gap-2">
