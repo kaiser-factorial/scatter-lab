@@ -736,6 +736,39 @@ export const paintYield = (): Promise<void> =>
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 20)));
   });
 
+// The transport seam: one model round-trip, from messages+tools to the
+// assistant's reply. runAssistantTurn owns the LOOP (execute tools, feed
+// results back, stop when no tools are called); the transport owns only the
+// wire. The default is the streaming OpenAI client below; the replay harness
+// (replay.ts) substitutes a scripted transport, which is what lets every
+// assistant avenue run deterministically in vitest with no key and no network.
+export type ModelToolCall = { id: string; name: string; arguments: string };
+export type ModelTurn = { content: string; toolCalls: ModelToolCall[] };
+export type ModelRequest = {
+  model: string;
+  messages: ChatCompletionMessageParam[];
+  tools: ChatCompletionTool[];
+  onText: (delta: string) => void;
+};
+export type ModelTransport = (req: ModelRequest) => Promise<ModelTurn>;
+
+const openAITransport = async (apiKey: string, baseURL: string): Promise<ModelTransport> => {
+  const client = await makeClient(apiKey, baseURL);
+  return async ({ model, messages, tools, onText }) => {
+    const stream = client.chat.completions.stream({ model, max_tokens: 4096, messages, tools });
+    stream.on('content', delta => onText(delta));
+    const completion = await stream.finalChatCompletion();
+    const choice = completion.choices[0];
+    if (!choice) throw new Error('Empty response from the model.');
+    return {
+      content: choice.message.content ?? '',
+      toolCalls: (choice.message.tool_calls ?? [])
+        .filter(c => c.type === 'function')
+        .map(c => ({ id: c.id, name: c.function.name, arguments: c.function.arguments })),
+    };
+  };
+};
+
 export const runAssistantTurn = async (
   apiKey: string,
   baseURL: string,
@@ -747,8 +780,10 @@ export const runAssistantTurn = async (
   // (Passing the object froze the whole turn at send-time state.)
   bridgeRef: { current: AppBridge },
   handlers: StreamHandlers,
+  // Tests inject a scripted transport; the app omits this and gets the wire.
+  transport?: ModelTransport,
 ): Promise<ChatCompletionMessageParam[]> => {
-  const client = await makeClient(apiKey, baseURL);
+  const send = transport ?? (await openAITransport(apiKey, baseURL));
   const messages: ChatCompletionMessageParam[] = [...history, { role: 'user', content: userText }];
 
   const executeTool = async (name: string, argsJson: string): Promise<string> => {
@@ -835,9 +870,8 @@ export const runAssistantTurn = async (
 
   const MAX_LOOPS = 16;
   for (let i = 0; i < MAX_LOOPS; i++) {
-    const stream = client.chat.completions.stream({
+    const turn = await send({
       model,
-      max_tokens: 4096,
       messages: [
         { role: 'system', content: buildSystemPrompt(bridgeRef.current) },
         ...messages,
@@ -846,30 +880,31 @@ export const runAssistantTurn = async (
       // switch_dataset) can change which datasets — and so which mode — the
       // next iteration is talking about.
       tools: toolsFor(sessionPolicyOf(bridgeRef.current.getState())),
+      onText: handlers.onText,
     });
-
-    stream.on('content', delta => handlers.onText(delta));
-    const completion = await stream.finalChatCompletion();
-    const choice = completion.choices[0];
-    if (!choice) throw new Error('Empty response from the model.');
-    const msg = choice.message;
 
     // Keep the assistant turn (content and/or tool_calls) in history
     messages.push({
       role: 'assistant',
-      content: msg.content ?? '',
-      ...(msg.tool_calls?.length ? { tool_calls: msg.tool_calls } : {}),
+      content: turn.content,
+      ...(turn.toolCalls.length
+        ? {
+            tool_calls: turn.toolCalls.map(c => ({
+              id: c.id, type: 'function' as const,
+              function: { name: c.name, arguments: c.arguments },
+            })),
+          }
+        : {}),
     } as ChatCompletionMessageParam);
 
-    if (!msg.tool_calls?.length) return messages;
+    if (!turn.toolCalls.length) return messages;
 
-    for (const call of msg.tool_calls) {
-      if (call.type !== 'function') continue;
-      handlers.onToolUse(call.function.name, summarizeArgs(call.function.arguments));
+    for (const call of turn.toolCalls) {
+      handlers.onToolUse(call.name, summarizeArgs(call.arguments));
       messages.push({
         role: 'tool',
         tool_call_id: call.id,
-        content: await executeTool(call.function.name, call.function.arguments),
+        content: await executeTool(call.name, call.arguments),
       });
       await paintYield();
     }
