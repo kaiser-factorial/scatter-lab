@@ -981,46 +981,48 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
                 <span className={i < index ? 'line-through' : ''}>{s.title}</span>
               </div>
             ))}
+            {/* In-chat steps (no bubble to anchor to) put the way forward HERE,
+                right under the timeline the eye is already on — the same big
+                yellow glowing button the bubbles use, not a small blue one lost
+                at the panel's very bottom. */}
+            {!anchored && (step?.choices ?? []).map(choice => (
+              <button
+                key={choice.label}
+                onClick={() => onChoose(choice)}
+                style={{ ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.5)' : 'rgba(16, 255, 80, 0.4)' }}
+                className={`wt-anchored-glow mt-2 w-full py-2.5 px-3 text-xs font-bold cursor-pointer ${primary
+                  ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
+                  : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
+              >
+                {choice.next ? `Next: ${choice.label}` : choice.label}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
       <div className="px-3 pb-2 pt-1 flex-shrink-0 space-y-1.5">
-        {/* Buttons sit ABOVE the composer: they are how you move, and the
-            composer below them is visibly not. */}
-        <div className="space-y-1.5">
-          {anchored && step?.highlight ? (
-            // This step's text AND way forward live in the bubble beside the
-            // highlighted control — the panel keeps the timeline and history.
-            <>
-              {!busy && (
-                <AnchoredCallout
-                  target={step.highlight}
-                  title={step.title}
-                  say={step.say}
-                  label={step.choices[0].label}
-                  disabled={busy}
-                  primary={primary}
-                  onClick={() => onChoose(step.choices[0])}
-                />
-              )}
-              <div className="text-[10px] opacity-60 py-1.5 px-2">
-                ▸ Follow the bubble next to the highlighted area in the sidebar.
-              </div>
-            </>
-          ) : (step?.choices ?? []).map(choice => (
-            <button
-              key={choice.label}
-              onClick={() => onChoose(choice)}
-              disabled={busy}
-              className={`w-full py-1.5 px-2 text-[11px] font-bold text-left disabled:opacity-30 cursor-pointer ${primary
-                ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
-                : 'border border-[var(--system-green)]/60 text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
-            >
-              {choice.next ? `Next: ${choice.label}` : choice.label}
-            </button>
-          ))}
-        </div>
+        {/* The way forward never lives down here: anchored steps carry it in
+            their bubble, in-chat steps put it at the end of the timeline above.
+            This strip only hosts the bubble portal and its pointer hint. */}
+        {anchored && step?.highlight && (
+          <>
+            {!busy && (
+              <AnchoredCallout
+                target={step.highlight}
+                title={step.title}
+                say={step.say}
+                label={step.choices[0].label}
+                disabled={busy}
+                primary={primary}
+                onClick={() => onChoose(step.choices[0])}
+              />
+            )}
+            <div className="text-[10px] opacity-60 py-1.5 px-2">
+              ▸ Follow the bubble next to the highlighted area in the sidebar.
+            </div>
+          </>
+        )}
 
         {/* The way out lives on the end of the dead composer rather than as a
             link under it: that row is where the eye already goes when typing
