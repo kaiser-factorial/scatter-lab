@@ -166,20 +166,18 @@ export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'compare',
     title: 'Compare',
-    // Pointed at the dock buttons rather than the View section, because the
-    // panel moving out from the side is the first thing that happens here and
-    // an unexplained move is disorienting. The View section is named in the
-    // text and stays one click away.
-    highlight: 'assistant-dock',
+    // Anchored on the View section like every other sidebar step. The panel
+    // still docks to the bottom first (two plots side by side need the width;
+    // pinning beside a right-docked panel produces two unreadable slivers),
+    // but the move is no longer narrated.
+    highlight: 'view',
     say:
-      'I moved this panel to the bottom first — two plots side by side need the width, and the ' +
-      'buttons I am pointing at put it right, bottom, or floating whenever you like.\n\n' +
       'The **View** section switches 2D/3D, toggles the axis grids, renames axis labels for exports, ' +
       'and starts the auto-rotation you can see now. Drag the plot to rotate it yourself, scroll to zoom.\n\n' +
       '*Pin View* freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
-      'different axes, colourings or cluster runs sit next to each other. I pinned the flat ' +
-      '`PC1 × PC2` view, then brought the live plot back to the flower measurements, still coloured ' +
-      'by cluster and shaped by species.\n\n' +
+      'different axes, colourings or cluster runs sit next to each other. The flat ' +
+      '`PC1 × PC2` view has been pinned, and the live plot is back on the flower measurements, still ' +
+      'coloured by cluster and shaped by species.\n\n' +
       'A pin keeps the data it was taken with — only the live view follows the sidebar — but it is ' +
       'not a picture: drag, scroll or double-click any pane to rotate, zoom and reset **that pane** ' +
       'on its own.',

@@ -101,10 +101,9 @@ describe('walkthrough step actions', () => {
     // "Any time we are showing a part of the menu bar, the next button sits by
     // the pointer" — derived from the highlight, so new steps inherit it.
     const anchored = WALKTHROUGH.filter(stepAnchorsChoice).map(s => s.id);
-    expect(anchored).toEqual(['data', 'data-added', 'variables', 'pca', 'cluster', 'export']);
-    // compare points at the panel's own dock chrome; welcome/done have no
-    // highlight or end the tour — all three keep their buttons in the panel.
-    expect(stepAnchorsChoice(walkthroughStep('compare')!)).toBe(false);
+    expect(anchored).toEqual(['data', 'data-added', 'variables', 'pca', 'cluster', 'compare', 'export']);
+    // welcome has no highlight and done ends the tour — both keep their
+    // buttons in the panel.
     expect(stepAnchorsChoice(walkthroughStep('welcome')!)).toBe(false);
     expect(stepAnchorsChoice(walkthroughStep('done')!)).toBe(false);
   });
