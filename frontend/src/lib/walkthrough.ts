@@ -151,15 +151,11 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     highlight: 'cluster',
     say:
       'K-means clustering (k=3) has just run on those 3 PC values. **Clustering always runs on the ' +
-      'plotted axes**, which is why the PCA came first.\n\n' +
-      'Standardizing is off here because PC scores are already ordered by variance. For raw variables ' +
-      'on mixed scales you would want it on — the checkbox defaults follow the data, and the **(i)** ' +
-      'markers explain why.\n\n' +
+      'plotted axes**.\n\n' +
       'Colour is now the cluster, and `Species` has moved onto the **shape** channel, so you are ' +
       'reading two variables at once: do the found clusters line up with the known species? ' +
       '*Cluster info by* below the button cross-tabulates the two, as *% of cluster* or *% of group*, ' +
-      'and saves as a heatmap PNG.\n\n' +
-      'Treat the match as exploratory — the clustering never saw the species labels.',
+      'and saves as a heatmap PNG.',
     run: [
       b => b.runClustering('KMEANS', { k: 3, standardize: false }),
       b => b.setPlot({ shape_by: 'Species' }),
