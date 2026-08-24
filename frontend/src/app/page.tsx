@@ -24,7 +24,7 @@ const AssistantPanel = dynamic(
 );
 import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import type { ConversationBridge } from "@/components/AssistantPanel";
-import { GUIDE_TARGETS } from "@/lib/assistant";
+import { GUIDE_TARGETS, paintYield } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
 import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
@@ -2176,10 +2176,12 @@ export default function Home() {
 
   // "Fix & add" from the upload-error dialog: coerce the chosen formatted-text
   // columns to numbers and run the same ingest the upload would have.
-  const retryUploadWithFix = () => {
+  const retryUploadWithFix = async () => {
     if (!uploadFailure?.table || fixCols.length === 0) return;
     const { table, comp, name, dataMode, recodeAfter } = uploadFailure;
     setUploadFailure(null);
+    // Let the dialog-close frame paint before the synchronous coerce+ingest.
+    await paintYield();
     try {
       const fixed = applyNumericFix(table, fixCols);
       const note = `Converted ${fixCols.length} formatted-text column${fixCols.length === 1 ? '' : 's'} to numeric: ${fixCols.join(', ')}.`;
@@ -4149,7 +4151,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     theme={theme}
                     lastRun={pcaInfo}
                     runs={activeDataset?.pcaRuns ?? []}
-                    onRun={handleRunPCA}
+                    // Yield to paint before the synchronous PCA so the Run
+                    // button's pressed frame commits first (same INP pattern
+                    // as clustering's 30ms yield and the walkthrough steps).
+                    onRun={async (vars, k, std, label, missing) => { await paintYield(); handleRunPCA(vars, k, std, label, missing); }}
                     externalRun={externalPcaRun}
                   />
                 )}

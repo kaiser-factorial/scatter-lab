@@ -274,6 +274,11 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     if (composerRef.current) composerRef.current.style.height = 'auto';
     setChat(prev => [...prev, { kind: 'user', text }, { kind: 'assistant', text: '' }]);
     setBusy(true);
+    // Paint the keystroke's frame (user bubble, cleared composer) BEFORE the
+    // heavy start of the turn — building the system prompt scans every column
+    // of the active table, which blocked the Enter press for ~500ms on large
+    // datasets (the composer's INP flag on the preview deployment).
+    await paintYield();
     const snapBefore = bridgeRef.current.snapshot();
     let mutated = false;
     try {
