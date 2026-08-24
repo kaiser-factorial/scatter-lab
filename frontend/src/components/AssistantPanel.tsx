@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, memo, useMemo } from 'react';
+import { useEffect, useRef, useState, memo, useMemo, startTransition } from 'react';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList, Lock, Globe } from 'lucide-react';
 import {
@@ -513,7 +513,10 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     // chrome rather than the way in to the assistant.
     return (
       <button
-        onClick={() => setOpen(true)}
+        // startTransition: mounting the whole panel (dynamic chunks, markdown
+        // pipeline) in the click's own task blocked the pressed-state frame
+        // for ~300ms — the launcher's INP flag on the preview deployment.
+        onClick={() => startTransition(() => setOpen(true))}
         title="Open the assistant"
         className={`absolute bottom-4 z-40 flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-150 ${primary
           ? 'bauhaus-btn bg-[var(--p-red)] text-white'

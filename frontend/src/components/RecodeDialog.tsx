@@ -189,9 +189,11 @@ export const RecodeDialog = ({
             </label>
 
             {hits.length === 0 ? (
-              <p className="opacity-70">
-                Nothing found. Type the codes your survey used above, and any column containing them will appear
-                here.
+              <p>
+                <span className={`font-bold ${bauhaus ? 'text-[var(--p-red)]' : 'text-red-400'}`}>Nothing found.</span>{' '}
+                <span className="opacity-70">
+                  Type the codes your survey used above, and any column containing them will appear here.
+                </span>
               </p>
             ) : (
               <>

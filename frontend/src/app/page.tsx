@@ -1825,7 +1825,7 @@ export default function Home() {
   // line: the error, a local column-shape diagnosis, and — when the culprit is
   // numbers stored as formatted text — an in-app fix.
   const [uploadFailure, setUploadFailure] = useState<{
-    message: string; name: string; dataMode: DataMode;
+    message: string; name: string; dataMode: DataMode; recodeAfter: 'configure' | 'skip';
     table: DataTable | null; comp: DataTable | null; diags: ColumnDiagnosis[] | null;
   } | null>(null);
   const [fixCols, setFixCols] = useState<string[]>([]);
@@ -1833,7 +1833,9 @@ export default function Home() {
   // and gathers everything about the add in one place — sheet, components
   // file, data mode, missing-value handling.
   const [showAddConfig, setShowAddConfig] = useState(false);
-  const [recodeAfterAdd, setRecodeAfterAdd] = useState<'ask' | 'configure' | 'skip'>('ask');
+  // Two-way choice, decided IN the add config — no second "scan?" prompt
+  // after adding. 'configure' opens the checker straight after the add.
+  const [recodeAfterAdd, setRecodeAfterAdd] = useState<'configure' | 'skip'>('configure');
   // Per-dataset settings modal (gear on the dataset row) and delete confirm.
   const [datasetSettings, setDatasetSettings] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
@@ -2064,7 +2066,7 @@ export default function Home() {
     initialView: InitialUploadView | undefined,
     dataMode: DataMode,
     provenanceNotes: string[] = [],
-    recodeAfter: 'ask' | 'configure' | 'skip' = 'ask',
+    recodeAfter: 'configure' | 'skip' = 'skip',
   ): DataTable => {
     const result = processUpload(dsTable, compTable);
     // Parser warnings describe things that silently changed the data, so they
@@ -2099,21 +2101,23 @@ export default function Home() {
     };
     setDatasets(prev => [...prev, dataset]);
     setActiveId(id);
-    // Ask, don't scan: the question costs nothing, and the detector runs only
-    // if the user says yes. (Import used to scan every column here, which was
-    // measurable latency on wide survey tables.) The demo is curated and known
-    // clean — it arrives with an initialView, and is not worth interrupting.
-    // The add-dataset config can override: open the checker right away, or skip.
-    if (!initialView && recodeAfter !== 'skip') setShowRecode(recodeAfter);
+    // The scan-or-not question was answered in the add-dataset config, so the
+    // checker either opens straight away or not at all — no second prompt.
+    // (The detector still only runs on request: scanning every column on
+    // import was measurable latency on wide survey tables.) The demo is
+    // curated and known clean — it arrives with an initialView.
+    if (!initialView && recodeAfter === 'configure') setShowRecode('configure');
     setColorBy(initialView?.colorBy ?? pickDefaultColorBy(table, colorBy));
     // Ordinary uploads preserve a compatible shape channel; the demo supplies
     // an initial view specifically so it can start with shape unassigned.
     if (initialView) setShapeBy(initialView.shapeBy ?? "");
     setViewMode(initialView?.viewMode ?? (axes.z ? viewMode : "2D"));
-    // Consume the file selections so the slots are free for the next dataset
+    // Consume the file selections so the slots are free for the next dataset.
+    // Mode and scan choices reset too — both are per-file decisions.
     setDatasetFile(null);
     setComponentsFile(null);
     setUploadDataMode('private');
+    setRecodeAfterAdd('configure');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
     return table;
@@ -2125,7 +2129,7 @@ export default function Home() {
     initialView?: InitialUploadView,
     sheet?: string,
     dataMode: DataMode = 'private',
-    recodeAfter: 'ask' | 'configure' | 'skip' = 'ask',
+    recodeAfter: 'configure' | 'skip' = 'skip',
   ): Promise<DataTable | null> => {
     setIsUploading(true);
     setUploadStatus("Processing…");
@@ -2163,7 +2167,7 @@ export default function Home() {
       const diags = parsedTable ? diagnoseTable(parsedTable) : null;
       setFixCols(diags?.filter(d => d.kind === 'fixable').map(d => d.col) ?? []);
       setShowAddConfig(false);
-      setUploadFailure({ message, name, dataMode, table: parsedTable, comp: parsedComp, diags });
+      setUploadFailure({ message, name, dataMode, recodeAfter, table: parsedTable, comp: parsedComp, diags });
       return null;
     } finally {
       setIsUploading(false);
@@ -2174,16 +2178,16 @@ export default function Home() {
   // columns to numbers and run the same ingest the upload would have.
   const retryUploadWithFix = () => {
     if (!uploadFailure?.table || fixCols.length === 0) return;
-    const { table, comp, name, dataMode } = uploadFailure;
+    const { table, comp, name, dataMode, recodeAfter } = uploadFailure;
     setUploadFailure(null);
     try {
       const fixed = applyNumericFix(table, fixCols);
       const note = `Converted ${fixCols.length} formatted-text column${fixCols.length === 1 ? '' : 's'} to numeric: ${fixCols.join(', ')}.`;
-      ingestParsed(fixed, comp, [note], name, undefined, dataMode, [note]);
+      ingestParsed(fixed, comp, [note], name, undefined, dataMode, [note], recodeAfter);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setUploadStatus(`Error: ${message}`);
-      setUploadFailure({ message, name, dataMode, table, comp, diags: diagnoseTable(table) });
+      setUploadFailure({ message, name, dataMode, recodeAfter, table, comp, diags: diagnoseTable(table) });
       setFixCols([]);
     }
   };
@@ -2198,7 +2202,7 @@ export default function Home() {
     setComponentsFile(null);
     setShowComponents(false);
     setUploadDataMode('private');
-    setRecodeAfterAdd('ask');
+    setRecodeAfterAdd('configure');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
   };
@@ -4466,8 +4470,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 Missing-value codes
               </legend>
               {([
-                { v: 'ask' as const, label: 'Ask me after adding (default)' },
-                { v: 'configure' as const, label: 'Open the checker right away' },
+                { v: 'configure' as const, label: 'Scan for sentinel/missing-value codes (default)' },
                 { v: 'skip' as const, label: 'Skip — my data has none' },
               ]).map(({ v, label }) => (
                 <label key={v} className="flex items-center gap-1.5 cursor-pointer">
