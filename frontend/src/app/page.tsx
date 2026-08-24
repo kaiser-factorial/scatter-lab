@@ -24,7 +24,7 @@ const AssistantPanel = dynamic(
 );
 import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import type { ConversationBridge } from "@/components/AssistantPanel";
-import { GUIDE_TARGETS } from "@/lib/assistant";
+import { GUIDE_TARGETS, paintYield } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
 import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
@@ -2141,8 +2141,11 @@ export default function Home() {
     // loaded as two datasets — otherwise both arrive with the same name.
     const name = dsFile.name.replace(/\.(csv|xlsx|parquet)$/i, '') + (sheet ? ` — ${sheet}` : '');
     try {
-      // Yield a frame so the busy state paints before heavy parsing starts
-      await new Promise(r => setTimeout(r, 30));
+      // Yield until the busy state has actually PAINTED before heavy parsing
+      // starts. A 30ms setTimeout sat here before, but a timer can fire ahead
+      // of the click frame's presentation, which re-attached the whole
+      // parse+ingest to the Add button's interaction (its INP flag).
+      await paintYield();
       const [dsParsed, compParsed] = await Promise.all([
         readTable(dsFile, { sheet }),
         compFile ? readTable(compFile) : Promise.resolve(null),
@@ -2176,10 +2179,12 @@ export default function Home() {
 
   // "Fix & add" from the upload-error dialog: coerce the chosen formatted-text
   // columns to numbers and run the same ingest the upload would have.
-  const retryUploadWithFix = () => {
+  const retryUploadWithFix = async () => {
     if (!uploadFailure?.table || fixCols.length === 0) return;
     const { table, comp, name, dataMode, recodeAfter } = uploadFailure;
     setUploadFailure(null);
+    // Let the dialog-close frame paint before the synchronous coerce+ingest.
+    await paintYield();
     try {
       const fixed = applyNumericFix(table, fixCols);
       const note = `Converted ${fixCols.length} formatted-text column${fixCols.length === 1 ? '' : 's'} to numeric: ${fixCols.join(', ')}.`;
@@ -2657,8 +2662,9 @@ export default function Home() {
   const handleCluster = async () => {
       if (clusterMethod === "NONE" || !processedData) return;
       setIsClustering(true);
-      // Yield a frame so the busy state paints before the O(n²) work starts
-      await new Promise(r => setTimeout(r, 30));
+      // Yield until the busy state has PAINTED before the O(n²) work starts —
+      // a plain 30ms timer can fire before the click frame presents.
+      await paintYield();
       try {
           const ax = effectiveAxes(activeDataset!, viewMode);
           const rawCols = [processedData.data[ax.x], processedData.data[ax.y]];
@@ -3208,6 +3214,19 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   }, []);
   // useCallback so memoizing AssistantPanel is not defeated by a fresh closure
   // on every Home render (F10).
+  // The panel header's lock/globe icon opens the mode dialog for the active
+  // dataset — the info and the swap confirmation both live there. useCallback
+  // so memoizing AssistantPanel is not defeated by a fresh closure (F10); its
+  // identity changes only when the active dataset or its mode does, which is
+  // when the panel re-renders anyway.
+  const activeDatasetId = activeDataset?.id ?? null;
+  const activeDataMode = activeDataset?.dataMode ?? 'private';
+  const openActiveModeDialog = useCallback(() => {
+      if (activeDatasetId == null) return;
+      setModeConfirmChecked(false);
+      setModeDialog({ datasetId: activeDatasetId, to: activeDataMode === 'open' ? 'private' : 'open' });
+  }, [activeDatasetId, activeDataMode]);
+
   const changeDock = useCallback((d: 'right' | 'bottom' | 'float') => {
       setAssistantDock(d);
       localStorage.setItem('scatterlab.assistant.dock', d);
@@ -4149,7 +4168,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                     theme={theme}
                     lastRun={pcaInfo}
                     runs={activeDataset?.pcaRuns ?? []}
-                    onRun={handleRunPCA}
+                    // Yield to paint before the synchronous PCA so the Run
+                    // button's pressed frame commits first (same INP pattern
+                    // as clustering's 30ms yield and the walkthrough steps).
+                    onRun={async (vars, k, std, label, missing) => { await paintYield(); handleRunPCA(vars, k, std, label, missing); }}
                     externalRun={externalPcaRun}
                   />
                 )}
@@ -4381,6 +4403,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         <AssistantPanel
           accessMode={datasets.length > 0 && datasets.every(d => d.dataMode === 'open') ? 'open'
             : datasets.some(d => d.dataMode === 'open') ? 'mixed' : 'private'}
+          onAccessClick={activeDatasetId != null ? openActiveModeDialog : undefined}
           bridgeRef={bridgeRef}
           theme={theme}
           askRef={askAssistantRef}

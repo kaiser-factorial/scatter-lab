@@ -90,7 +90,7 @@ const AssistantMarkdown = memo(({ text }: { text: string }) => (
 ));
 AssistantMarkdown.displayName = 'AssistantMarkdown';
 
-const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef, accessMode = 'private' }: {
+const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef, accessMode = 'private', onAccessClick }: {
   bridgeRef: React.MutableRefObject<AppBridge>,
   theme: string | undefined,
   askRef?: React.MutableRefObject<((q: string) => void) | null>,
@@ -109,6 +109,8 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // 'open' = every dataset open (row tools available), 'mixed' = some open but
   // at least one private (runs private), 'private' = aggregates only.
   accessMode?: 'private' | 'open' | 'mixed',
+  // Opens the data-mode dialog for the active dataset; absent = nothing to swap.
+  onAccessClick?: () => void,
 }) => {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -274,6 +276,11 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     if (composerRef.current) composerRef.current.style.height = 'auto';
     setChat(prev => [...prev, { kind: 'user', text }, { kind: 'assistant', text: '' }]);
     setBusy(true);
+    // Paint the keystroke's frame (user bubble, cleared composer) BEFORE the
+    // heavy start of the turn — building the system prompt scans every column
+    // of the active table, which blocked the Enter press for ~500ms on large
+    // datasets (the composer's INP flag on the preview deployment).
+    await paintYield();
     const snapBefore = bridgeRef.current.snapshot();
     let mutated = false;
     try {
@@ -576,19 +583,24 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
             ? <><Compass className="w-3.5 h-3.5" /> Walkthrough</>
             : <><Sparkles className="w-3.5 h-3.5" /> Assistant</>}
           {view !== 'walkthrough' && (
-            // Session-level data access at a glance. 'mixed' runs private (the
-            // minimum of the loaded datasets' modes) and the title says why.
-            <span
-              className="flex items-center gap-1 px-1.5 py-0.5 border border-current/30 text-[9px] font-bold normal-case tracking-normal opacity-70"
-              title={accessMode === 'open'
+            // Session-level data access at a glance: just the icon. 'mixed'
+            // runs private (the minimum of the loaded datasets' modes) and the
+            // title says why. Clicking opens the mode dialog for the active
+            // dataset — the info and the swap live there.
+            <button
+              onClick={onAccessClick}
+              disabled={!onAccessClick}
+              className={`p-0.5 border border-current/30 opacity-70 ${onAccessClick ? 'hover:opacity-100 cursor-pointer' : 'cursor-default'}`}
+              aria-label={accessMode === 'open' ? 'Full data access — click to review or change' : 'Aggregates only — click to review or change'}
+              title={(accessMode === 'open'
                 ? 'Full data access: every loaded dataset is marked public/open, so the assistant may read raw rows.'
                 : accessMode === 'mixed'
                   ? 'Aggregates only: some datasets are open, but at least one is private, so the whole conversation runs at the private level.'
-                  : 'Aggregates only: the assistant sees column summaries, never raw rows.'}
+                  : 'Aggregates only: the assistant sees column summaries, never raw rows.')
+                + (onAccessClick ? ' Click to review or change.' : '')}
             >
-              {accessMode === 'open' ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
-              {accessMode === 'open' ? 'Full data access' : accessMode === 'mixed' ? 'Aggregates only (mixed)' : 'Aggregates only'}
-            </span>
+              {accessMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+            </button>
           )}
         </span>
         <span className="flex items-center gap-1" onPointerDown={e => e.stopPropagation()}>
