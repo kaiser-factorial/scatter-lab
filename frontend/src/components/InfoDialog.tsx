@@ -2,7 +2,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { DISCLOSURES, DISCLOSURE_SECTIONS } from '@/lib/disclosures';
+import { DISCLOSURES, DISCLOSURE_SECTIONS, emphasisSegments } from '@/lib/disclosures';
+
+// Disclosure lines may carry **emphasis**; render it, nothing more.
+const DisclosureLine = ({ line }: { line: string }) => (
+  <>{emphasisSegments(line).map((s, i) => s.bold ? <strong key={i}>{s.text}</strong> : <span key={i}>{s.text}</span>)}</>
+);
 import { METHODS } from '@/lib/methods';
 
 // The long-form companion to the (i) tooltips.
@@ -186,10 +191,10 @@ export const InfoDialog = ({
                         <h4 className="font-bold">{d.title}</h4>
                         <ul className="list-disc pl-5 space-y-1">
                           {d.text.map((line, i) => (
-                            <li key={`t${i}`} className="opacity-80">{line}</li>
+                            <li key={`t${i}`} className="opacity-80"><DisclosureLine line={line} /></li>
                           ))}
                           {(d as { more?: readonly string[] }).more?.map((line, i) => (
-                            <li key={`m${i}`} className="opacity-60">{line}</li>
+                            <li key={`m${i}`} className="opacity-60"><DisclosureLine line={line} /></li>
                           ))}
                         </ul>
                       </div>

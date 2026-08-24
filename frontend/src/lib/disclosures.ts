@@ -83,11 +83,10 @@ export const DISCLOSURES = {
   kmeans_deterministic: {
     title: 'K-Means Is Reproducible, Not Optimal',
     text: [
-      'This app seeds K-Means with k-means++ from fixed seeds and keeps the lowest-inertia of 10 fixed starts (up to 300 iterations each). It does not search for the global optimum.',
-      'The same data and the same k therefore always give byte-identical clusters in this app.',
+      '**This app** runs K-Means from 10 fixed k-means++ starting points and keeps the run whose clusters end tightest (the smallest within-cluster sum of squares). Each run refines its clusters until no point changes assignment, with a 300-round safety cap. It does not search for the global optimum.',
+      'The same data and the same k therefore always give byte-identical clusters in **this app**.',
     ],
     more: [
-      'Another tool, or another set of starts, may well land somewhere else.',
       'This tool guarantees reproducibility, not evidence of stable structure. To test whether the clusters are stable, vary k and re-run on subsamples rather than re-running unchanged.',
     ],
     methodsTopic: 'kmeans_interpretation',
@@ -257,6 +256,17 @@ export const DISCLOSURES = {
 } as const satisfies Record<string, Disclosure>;
 
 export type DisclosureKey = keyof typeof DISCLOSURES;
+
+/**
+ * The one formatting device disclosure lines carry: **emphasis**. Split into
+ * segments for the render sites (InfoDialog, InfoTip) so the strings stay
+ * plain data here — no React, no markdown pipeline for two asterisks.
+ */
+export const emphasisSegments = (line: string): { text: string; bold: boolean }[] =>
+  line.split('**').map((text, i) => ({ text, bold: i % 2 === 1 })).filter(s => s.text !== '');
+
+/** The same line with the emphasis markers stripped, for plain-text `title`s. */
+export const plainLine = (line: string): string => line.replaceAll('**', '');
 
 export const disclosure = (key: DisclosureKey): Disclosure => DISCLOSURES[key];
 

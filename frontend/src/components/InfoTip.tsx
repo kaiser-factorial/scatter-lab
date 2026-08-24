@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
-import { DISCLOSURES, type DisclosureKey } from '@/lib/disclosures';
+import { DISCLOSURES, emphasisSegments, plainLine, type DisclosureKey } from '@/lib/disclosures';
 
 // A small "(i)" that opens a short methods note.
 //
@@ -42,8 +42,8 @@ export const InfoTip = ({
   const raw = text ?? (topic ? DISCLOSURES[topic].text : []);
   const lines: string[] = (Array.isArray(raw) ? raw : [raw]).filter(Boolean);
   const name = label ?? (topic ? DISCLOSURES[topic].title : 'More information');
-  // The native `title` has no bullets to work with, so it gets one flat string.
-  const flat = lines.join(' ');
+  // The native `title` has no bullets or bold to work with: one flat string.
+  const flat = plainLine(lines.join(' '));
 
   const place = useCallback(() => {
     const r = btn.current?.getBoundingClientRect();
@@ -108,10 +108,12 @@ export const InfoTip = ({
         >
           <span className="block font-bold mb-1">{name}</span>
           {lines.length === 1
-            ? lines[0]
+            ? emphasisSegments(lines[0]).map((s, i) => s.bold ? <strong key={i}>{s.text}</strong> : <span key={i}>{s.text}</span>)
             : (
               <ul className="list-disc pl-4 space-y-1">
-                {lines.map((l, i) => <li key={i}>{l}</li>)}
+                {lines.map((l, i) => (
+                  <li key={i}>{emphasisSegments(l).map((s, j) => s.bold ? <strong key={j}>{s.text}</strong> : <span key={j}>{s.text}</span>)}</li>
+                ))}
               </ul>
             )}
         </div>,
