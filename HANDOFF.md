@@ -502,8 +502,18 @@ unbiased-sample check, held in reserve.
    and values it lists (identifier columns and columns with no value covering 5 rows
    are refused; a withheld value gets the same refusal as a nonexistent one); a
    filter leaving fewer than 5 rows reports "fewer than 5" and blocks every analysis
-   with one fixed message; column profiles in `get_app_state` always describe the
-   FULL table. Independently of the filter (a review finding, 2026-09-18):
+   with one fixed message, and so does one EXCLUDING fewer than 5 (reported as "all
+   but fewer than 5"), since a filtered aggregate minus the unfiltered one would
+   describe the excluded few; column profiles in `get_app_state` always describe the
+   FULL table. **Known limit, Corina's call:** the floor stops direct disclosure and
+   single-step subtraction. It does not stop chained differencing — two filters that
+   differ by one row (`age ≥ 60`, n=12, then `age ≥ 61`, n=11) each analysed and
+   subtracted. Stopping that needs query history or noise; the filter is the first
+   tool that intersects conditions, so it makes this materially easier than before.
+   Smaller follow-ups: the PCA panel's "rows survive" preview counts the full table
+   while the run uses the filtered rows; chart notes still print the exact "m rows
+   omitted" under the privacy floor; CSV export and `transfer_column` are not
+   analyses and are not filtered. Independently of the filter (a review finding, 2026-09-18):
    `compare_groups` lists only groups of ≥ 5 rows and pools the rest unnamed;
    numeric profiles report min/max only when ≥ 5 rows share that extreme
    (`tailsWithheld` otherwise); `correlate` needs 5 pairs. Tests pin the reviewer's

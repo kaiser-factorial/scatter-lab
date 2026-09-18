@@ -52,7 +52,7 @@ export const DISCLOSURES = {
     title: 'Assistant Access: Private vs Public Mode',
     text: [
       'For each dataset added, you will choose a privacy mode that sets what the assistant may see of it. In both modes the assistant gets column names, aggregate summaries, and the results of analyses it runs. Everything else (parsing, PCA, clustering, exports) computes in the browser without uploading the dataset anywhere.',
-      '**Private mode** (default) returns aggregates: never raw rows, identifier columns, or category values covering fewer than 5 rows.',
+      '**Private mode** (default) returns aggregates only, with a floor of 5 rows: never raw rows, identifier columns, category values covering fewer than 5 rows, group statistics for groups smaller than that, or a column\'s minimum or maximum unless at least 5 rows share it. A row filter set by the assistant may only name columns and values that floor already shows, and analyses are blocked while a filter leaves, or excludes, fewer than 5 rows. The floor stops direct disclosure; it cannot stop every comparison of overlapping filters.',
       '**Public mode** lets the assistant read raw rows and full category lists.',
       'If any loaded dataset is private, the whole conversation runs at the private level: row-reading tools do not exist for that conversation.',
       'With a local runtime (Ollama, LM Studio) as the assistant endpoint, even the assistant\'s summaries never leave your machine.',

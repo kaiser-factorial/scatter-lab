@@ -71,3 +71,21 @@ describe('groupComparisonReport — the Codex case: nine rows in one group, one 
     expect(r.message).toContain('one per row');
   });
 });
+
+import { filterMeetsFloor } from '../aggregatePolicy';
+
+describe('filterMeetsFloor — subset and complement both need five rows in private mode', () => {
+  it('refuses a tiny subset and a tiny complement, allows the rest', () => {
+    expect(filterMeetsFloor(4, 150, priv)).toBe('too-few-shown');
+    expect(filterMeetsFloor(0, 150, priv)).toBe('too-few-shown');
+    expect(filterMeetsFloor(147, 150, priv)).toBe('too-few-excluded');
+    expect(filterMeetsFloor(149, 150, priv)).toBe('too-few-excluded');
+    expect(filterMeetsFloor(145, 150, priv)).toBe('ok');
+    expect(filterMeetsFloor(150, 150, priv)).toBe('ok');
+    expect(filterMeetsFloor(5, 10, priv)).toBe('ok');
+  });
+  it('open mode never refuses', () => {
+    expect(filterMeetsFloor(1, 150, open)).toBe('ok');
+    expect(filterMeetsFloor(149, 150, open)).toBe('ok');
+  });
+});

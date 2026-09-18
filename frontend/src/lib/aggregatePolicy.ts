@@ -95,3 +95,20 @@ export const groupComparisonReport = (
   const message = `${numericCol} by ${groupCol} (overall mean=${f2(res.overall.mean)}, sd=${f2(res.overall.sd)} [sample, n-1], n=${res.overall.n}, ${res.nGroups} groups):\n${lines.join('\n')}\neta-squared=${res.etaSquared?.toFixed(3) ?? 'n/a'}, omega-squared=${res.omegaSquared?.toFixed(3) ?? 'n/a'} (share of variance explained by group; descriptive effect sizes, not significance tests).${caveats.length ? ` Note: ${caveats.join('; ')}.` : ''}`;
   return { ok: true, message, comparison: res, withheldGroups: withheld.length, withheldRows };
 };
+
+/**
+ * May a row filter's subset be analysed? In private mode both the subset AND
+ * its complement must reach the floor: an analysis on "all but 3 rows",
+ * subtracted from the same analysis on all rows, is an analysis of those 3.
+ * (This stops single-step subtraction. It does not stop chained differencing
+ * across several filters that differ by one row — that would need query
+ * history or noise, and is documented as a limit rather than claimed.)
+ */
+export type FilterFloor = 'ok' | 'too-few-shown' | 'too-few-excluded';
+export const filterMeetsFloor = (shown: number, total: number, policy: DataPolicy): FilterFloor => {
+  if (policy.fullCategories) return 'ok';
+  if (valueIsTooRare(shown)) return 'too-few-shown';
+  const excluded = total - shown;
+  if (excluded > 0 && valueIsTooRare(excluded)) return 'too-few-excluded';
+  return 'ok';
+};

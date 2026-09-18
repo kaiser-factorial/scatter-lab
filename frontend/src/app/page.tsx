@@ -32,7 +32,7 @@ import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
 import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, subsetTable, scatterBack, type FilterCondition } from "@/lib/rowFilter";
-import { numericTails, correlationAllowed, groupComparisonReport } from "@/lib/aggregatePolicy";
+import { numericTails, correlationAllowed, groupComparisonReport, filterMeetsFloor } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
@@ -2243,6 +2243,13 @@ export default function Home() {
   // Data state: cached datasets (columnar — see DataTable), one active at a time
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
+  // Tool calls in one model turn run before React re-renders, so a
+  // switch_dataset (or load_demo_data) followed by set_row_filter must stamp
+  // the NEW dataset. The bridge records the switch here together with the
+  // table it switched to; the record is honoured only while that table is
+  // still the latest one, so a later human click on another dataset (which
+  // replaces the table) makes it fall back to state by itself.
+  const pendingSwitchRef = useRef<{ id: number; table: DataTable } | null>(null);
   const [colorBy, setColorBy] = useState<string>("");
   // Second categorical channel, rendered as marker symbols. "" = off.
   const [shapeBy, setShapeBy] = useState<string>("");
@@ -2301,8 +2308,9 @@ export default function Home() {
   const pendingFilterRef = useRef<{ datasetId: number; conditions: FilterCondition[] | null } | null>(null);
   const setRowFilter = (conds: FilterCondition[] | null) => {
       const next = conds?.length ? conds : null;
-      if (activeId != null) pendingFilterRef.current = { datasetId: activeId, conditions: next };
-      setRowFilterState(next && activeId != null ? { datasetId: activeId, conditions: next } : null);
+      const id = liveActiveId();
+      if (id != null) pendingFilterRef.current = { datasetId: id, conditions: next };
+      setRowFilterState(next && id != null ? { datasetId: id, conditions: next } : null);
   };
   // Recomputed only when the table or the filter changes; null when unfiltered
   // so buildTraces takes its unmasked fast path. Conditions on columns that
@@ -2531,6 +2539,9 @@ export default function Home() {
     };
     setDatasets(prev => [...prev, dataset]);
     setActiveId(id);
+    // A tool that runs before the re-render (load_demo_data → set_row_filter)
+    // must see this dataset as the active one.
+    pendingSwitchRef.current = { id, table };
     // The scan-or-not question was answered in the add-dataset config, so the
     // checker either opens straight away or not at all — no second prompt.
     // (The detector still only runs on request: scanning every column on
@@ -3621,6 +3632,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   const freshTableRef = useRef<DataTable | null>(null);
   useEffect(() => { freshTableRef.current = null; }, [processedData]);
   const latestTable = (): DataTable | null => freshTableRef.current ?? processedData;
+  const liveActiveId = (): number | null => {
+      const p = pendingSwitchRef.current;
+      return p && latestTable() === p.table ? p.id : activeId;
+  };
 
   // --- The analysis gate -----------------------------------------------------
   // Every analysis — clustering, PCA, tests, charts, correlations, group
@@ -3631,12 +3646,17 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // any statistic over it would be that person's value. The column profiles
   // in get_app_state deliberately do NOT go through here — filter to five
   // rows and a filtered profile's quartiles are individual values.
-  const FILTER_FLOOR_MESSAGE = 'The active row filter leaves fewer than 5 rows, which is below the privacy floor in private mode. Widen or clear the filter (set_row_filter) before running an analysis.';
+  const FILTER_FLOOR_MESSAGE: Record<'too-few-shown' | 'too-few-excluded', string> = {
+      'too-few-shown': 'The active row filter leaves fewer than 5 rows, which is below the privacy floor in private mode. Widen or clear the filter (set_row_filter) before running an analysis.',
+      'too-few-excluded': 'The active row filter excludes fewer than 5 rows, so an analysis on it could be subtracted from one on the full data to describe those few people. Narrow or clear the filter (set_row_filter) before running an analysis.',
+  };
   type AnalysisInput = { table: DataTable; full: DataTable; mask: boolean[] | null; filter: FilterCondition[] | null; note: string };
   // The filter as of NOW, including one set earlier in this same turn.
   const currentFilter = (): FilterCondition[] | null => {
+      const id = liveActiveId();
+      const committed = rowFilterState && rowFilterState.datasetId === id ? rowFilterState.conditions : null;
       const pend = pendingFilterRef.current;
-      return pend && pend.datasetId === activeId && pend.conditions !== rowFilter ? pend.conditions : rowFilter;
+      return pend && pend.datasetId === id && pend.conditions !== committed ? pend.conditions : committed;
   };
   const analysisTable = (): AnalysisInput | string => {
       const t = latestTable();
@@ -3645,7 +3665,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       if (!conds?.length || validateConditions(t, conds).length) return { table: t, full: t, mask: null, filter: null, note: '' };
       const mask = buildRowMask(t, conds);
       const shown = countMask(mask);
-      if (!sessionPolicy.fullCategories && valueIsTooRare(shown)) return FILTER_FLOOR_MESSAGE;
+      const floor = filterMeetsFloor(shown, t.nRows, sessionPolicy);
+      if (floor !== 'ok') return FILTER_FLOOR_MESSAGE[floor];
       if (shown === 0) return `The active row filter (${describeConditions(conds)}) leaves no rows. Widen or clear it (set_row_filter) before running an analysis.`;
       return { table: subsetTable(t, mask), full: t, mask, filter: conds, note: ` [on the filtered rows: ${describeConditions(conds)} — ${shown} of ${t.nRows}]` };
   };
@@ -3775,7 +3796,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           pinnedViews: pinnedViews.length,
           // Private mode withholds small counts here as in the column profiles.
           rowFilter: rowMask && rowFilter
-              ? { conditions: rowFilter, shown: withheldCount(countMask(rowMask)), total: processedData?.nRows ?? 0 }
+              ? { conditions: rowFilter, shown: filterMeetsFloor(countMask(rowMask), processedData?.nRows ?? 0, sessionPolicy) === 'too-few-excluded' ? 'all but fewer than 5' : withheldCount(countMask(rowMask)), total: processedData?.nRows ?? 0 }
               : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
@@ -3981,6 +4002,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const existing = datasets.find(d => d.name === 'iris');
           if (existing) {
               if (existing.id !== activeId) selectDataset(existing.id);
+              pendingSwitchRef.current = { id: existing.id, table: existing.table };
               freshTableRef.current = existing.table;
               return `The demo dataset is already loaded (${existing.table.nRows} rows) and is now the active dataset — no need to load it again.`;
           }
@@ -4076,6 +4098,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (!ds) return `No dataset named "${name}". Loaded: ${datasets.map(d => d.name).join(', ') || 'none'}.`;
           if (ds.id === activeId) return `"${ds.name}" is already active.`;
           selectDataset(ds.id);
+          pendingSwitchRef.current = { id: ds.id, table: ds.table };
           freshTableRef.current = ds.table;
           return `Switched active dataset to "${ds.name}" (${ds.table.nRows} rows).`;
       },
@@ -4123,7 +4146,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           // same way as any other small count.
           if (shown === 0 && sessionPolicy.fullCategories) return `Not applied: no rows satisfy ${describeConditions(next)}. Check the values with get_app_state (column profiles) — the filter is unchanged.`;
           setRowFilter(next);
-          return `Showing ${withheldCount(shown)} of ${t.nRows} rows where ${describeConditions(next)}. Every analysis (clustering, PCA, tests, charts, correlations, group comparisons) now runs on these rows only; the column profiles in get_app_state still describe the full dataset. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.`;
+          const floor = filterMeetsFloor(shown, t.nRows, sessionPolicy);
+          const shownText = floor === 'too-few-excluded' ? `all but fewer than 5` : String(withheldCount(shown));
+          const floorNote = floor === 'ok' ? '' : ` Note: in private mode this filter ${floor === 'too-few-shown' ? 'leaves' : 'excludes'} fewer than 5 rows, so analyses are blocked until it is ${floor === 'too-few-shown' ? 'widened' : 'narrowed'} or cleared.`;
+          return `Showing ${shownText} of ${t.nRows} rows where ${describeConditions(next)}. Every analysis (clustering, PCA, tests, charts, correlations, group comparisons) now runs on these rows only; the column profiles in get_app_state still describe the full dataset. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.${floorNote}`;
       },
 
       transferColumn: ({ source_dataset, column, mode = 'order', key_column, new_name }) => {
