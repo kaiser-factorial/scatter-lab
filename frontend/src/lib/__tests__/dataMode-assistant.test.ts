@@ -16,7 +16,7 @@ const bridgeWith = (datasets: DS[]): AppBridge => ({
     colorBy: 'a',
     shapeBy: '',
     viewMode: '2D' as const,
-    pinnedViews: 0,
+    pinnedViews: 0, rowFilter: null,
     clusterSettings: { method: 'NONE', eps: 0.5, minSamples: 5, k: 3, standardize: false },
     clusterBreakdown: { attribute: '', direction: 'cluster' as const, palette: 'Viridis' as const },
     pcaRuns: [],

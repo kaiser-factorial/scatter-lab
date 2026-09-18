@@ -31,6 +31,7 @@ import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
+import { buildRowMask, countMask, describeConditions, validateConditions, type FilterCondition } from "@/lib/rowFilter";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
@@ -405,9 +406,13 @@ const shapeCategories = (vals: any[]) => {
     return sortCategories(Array.from(seen));
 };
 
-const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "2D", axes: Axes, labels: AxisLabels, muted: MuteMap = {}, dark = false, shapeField = "", includeFloor = true) => {
+// `mask` (one boolean per row, from a row filter) drops points from every trace
+// while the colour categories are still taken from the FULL column, so a
+// filter that empties a category never shifts anybody's palette index.
+const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "2D", axes: Axes, labels: AxisLabels, muted: MuteMap = {}, dark = false, shapeField = "", includeFloor = true, mask: boolean[] | null = null) => {
     if (!table || table.nRows === 0) return [];
     const n = table.nRows;
+    const keep = (i: number) => !mask || mask[i];
     const px = table.data[axes.x] ?? [];
     const py = table.data[axes.y] ?? [];
     const pz = axes.z ? (table.data[axes.z] ?? []) : new Array(n).fill(0);
@@ -447,6 +452,7 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
         const stride = shapeCats.length + 1;
         const grouped = new Map<number, { x: any[], y: any[], z: any[], color: any, shape: string | null, ci: number, si: number }>();
         for (let i = 0; i < n; i++) {
+            if (!keep(i)) continue;
             const cval = colorVals[i] ?? "N/A";
             const sval = shapeAt(i);
             const ci = colorRank.get(cval) ?? 0;
@@ -516,11 +522,19 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
             type: mode === "3D" ? 'scatter3d' : 'scatter',
             hovertemplate
         };
-        if (!shapeOn) {
+        if (!shapeOn && !mask) {
             traces.push({ ...base, x: px, y: py, z: mode === "3D" ? pz : undefined, name: colorField, marker: markerFor(colorVals) });
+        } else if (!shapeOn) {
+            const fx: unknown[] = [], fy: unknown[] = [], fz: unknown[] = [], fc: unknown[] = [];
+            for (let i = 0; i < n; i++) {
+                if (!keep(i)) continue;
+                fx.push(px[i]); fy.push(py[i]); fz.push(pz[i]); fc.push(colorVals[i]);
+            }
+            traces.push({ ...base, x: fx, y: fy, z: mode === "3D" ? fz : undefined, name: colorField, marker: markerFor(fc) });
         } else {
             const buckets: Record<string, { x: any[], y: any[], z: any[], c: any[] }> = {};
             for (let i = 0; i < n; i++) {
+                if (!keep(i)) continue;
                 const sval = shapeAt(i)!;
                 const b = (buckets[sval] ??= { x: [], y: [], z: [], c: [] });
                 b.x.push(px[i]); b.y.push(py[i]); b.z.push(pz[i]); b.c.push(colorVals[i]);
@@ -546,6 +560,7 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
         const SHADOW_TARGET = 4000;
         const shadowStride = n > SHADOW_TARGET ? Math.ceil(n / SHADOW_TARGET) : 1;
         for (let i = 0; i < n; i++) {
+            if (!keep(i)) continue;
             if (hasHidden && muted[String(colorVals[i] ?? "N/A")] === 'hidden') continue;
             if (px[i] != null) {
                 if (px[i] < x_min) x_min = px[i];
@@ -1753,8 +1768,8 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
 }) => {
     const { theme } = useTheme();
     const traces = useMemo(
-        () => buildTraces(view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted ?? {}, theme === 'terminal', view.shapeBy ?? ""),
-        [view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted, theme, view.shapeBy]
+        () => buildTraces(view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted ?? {}, theme === 'terminal', view.shapeBy ?? "", true, view.mask ?? null),
+        [view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted, theme, view.shapeBy, view.mask]
     );
     // The layout object is now stable across renders that do not change it,
     // which is what react-plotly.js actually keys on: it re-plots whenever
@@ -2259,6 +2274,18 @@ export default function Home() {
   const [notes, setNotes] = useState("");
   // Legend mute states for the active view's colorBy, keyed by String(value)
   const [mutedMap, setMutedMap] = useState<MuteMap>({});
+  // Assistant-set display filter on the active dataset (null = show all rows).
+  // Plot-only: analyses keep running on the full table.
+  const [rowFilter, setRowFilter] = useState<FilterCondition[] | null>(null);
+  // Recomputed only when the table or the filter changes; null when unfiltered
+  // so buildTraces takes its unmasked fast path. Conditions on columns that
+  // have since vanished (a re-run replacing PC columns) fail validation and
+  // the filter is treated as absent rather than blanking the plot.
+  const rowMask = useMemo<boolean[] | null>(() => {
+      if (!processedData || !rowFilter?.length) return null;
+      if (validateConditions(processedData, rowFilter).length) return null;
+      return buildRowMask(processedData, rowFilter);
+  }, [processedData, rowFilter]);
 
   const toggleMuted = (val: any) => {
       const key = String(val);
@@ -2278,6 +2305,14 @@ export default function Home() {
       if (skipMuteReset.current) { skipMuteReset.current = false; return; }
       setMutedMap({});
   }, [colorBy, activeId]);
+
+  // A row filter names columns of one dataset — drop it when the active
+  // dataset changes, except during a workspace load / undo, which restore it.
+  const skipFilterReset = useRef(false);
+  useEffect(() => {
+      if (skipFilterReset.current) { skipFilterReset.current = false; return; }
+      setRowFilter(null);
+  }, [activeId]);
 
 
   // A 2D viewport is only meaningful for the columns it was framed on — dropping
@@ -2656,7 +2691,7 @@ export default function Home() {
           version: wsStore.WORKSPACE_VERSION,
           tables, datasets: datasetsOut, pinnedViews: pinsOut, analysisViews,
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
-          notes, mutedMap,
+          notes, mutedMap, rowFilter,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
           workspaceName: workspaceName.trim() || undefined,
           // Assistant transcript + wire history ride along (optional section,
@@ -2768,6 +2803,8 @@ export default function Home() {
           setRange2d(ws.range2d ?? null);
           setNotes(ws.notes ?? "");
           setMutedMap(ws.mutedMap ?? {});
+          skipFilterReset.current = true;
+          setRowFilter(Array.isArray(ws.rowFilter) && ws.rowFilter.length ? ws.rowFilter : null);
           setClusterMethod(ws.clusterMethod ?? "NONE");
           setEps(ws.eps ?? 0.5);
           setMinSamples(ws.minSamples ?? 5);
@@ -2819,7 +2856,7 @@ export default function Home() {
           wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* IndexedDB unavailable */ });
       }, 1500);
   }, [datasets, pinnedViews, analysisViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
-      notes, mutedMap, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
+      notes, mutedMap, rowFilter, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
       breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
 
   // Flush a pending save when the tab hides or unloads — this is what catches
@@ -3257,7 +3294,7 @@ export default function Home() {
           // scatter plot resolves the 17th digit, and the two together took a
           // measured 20,000-point 3D export from 3,831 KB to 2,148 KB with no
           // visible difference (finding F3).
-          const data = buildTraces(processedData, colorBy, viewMode, axes, labels, mutedMap, false, shapeBy, false)
+          const data = buildTraces(processedData, colorBy, viewMode, axes, labels, mutedMap, false, shapeBy, false, rowMask)
               .map(trace => {
                   const t = { ...trace } as Record<string, unknown>;
                   for (const key of ['x', 'y', 'z'] as const) {
@@ -3420,7 +3457,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 ? (getActivePlotDiv()?.layout?.scene?.camera ?? cameraRef.current)
                 : null,
             muted: { ...mutedMap },
-            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}` });
+            // A pin keeps the subgroup it was taken on; the rule rides along
+            // for the label and for the assistant's undo/workspace restore.
+            mask: rowMask,
+            rowFilter: rowMask ? rowFilter : null,
+            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}${rowMask ? ` · ${describeConditions(rowFilter!)}` : ''}` });
       startPinning(() => setPinnedViews(prev => [...prev, pin]));
   };
 
@@ -3644,6 +3685,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           shapeBy,
           viewMode,
           pinnedViews: pinnedViews.length,
+          rowFilter: rowMask && rowFilter
+              ? { conditions: rowFilter, shown: countMask(rowMask), total: processedData?.nRows ?? 0 }
+              : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
           pcaRuns: (activeDataset?.pcaRuns ?? []).map(r => ({
@@ -3976,6 +4020,28 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `${state === 'normal' ? 'Restored' : state === 'muted' ? 'Muted' : 'Hid'} ${categories.length} categor${categories.length === 1 ? 'y' : 'ies'} of ${colorBy}.`;
       },
 
+      setRowFilter: ({ conditions, mode = 'replace', clear }) => {
+          const t = latestTable();
+          if (!t) return 'No dataset loaded.';
+          if (clear) {
+              if (!rowFilter) return 'No row filter was active — all rows are already shown.';
+              setRowFilter(null);
+              return `Cleared the row filter — all ${t.nRows} rows are shown again.`;
+          }
+          const problems = validateConditions(t, conditions);
+          if (!Array.isArray(conditions) || !conditions.length) return 'Give at least one condition, or pass clear=true to remove the filter.';
+          if (problems.length) return `Not applied. ${problems.join(' ')} Columns: ${t.columns.join(', ')}.`;
+          const next = mode === 'add' && rowFilter ? [...rowFilter, ...(conditions as FilterCondition[])] : (conditions as FilterCondition[]);
+          const shown = countMask(buildRowMask(t, next));
+          if (shown === 0) return `Not applied: no rows satisfy ${describeConditions(next)}. Check the values with get_app_state (column profiles) — the filter is unchanged.`;
+          setRowFilter(next);
+          // Private mode withholds counts under the rare-value threshold, like
+          // the column profiles do — a filter that isolates two people should
+          // not report "2".
+          const shownText = !sessionPolicy.fullCategories && valueIsTooRare(shown) ? 'fewer than 5' : String(shown);
+          return `Showing ${shownText} of ${t.nRows} rows where ${describeConditions(next)}. Plot only — clustering, PCA, tests and charts still use all ${t.nRows} rows. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.`;
+      },
+
       transferColumn: ({ source_dataset, column, mode = 'order', key_column, new_name }) => {
           const tgt = activeDataset;
           if (!tgt) return 'No dataset loaded.';
@@ -4150,7 +4216,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
       snapshot: () => ({
           datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews,
-          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap,
+          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap, rowFilter,
       }),
 
       restore: (snap: any) => {
@@ -4175,6 +4241,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setBreakdownDirection(snap.breakdownDirection === 'group' ? 'group' : 'cluster');
           setHeatmapPalette(HEATMAP_PALETTES.includes(snap.heatmapPalette) ? snap.heatmapPalette : 'Viridis');
           setMutedMap(snap.mutedMap);
+          skipFilterReset.current = true;
+          setRowFilter(Array.isArray(snap.rowFilter) && snap.rowFilter.length ? snap.rowFilter : null);
           freshTableRef.current = null;
       },
   };
@@ -4275,11 +4343,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               id: 'active', data: processedData, colorBy, shapeBy,
               axes: effectiveAxes(activeDataset, viewMode),
               labels: effectiveLabels(activeDataset, viewMode),
-              viewMode, showAxes: showAxes[viewMode], aspect, muted: mutedMap,
+              viewMode, showAxes: showAxes[viewMode], aspect, muted: mutedMap, mask: rowMask,
               label: `${activeDataset.name} · live`,
           }
           : null),
-      [processedData, activeDataset, colorBy, shapeBy, viewMode, showAxes, aspect, mutedMap],
+      [processedData, activeDataset, colorBy, shapeBy, viewMode, showAxes, aspect, mutedMap, rowMask],
   );
   const allViews = useMemo(
       () => (activeView ? [activeView, ...pinnedViews, ...analysisViews] : []),
@@ -4856,6 +4924,28 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   <TmuxGrid views={allViews} renderView={renderView} />
                   <ThemedNotes notes={notes} setNotes={setNotes} theme={theme} />
                   <ThemedLegend view={allViews[0]} theme={theme} muted={mutedMap} onToggle={toggleMuted} />
+                  {rowMask && rowFilter && processedData && (
+                      <div
+                          data-guide="row-filter"
+                          className={`absolute top-2 left-2 z-30 flex items-center gap-2 px-2.5 py-1 text-[11px] shadow-sm ${theme === 'terminal'
+                              ? 'bg-black/80 border border-[#10ff50] text-[#10ff50] font-mono'
+                              : 'bg-[var(--background)] border-2 border-[var(--foreground)] text-[var(--foreground)] font-bold rounded-sm'}`}
+                          title="Display filter set by the assistant. Analyses still run on all rows."
+                      >
+                          <span className="uppercase tracking-wider opacity-60">Filter</span>
+                          <span>{describeConditions(rowFilter)}</span>
+                          <span className="opacity-60">{countMask(rowMask)} / {processedData.nRows}</span>
+                          <button
+                              type="button"
+                              onClick={() => setRowFilter(null)}
+                              aria-label="Clear row filter"
+                              title="Clear filter — show all rows"
+                              className="ml-1 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-0 p-0 flex items-center"
+                          >
+                              <X size={12} />
+                          </button>
+                      </div>
+                  )}
               </>
           ) : (
               <EmptyState

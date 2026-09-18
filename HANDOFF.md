@@ -479,6 +479,19 @@ unbiased-sample check, held in reserve.
      `colorBy` model, so it probably wants a transient "selection" overlay trace (or a
      synthetic boolean column) that leaves `colorBy` intact and clears on the next turn.
      Would pair well with the undo snapshot already taken per mutating turn.
+8b. **Assistant row filter — done (2026-09-18).** `set_row_filter` (tool) / `setRowFilter`
+   (bridge) shows only rows satisfying a conjunction of conditions on ANY column
+   (`eq neq lt lte gt gte in contains`; predicate shared with `get_rows_where` in
+   `src/lib/rowFilter.ts`, tested). It is a **display filter**: `rowMask` feeds
+   `buildTraces` (colour categories still come from the full column, so nobody's
+   palette index shifts), pins freeze the mask and carry the rule in their label,
+   the HTML export honours it, and it rides in undo snapshots, workspaces and the
+   autosaved session. A chip on the canvas (`data-guide="row-filter"`) shows the
+   rule and `shown / total` with an X to clear. Available in private mode (count
+   only; under-5 counts report "fewer than 5"). **Not yet:** clustering, PCA, tests
+   and charts still run on all rows — the tool result and prompt say so. Making
+   analyses honour the filter is the natural follow-up (and closes most of the
+   "highlight by rule" half of item 8).
 9. **Clustering: the gap is inputs, not algorithms (reviewed 2026-08-02).** Two findings
    worth acting on before any new method is added:
    - ~~No standardization.~~ **Done (2026-08-02):** "Standardize variables (z-score)"
