@@ -4,7 +4,7 @@
 import { sampleIndices } from './random';
 import { asNumber } from './table';
 
-type Cell = number | null | undefined | string;
+export type Cell = number | null | undefined | string;
 
 const numericPairs = (a: Cell[], b: Cell[]): [number, number][] => {
   const out: [number, number][] = [];

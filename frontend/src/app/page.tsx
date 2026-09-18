@@ -26,12 +26,13 @@ import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import type { ConversationBridge } from "@/components/AssistantPanel";
 import { GUIDE_TARGETS, paintYield } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
-import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
+import { correlation, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
 import { buildRowMask, countMask, describeConditions, validateConditions, type FilterCondition } from "@/lib/rowFilter";
+import { numericTails, correlationAllowed, groupComparisonReport } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
@@ -3613,10 +3614,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
           if (isNumeric) {
               // Shape, not just extent. min/max alone cannot tell the assistant
-              // that a variable is skewed, that its "0–100" range is really
-              // 0–10 with one outlier at 100, or that a 1–7 item is stacked at
-              // the ceiling — all things it should be warning the user about.
-              // Still strictly aggregate: no value is attributable to a row.
+              // that a variable is skewed or that a 1–7 item is stacked at the
+              // ceiling — things it should be warning the user about. But the
+              // extremes ARE attributable: the maximum is the value of whoever
+              // is at the top, so in private mode an extreme is reported only
+              // when at least five rows share it (numericTails). Quartiles
+              // stay — with n ≥ 5 they sit in the middle of the distribution.
               nums.sort((a, b) => a - b);
               const n = nums.length;
               const q = (p: number) => n ? nums[Math.min(n - 1, Math.floor(p * n))] : NaN;
@@ -3624,9 +3627,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               // Population sd (÷n), matching the rest of the app.
               const sd = n ? Math.sqrt(nums.reduce((s, v) => s + (v - mean) ** 2, 0) / n) : NaN;
               const r = (x: number) => (Number.isFinite(x) ? Math.round(x * 1e4) / 1e4 : x);
+              const tails = numericTails(nums, policy);
               return {
                   name: col, kind: 'numeric' as const, missing,
-                  min: r(nums[0]), max: r(nums[n - 1]),
+                  ...(tails.min != null ? { min: r(tails.min) } : {}),
+                  ...(tails.max != null ? { max: r(tails.max) } : {}),
+                  ...(tails.tailsWithheld ? { tailsWithheld: true } : {}),
                   mean: r(mean), sd: r(sd), q1: r(q(0.25)), median: r(q(0.5)), q3: r(q(0.75)),
               };
           }
@@ -3929,7 +3935,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const bad = [colA, colB].filter(c => !c || !numericColumns(t).includes(c));
           if (bad.length) return `Not numeric columns: ${bad.join(', ')}. Numeric: ${numericColumns(t).join(', ')}.`;
           const { n, pearson, spearman } = correlation(t.data[colA], t.data[colB]);
-          if (pearson == null) return `Not enough complete pairs (n=${n}) to correlate ${colA} and ${colB}.`;
+          if (pearson == null || !correlationAllowed(n, activePolicy)) return `Not enough complete pairs to correlate ${colA} and ${colB}${activePolicy.fullCategories ? ` (n=${n})` : ' (fewer than 5 in private mode)'}.`;
           return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).`;
       },
 
@@ -3943,32 +3949,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (!t) return 'No dataset loaded.';
           if (!numericColumns(t).includes(numericCol)) return `"${numericCol}" is not a numeric column. Numeric: ${numericColumns(t).join(', ')}.`;
           if (!t.columns.includes(groupCol)) return `"${groupCol}" is not a column.`;
-          const res = statsCompareGroups(t.data[numericCol], t.data[groupCol]);
-          if (!res.groups.length) return 'No complete observations to compare.';
-
-          // A grouping with (nearly) one row per group is an identifier, not a
-          // grouping: eta-squared is 1.000 by construction and means nothing.
-          // Refusing beats reporting a number that reads as a perfect result.
-          if (res.nGroups >= res.overall.n) {
-              return `"${groupCol}" has ${res.nGroups} distinct values across ${res.overall.n} observations — one per row. That is an identifier rather than a grouping, and eta-squared would be exactly 1.000 by construction. Pick a column with repeated values (a condition, demographic, or cluster).`;
-          }
-          if (res.nGroups > res.overall.n / 2) {
-              return `"${groupCol}" has ${res.nGroups} distinct values across only ${res.overall.n} observations (smallest group n=${res.minGroupN}). Group means are not estimable at that granularity and eta-squared would be inflated to near 1 by construction. Pick a coarser grouping.`;
-          }
-
-          const lines = res.groups.map(g => `${g.group}: mean=${g.mean.toFixed(2)}, sd=${g.sd == null ? 'n/a' : g.sd.toFixed(2)}, n=${g.n}`);
-          // Caveats the number cannot carry on its own.
-          const caveats: string[] = [];
-          if (res.singletonGroups) {
-              caveats.push(`${res.singletonGroups} group${res.singletonGroups === 1 ? ' has' : 's have'} a single observation, so no standard deviation exists for ${res.singletonGroups === 1 ? 'it' : 'them'}`);
-          }
-          if (res.minGroupN < 30) {
-              caveats.push(`the smallest group has n=${res.minGroupN}, so its mean is unstable`);
-          }
-          if (res.etaSquared != null && res.omegaSquared != null && res.etaSquared - res.omegaSquared > 0.05) {
-              caveats.push(`eta-squared is inflated here by the number of groups — omega-squared is the corrected figure`);
-          }
-          return `${numericCol} by ${groupCol} (overall mean=${res.overall.mean.toFixed(2)}, sd=${res.overall.sd == null ? 'n/a' : res.overall.sd.toFixed(2)} [sample, n-1], n=${res.overall.n}, ${res.nGroups} groups):\n${lines.join('\n')}\neta-squared=${res.etaSquared?.toFixed(3) ?? 'n/a'}, omega-squared=${res.omegaSquared?.toFixed(3) ?? 'n/a'} (share of variance explained by group; descriptive effect sizes, not significance tests).${caveats.length ? ` Note: ${caveats.join('; ')}.` : ''}`;
+          return groupComparisonReport(numericCol, groupCol, t.data[numericCol], t.data[groupCol], activePolicy).message;
       },
 
       suggestK: (maxK, standardizeArg) => {

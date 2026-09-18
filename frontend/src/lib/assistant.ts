@@ -42,6 +42,8 @@ export type ColumnProfile = {
   // --- numeric ---
   min?: number;
   max?: number;
+  /** Private mode: an extreme shared by fewer than 5 rows was left out. */
+  tailsWithheld?: boolean;
   /** Population sd (÷n), the convention used everywhere else in this app. */
   mean?: number;
   sd?: number;
@@ -732,7 +734,7 @@ export const buildSystemPrompt = (bridge: AppBridge): string => {
   // tool list toolsFor() built from the same policy, so both derive from it.
   const accessParagraph = policy.rowAccess
     ? `Every loaded dataset was explicitly declared public/open by the user. In addition to aggregate statistics you may inspect raw data: sample_rows (seeded random sample or top-N by a column), get_rows_where (filtered rows), and list_categories (full value counts, including single-row values). Each call returns at most ${MAX_SAMPLE_ROWS} rows — a token budget, not a privacy rule. Still prefer aggregates first: pull rows to verify anomalies, inspect outliers or specific cases, or answer questions the summaries cannot.`
-    : `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as min/max/mean/sd/quartiles — use those to notice skew, ceiling effects and likely outliers rather than asking for the data. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.${anyOpen ? ' (Some loaded datasets are marked open, but at least one is private, so the whole conversation runs at the private level — row tools are unavailable until every loaded dataset is open.)' : ''}`;
+    : `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as mean/sd/quartiles, plus min and max only when at least 5 rows share that extreme (tailsWithheld marks a column whose extreme belonged to too few people to report) — use the quartiles to notice skew and ceiling effects rather than asking for the data. Group statistics (compare_groups, cluster breakdowns, tests) list only groups of at least 5 rows and pool the rest unnamed. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.${anyOpen ? ' (Some loaded datasets are marked open, but at least one is private, so the whole conversation runs at the private level — row tools are unavailable until every loaded dataset is open.)' : ''}`;
   const cols = s.columns
     .map(c =>
       c.kind === 'numeric'
