@@ -149,3 +149,31 @@ export const validateConditionsForPolicy = (profile: AnalysisProfile, conds: Fil
   }
   return problems;
 };
+
+// ---------------------------------------------------------------------------
+// Running an analysis on the visible rows
+// ---------------------------------------------------------------------------
+
+/** The rows where `mask` is true, as a table of the same columns. */
+export const subsetTable = (t: DataTable, mask: boolean[]): DataTable => {
+  const idx: number[] = [];
+  for (let i = 0; i < t.nRows; i++) if (mask[i]) idx.push(i);
+  const data: Record<string, unknown[]> = {};
+  for (const c of t.columns) {
+    const src = t.data[c] ?? [];
+    data[c] = idx.map(i => src[i]);
+  }
+  return { columns: [...t.columns], data, nRows: idx.length };
+};
+
+/**
+ * Put a result computed on the subset back at the ORIGINAL row positions,
+ * null where the row was filtered out — so a Cluster label or a PC score
+ * column keeps the table's shape and a hidden row is honestly unscored.
+ */
+export const scatterBack = <T>(nRows: number, mask: boolean[], values: T[]): (T | null)[] => {
+  const out = new Array<T | null>(nRows).fill(null);
+  let j = 0;
+  for (let i = 0; i < nRows; i++) if (mask[i]) out[i] = values[j++] ?? null;
+  return out;
+};

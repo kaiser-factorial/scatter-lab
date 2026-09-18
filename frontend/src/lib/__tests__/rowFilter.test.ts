@@ -137,3 +137,18 @@ describe('validateConditionsForPolicy — a filter may only ask what the profile
     ])).toEqual([]);
   });
 });
+
+import { subsetTable, scatterBack } from '../rowFilter';
+
+describe('subsetTable / scatterBack', () => {
+  it('keeps only masked rows, in order, across every column', () => {
+    const sub = subsetTable(t, [true, false, true, false, false, true]);
+    expect(sub.nRows).toBe(3);
+    expect(sub.columns).toEqual(t.columns);
+    expect(sub.data.id).toEqual([1, 3, 6]);
+    expect(sub.data.answer).toEqual(['A', 'A', 'A']);
+  });
+  it('scatters subset results back with null for hidden rows', () => {
+    expect(scatterBack(6, [true, false, true, false, false, true], ['x', 'y', 'z'])).toEqual(['x', null, 'y', null, null, 'z']);
+  });
+});

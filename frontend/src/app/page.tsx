@@ -31,7 +31,7 @@ import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
-import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, type FilterCondition } from "@/lib/rowFilter";
+import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, subsetTable, scatterBack, type FilterCondition } from "@/lib/rowFilter";
 import { numericTails, correlationAllowed, groupComparisonReport } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
@@ -278,6 +278,8 @@ type PcaRun = {
     savedAt: string;
     varianceExplained: number[];
     missing?: MissingReport;
+    /** The row filter the run was computed under (rows outside it are unscored). */
+    filter?: FilterCondition[];
 };
 
 // One sentence naming what happened to the incomplete rows. Returns '' when
@@ -2291,8 +2293,17 @@ export default function Home() {
   // undo snapshots and workspaces carry the scope with them for free.
   const [rowFilterState, setRowFilterState] = useState<{ datasetId: number; conditions: FilterCondition[] } | null>(null);
   const rowFilter = rowFilterState && rowFilterState.datasetId === activeId ? rowFilterState.conditions : null;
-  const setRowFilter = (conds: FilterCondition[] | null) =>
-      setRowFilterState(conds?.length && activeId != null ? { datasetId: activeId, conditions: conds } : null);
+  // Tool calls in one model response run before React re-renders, so a
+  // set_row_filter followed by compare_groups in the same turn must not
+  // analyse the previous filter. The ref carries the just-set conditions
+  // until state catches up (same idea as freshTableRef for tables); it is
+  // honoured only for the dataset it was written for.
+  const pendingFilterRef = useRef<{ datasetId: number; conditions: FilterCondition[] | null } | null>(null);
+  const setRowFilter = (conds: FilterCondition[] | null) => {
+      const next = conds?.length ? conds : null;
+      if (activeId != null) pendingFilterRef.current = { datasetId: activeId, conditions: next };
+      setRowFilterState(next && activeId != null ? { datasetId: activeId, conditions: next } : null);
+  };
   // Recomputed only when the table or the filter changes; null when unfiltered
   // so buildTraces takes its unmasked fast path. Conditions on columns that
   // have since vanished (a re-run replacing PC columns) fail validation and
@@ -2302,6 +2313,12 @@ export default function Home() {
       if (validateConditions(processedData, rowFilter).length) return null;
       return buildRowMask(processedData, rowFilter);
   }, [processedData, rowFilter]);
+  // The visible rows as a table, for the panels that summarise "the data":
+  // the Cluster Info breakdown reads this so it describes what is on screen.
+  const analysisData = useMemo(
+      () => (processedData && rowMask ? subsetTable(processedData, rowMask) : processedData),
+      [processedData, rowMask],
+  );
 
   const toggleMuted = (val: any) => {
       const key = String(val);
@@ -2811,6 +2828,7 @@ export default function Home() {
           setRange2d(ws.range2d ?? null);
           setNotes(ws.notes ?? "");
           setMutedMap(ws.mutedMap ?? {});
+          pendingFilterRef.current = null;
           setRowFilterState(asRowFilterState(ws.rowFilter));
           setClusterMethod(ws.clusterMethod ?? "NONE");
           setEps(ws.eps ?? 0.5);
@@ -3070,9 +3088,12 @@ export default function Home() {
       // a plain 30ms timer can fire before the click frame presents.
       await paintYield();
       try {
+          const gate = analysisTable();
+          if (typeof gate === 'string') { setUploadStatus(gate); return; }
+          const { table: base, mask, filter, note: filterNote } = gate;
           const ax = effectiveAxes(activeDataset!, viewMode);
-          const rawCols = [processedData.data[ax.x], processedData.data[ax.y]];
-          if (ax.z) rawCols.push(processedData.data[ax.z]);
+          const rawCols = [base.data[ax.x], base.data[ax.y]];
+          if (ax.z) rawCols.push(base.data[ax.z]);
           const axNames = [ax.x, ax.y, ...(ax.z ? [ax.z] : [])];
           // Refuse before running: a text axis used to be filled with zeros and
           // clustered on silently, reporting a full set of sizes (A11).
@@ -3087,21 +3108,24 @@ export default function Home() {
           const labels = clusterMethod === "DBSCAN"
               ? dbscan(cols, eps, minSamples)
               : kmeans(cols, k);
+          // Rows outside the filter get null (drawn as N/A), not a label they
+          // never took part in computing.
+          const fullLabels = mask ? scatterBack(processedData.nRows, mask, labels) : labels;
           const newTable: DataTable = {
               columns: processedData.columns.includes("Cluster") ? processedData.columns : [...processedData.columns, "Cluster"],
-              data: { ...processedData.data, Cluster: labels },
+              data: { ...processedData.data, Cluster: fullLabels },
               nRows: processedData.nRows
           };
           setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
-          logProvenance(activeId, `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''} wrote the "Cluster" column`);
+          logProvenance(activeId, `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column`);
           // The pre-cluster coloring is the natural default for composition breakdowns
           if (colorBy !== "Cluster") setBreakdownBy(colorBy);
           setColorBy("Cluster");
           const sizes = new Map<string, number>();
           for (const l of labels) sizes.set(l, (sizes.get(l) ?? 0) + 1);
           setUploadStatus(
-              `${clusterMethod} on ${axNames.join(' · ')} — ${sortCategories(Array.from(sizes.keys())).map(l => `${l}: ${sizes.get(l)}`).join(', ')}.`
-              + missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: processedData.nRows, rowsDropped: 0 }, processedData.nRows));
+              `${clusterMethod} on ${axNames.join(' · ')} — ${sortCategories(Array.from(sizes.keys())).map(l => `${l}: ${sizes.get(l)}`).join(', ')}.${filterNote}`
+              + missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: base.nRows, rowsDropped: 0 }, base.nRows));
       } catch (err: any) {
           setUploadStatus(`Clustering failed: ${err?.message ?? err}`);
       } finally {
@@ -3488,8 +3512,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // the two entry points. Returns the aggregate text the caller may show or
   // hand to the model; a rejection returns the typed failures, formatted.
   const runAnalysisPlan = (plan: unknown): string => {
-      const t = latestTable();
-      if (!t || !activeDataset) return 'No dataset loaded.';
+      const gate = analysisTable();
+      if (typeof gate === 'string') return gate;
+      const { table: t, filter, note } = gate;
+      if (!activeDataset) return 'No dataset loaded.';
+      // Profile of the VISIBLE rows: group withholding then counts what the
+      // analysis will actually see, which can only be stricter.
       const profile = analysisProfileOf(t, activePolicy);
       const failures: ValidationFailure[] = validatePlan(plan, profile);
       if (failures.length) return formatFailures(failures);
@@ -3500,25 +3528,39 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       try {
           if (p.kind === 'test') {
               const result = runTestPlan(p, t, profile);
-              const label = `${result.statLabel}: ${p.column} by ${p.groupBy}`;
+              const label = `${result.statLabel}: ${p.column} by ${p.groupBy}${filterSuffix(filter)}`;
               startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label, test: result }]));
-              logProvenance(activeId, `Ran ${p.test} test: ${p.column} by ${p.groupBy}${p.groups ? ` (groups: ${p.groups.join(', ')})` : ''}`);
-              return `${formatTestResult(result)}\nA results card was added to the canvas.`;
+              logProvenance(activeId, `Ran ${p.test} test: ${p.column} by ${p.groupBy}${p.groups ? ` (groups: ${p.groups.join(', ')})` : ''}${filterSuffix(filter)}`);
+              return `${formatTestResult(result)}${note}\nA results card was added to the canvas.`;
           }
-          const chart = compileChart(p, t, profile);
+          const compiled = compileChart(p, t, profile);
+          const chart = filter ? { ...compiled, title: `${compiled.title}${filterSuffix(filter)}` } : compiled;
           startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label: chart.title, chart }]));
           logProvenance(activeId, `Plotted ${p.mark} chart: ${chart.title}`);
-          return `${chart.summary}${chart.notes.length ? `\nNotes: ${chart.notes.join(' ')}` : ''}\nThe chart was added to the canvas.`;
+          return `${chart.summary}${chart.notes.length ? `\nNotes: ${chart.notes.join(' ')}` : ''}${note}\nThe chart was added to the canvas.`;
       } catch (err) {
           return `Analysis error: ${(err as Error)?.message ?? err}`;
       }
   };
 
   const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
-      const t = freshTableRef.current ?? processedData;
-      if (!t || !activeDataset) return 'No dataset loaded.';
+      const gate = analysisTable();
+      if (typeof gate === 'string') { setUploadStatus(gate); return gate; }
+      const { table: base, full: t, mask, filter, note: filterNote } = gate;
+      if (!activeDataset) return 'No dataset loaded.';
       try {
-          const res = runPCA(t, vars, { k, standardize, label, missing });
+          const sub = runPCA(base, vars, { k, standardize, label, missing });
+          // Under a filter the PCA is fitted on the visible rows only; scores
+          // are scattered back into the full table, null for the rest.
+          const res = mask
+              ? (() => {
+                  const data = { ...t.data };
+                  for (const c of sub.replaced) delete data[c];
+                  for (const c of sub.columns) data[c] = scatterBack(t.nRows, mask, sub.table.data[c]);
+                  const columns = [...t.columns.filter(c => !sub.replaced.includes(c) && !sub.columns.includes(c)), ...sub.columns];
+                  return { ...sub, table: { columns, data, nRows: t.nRows } };
+              })()
+              : sub;
           freshTableRef.current = res.table;
           const topContributors = Object.fromEntries(
               Object.entries(res.loadings).map(([pc, rows]) => [pc, rows.slice(0, 5)])
@@ -3528,6 +3570,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               label: res.label, columns: cols, variables: vars, k: res.k, standardize,
               savedAt: new Date().toISOString(), varianceExplained: res.varianceExplained,
               missing: res.missing,
+              ...(filter ? { filter } : {}),
           };
           setDatasets(prev => prev.map(d => {
               if (d.id !== activeId) return d;
@@ -3551,17 +3594,17 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   pcaRuns: [...(d.pcaRuns ?? []).filter(r => r.label !== res.label), run],
               };
           }));
-          logProvenance(activeId, `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing}) added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}`);
+          logProvenance(activeId, `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing})${filterSuffix(filter)} added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}`);
           if (res.k < 3) setViewMode('2D');
           setPcaInfo({ varianceExplained: res.varianceExplained, cumulative: res.cumulative, spectrum: res.spectrum, eigenvalues: res.eigenvalues, standardize, k: res.k, columns: res.columns });
           const pct = res.varianceExplained.map((v, i) => `${cols[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(', ');
           const replacedNote = res.replaced.length
               ? ` Replaced the previous ${res.label ? `"${res.label}"` : 'unnamed'} run (${res.replaced.join(', ')}).`
               : '';
-          const impNote = missingNote(res.missing, t.nRows);
+          const impNote = missingNote(res.missing, base.nRows);
           const msg = res.k === 1
-              ? `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept the top component as composite "${cols[0]}" — ${pct} of variance.${replacedNote} It is plotted on the X axis.${impNote}`
-              : `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept ${res.k} components — ${pct} (cumulative ${(res.cumulative[res.cumulative.length - 1] * 100).toFixed(0)}%).${replacedNote} Scores added as ${res.label ? `${res.label}-labeled` : 'PC'} columns and plotted.${impNote}`;
+              ? `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept the top component as composite "${cols[0]}" — ${pct} of variance.${replacedNote} It is plotted on the X axis.${filterNote}${impNote}`
+              : `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept ${res.k} components — ${pct} (cumulative ${(res.cumulative[res.cumulative.length - 1] * 100).toFixed(0)}%).${replacedNote} Scores added as ${res.label ? `${res.label}-labeled` : 'PC'} columns and plotted.${filterNote}${impNote}`;
           setUploadStatus(msg);
           return msg;
       } catch (err: any) {
@@ -3578,6 +3621,35 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   const freshTableRef = useRef<DataTable | null>(null);
   useEffect(() => { freshTableRef.current = null; }, [processedData]);
   const latestTable = (): DataTable | null => freshTableRef.current ?? processedData;
+
+  // --- The analysis gate -----------------------------------------------------
+  // Every analysis — clustering, PCA, tests, charts, correlations, group
+  // comparisons, diagnostics, and the open-mode row readers — starts here, so
+  // the chip's promise ("analyses use the visible rows") holds everywhere. In
+  // private mode a filter that leaves fewer than MIN_AGGREGATE_COUNT rows is
+  // refused with one fixed message: a subgroup that small is a person, and
+  // any statistic over it would be that person's value. The column profiles
+  // in get_app_state deliberately do NOT go through here — filter to five
+  // rows and a filtered profile's quartiles are individual values.
+  const FILTER_FLOOR_MESSAGE = 'The active row filter leaves fewer than 5 rows, which is below the privacy floor in private mode. Widen or clear the filter (set_row_filter) before running an analysis.';
+  type AnalysisInput = { table: DataTable; full: DataTable; mask: boolean[] | null; filter: FilterCondition[] | null; note: string };
+  // The filter as of NOW, including one set earlier in this same turn.
+  const currentFilter = (): FilterCondition[] | null => {
+      const pend = pendingFilterRef.current;
+      return pend && pend.datasetId === activeId && pend.conditions !== rowFilter ? pend.conditions : rowFilter;
+  };
+  const analysisTable = (): AnalysisInput | string => {
+      const t = latestTable();
+      if (!t) return 'No dataset loaded.';
+      const conds = currentFilter();
+      if (!conds?.length || validateConditions(t, conds).length) return { table: t, full: t, mask: null, filter: null, note: '' };
+      const mask = buildRowMask(t, conds);
+      const shown = countMask(mask);
+      if (!sessionPolicy.fullCategories && valueIsTooRare(shown)) return FILTER_FLOOR_MESSAGE;
+      if (shown === 0) return `The active row filter (${describeConditions(conds)}) leaves no rows. Widen or clear it (set_row_filter) before running an analysis.`;
+      return { table: subsetTable(t, mask), full: t, mask, filter: conds, note: ` [on the filtered rows: ${describeConditions(conds)} — ${shown} of ${t.nRows}]` };
+  };
+  const filterSuffix = (filter: FilterCondition[] | null) => (filter ? ` · ${describeConditions(filter)}` : '');
 
   // What the assistant may see is the ACTIVE dataset's own mode — profiles
   // describe one dataset. (The tool list is stricter: combinedPolicy over all
@@ -3712,6 +3784,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               standardize: r.standardize, savedAt: r.savedAt,
               varianceExplained: r.varianceExplained.map(v => Math.round(v * 1000) / 1000),
               missing: r.missing && { strategy: r.missing.strategy, imputedCells: r.missing.imputedCells, rowsUsed: r.missing.rowsUsed, rowsDropped: r.missing.rowsDropped },
+              ...(r.filter ? { filter: r.filter } : {}),
           })),
       }),
 
@@ -3767,11 +3840,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       runClustering: (method, opts) => {
-          const t = latestTable();
-          if (!t || !activeDataset) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: base, full: t, mask, filter, note: filterNote } = gate;
+          if (!activeDataset) return 'No dataset loaded.';
           const ax = effectiveAxes(activeDataset, viewMode);
-          const rawCols = [t.data[ax.x], t.data[ax.y]];
-          if (ax.z) rawCols.push(t.data[ax.z]);
+          const rawCols = [base.data[ax.x], base.data[ax.y]];
+          if (ax.z) rawCols.push(base.data[ax.z]);
           const useEps = opts.eps ?? eps, useMin = opts.min_samples ?? minSamples, useK = opts.k ?? k;
           const useStd = opts.standardize ?? standardize;
           const axNames = [ax.x, ax.y, ...(ax.z ? [ax.z] : [])];
@@ -3782,14 +3857,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const cols = useStd ? zscoreCellColumns(rawCols) : rawCols;
           const imp = countImputed(rawCols, axNames);
           const labels = method === 'DBSCAN' ? dbscan(cols, useEps, useMin) : kmeans(cols, useK);
+          const fullLabels = mask ? scatterBack(t.nRows, mask, labels) : labels;
           const newTable: DataTable = {
               columns: t.columns.includes('Cluster') ? t.columns : [...t.columns, 'Cluster'],
-              data: { ...t.data, Cluster: labels },
+              data: { ...t.data, Cluster: fullLabels },
               nRows: t.nRows,
           };
           freshTableRef.current = newTable;
           setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
-          logProvenance(activeId, `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''} wrote the "Cluster" column`);
+          logProvenance(activeId, `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column`);
           setClusterMethod(method);
           if (opts.eps != null) setEps(opts.eps);
           if (opts.min_samples != null) setMinSamples(opts.min_samples);
@@ -3803,12 +3879,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const stdNote = useStd
               ? ` Variables were z-scored first${method === 'DBSCAN' ? ' (eps is in SD units)' : ''}.`
               : ' Variables were used on their raw scales.';
-          return `${method} done on ${ax.z ? '3' : '2'} axes (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')}). Sizes — ${summary}.${stdNote}${missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: t.nRows, rowsDropped: 0 }, t.nRows)} Points are now colored by cluster.`;
+          return `${method} done on ${ax.z ? '3' : '2'} axes (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')}). Sizes — ${summary}.${filterNote}${mask ? ' Rows outside the filter were not clustered and show as N/A.' : ''}${stdNote}${missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: base.nRows, rowsDropped: 0 }, base.nRows)} Points are now colored by cluster.`;
       },
 
       getClusterBreakdown: (attribute) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
           const clusterCol = t.data['Cluster'];
           if (!clusterCol) return 'No clustering has been run yet — call run_clustering first.';
           if (!attribute || !t.columns.includes(attribute)) {
@@ -3847,12 +3924,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               const rows = shown.map(([v, n]) => `${v} ${Math.round((n / total) * 100)}% (${n})`).join(', ');
               const tail = hidden ? `${shown.length ? ', ' : ''}${hidden} rarer value${hidden === 1 ? '' : 's'} not listed` : '';
               return `${ck} (n=${total}): ${rows}${tail}`;
-          }).join('\n');
+          }).join('\n') + note;
       },
 
       saveClusterHeatmap: async ({ attribute, direction, palette }) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t } = gate;
           if (!t.data.Cluster) return 'No clustering has been run yet — call run_clustering first.';
           const candidates = t.columns.filter(c => c !== 'Cluster' && getColorFieldKind(t.data[c] ?? []) === 'categorical');
           if (!candidates.includes(attribute)) {
@@ -3930,13 +4008,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       correlate: (colA, colB) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
           const bad = [colA, colB].filter(c => !c || !numericColumns(t).includes(c));
           if (bad.length) return `Not numeric columns: ${bad.join(', ')}. Numeric: ${numericColumns(t).join(', ')}.`;
           const { n, pearson, spearman } = correlation(t.data[colA], t.data[colB]);
           if (pearson == null || !correlationAllowed(n, activePolicy)) return `Not enough complete pairs to correlate ${colA} and ${colB}${activePolicy.fullCategories ? ` (n=${n})` : ' (fewer than 5 in private mode)'}.`;
-          return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).`;
+          return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).${note}`;
       },
 
       // Both go through the ONE analysis gate (validator → executor → pane →
@@ -3945,16 +4024,20 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       plotChart: (plan) => runAnalysisPlan(plan),
 
       compareGroups: (numericCol, groupCol) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
           if (!numericColumns(t).includes(numericCol)) return `"${numericCol}" is not a numeric column. Numeric: ${numericColumns(t).join(', ')}.`;
           if (!t.columns.includes(groupCol)) return `"${groupCol}" is not a column.`;
-          return groupComparisonReport(numericCol, groupCol, t.data[numericCol], t.data[groupCol], activePolicy).message;
+          const report = groupComparisonReport(numericCol, groupCol, t.data[numericCol], t.data[groupCol], activePolicy);
+          return report.ok ? report.message + note : report.message;
       },
 
       suggestK: (maxK, standardizeArg) => {
-          const t = latestTable();
-          if (!t || !activeDataset) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
+          if (!activeDataset) return 'No dataset loaded.';
           const ax = effectiveAxes(activeDataset, viewMode);
           // Diagnostics must see the same units the clustering will use, or the
           // suggestion answers a different question than the run. run_clustering
@@ -3968,12 +4051,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const rows = silhouetteByK(cols, kmeans, maxK);
           if (!rows.length) return 'Too few complete rows on the current axes to evaluate.';
           const best = rows.reduce((a, b) => (b.silhouette > a.silhouette ? b : a));
-          return `Mean silhouette by k on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ', z-scored' : ', raw scales'} — pass standardize=${useStd} to run_clustering to match:\n${rows.map(r => `k=${r.k}: ${r.silhouette.toFixed(3)}${r.k === best.k ? '  ← best' : ''}`).join('\n')}\n(Computed on up to 1200 sampled rows. Higher = better separated; values under ~0.25 suggest weak structure.)`;
+          return `Mean silhouette by k on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ', z-scored' : ', raw scales'} — pass standardize=${useStd} to run_clustering to match:\n${rows.map(r => `k=${r.k}: ${r.silhouette.toFixed(3)}${r.k === best.k ? '  ← best' : ''}`).join('\n')}\n(Computed on up to 1200 sampled rows. Higher = better separated; values under ~0.25 suggest weak structure.)${note}`;
       },
 
       suggestEps: (minSamplesArg, standardizeArg) => {
-          const t = latestTable();
-          if (!t || !activeDataset) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
+          if (!activeDataset) return 'No dataset loaded.';
           const ms = minSamplesArg ?? minSamples;
           const useStd = standardizeArg ?? standardize;   // see suggestK (D2)
           const ax = effectiveAxes(activeDataset, viewMode);
@@ -3983,7 +4068,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const res = kDistancePercentiles(cols, ms);
           if (!res) return 'Too few complete rows on the current axes.';
           const p = res.percentiles;
-          return `k-distance percentiles for min_samples=${ms} on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ' after z-scoring (eps will be in SD units)' : ' on raw scales'}: p50=${p.p50.toFixed(3)}, p75=${p.p75.toFixed(3)}, p90=${p.p90.toFixed(3)}, p95=${p.p95.toFixed(3)}, max=${p.max.toFixed(3)}. These are distances to each point's ${res.kthNeighbor}-nearest neighbour — min_samples counts the point itself, so that is the eps at which a point becomes a core point. A good eps usually sits near the knee (~p90–p95); smaller eps → more points labeled Noise. Computed on ${res.n} rows${res.n >= 2000 ? ' (a seeded random sample, capped at 2000)' : ''}. Pass standardize=${useStd} to run_clustering so the run uses these units.`;
+          return `k-distance percentiles for min_samples=${ms} on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ' after z-scoring (eps will be in SD units)' : ' on raw scales'}: p50=${p.p50.toFixed(3)}, p75=${p.p75.toFixed(3)}, p90=${p.p90.toFixed(3)}, p95=${p.p95.toFixed(3)}, max=${p.max.toFixed(3)}. These are distances to each point's ${res.kthNeighbor}-nearest neighbour — min_samples counts the point itself, so that is the eps at which a point becomes a core point. A good eps usually sits near the knee (~p90–p95); smaller eps → more points labeled Noise. Computed on ${res.n} rows${res.n >= 2000 ? ' (a seeded random sample, capped at 2000)' : ''}. Pass standardize=${useStd} to run_clustering so the run uses these units.${note}`;
       },
 
       switchDataset: (name) => {
@@ -4015,8 +4100,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       setRowFilter: ({ conditions, mode = 'replace', clear }) => {
           const t = latestTable();
           if (!t) return 'No dataset loaded.';
+          const active = currentFilter();
           if (clear) {
-              if (!rowFilter) return 'No row filter was active — all rows are already shown.';
+              if (!active) return 'No row filter was active — all rows are already shown.';
               setRowFilter(null);
               return `Cleared the row filter — all ${t.nRows} rows are shown again.`;
           }
@@ -4029,7 +4115,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           // response cannot depend on what the rows contain.
           const policyProblems = validateConditionsForPolicy(analysisProfileOf(t, sessionPolicy), conditions as FilterCondition[]);
           if (policyProblems.length) return `Not applied. ${policyProblems.join(' ')}`;
-          const next = mode === 'add' && rowFilter ? [...rowFilter, ...(conditions as FilterCondition[])] : (conditions as FilterCondition[]);
+          const next = mode === 'add' && active ? [...active, ...(conditions as FilterCondition[])] : (conditions as FilterCondition[]);
           const shown = countMask(buildRowMask(t, next));
           // In open mode an empty result is a mistake worth catching before it
           // blanks the plot. In private mode "0" would confirm that a withheld
@@ -4037,7 +4123,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           // same way as any other small count.
           if (shown === 0 && sessionPolicy.fullCategories) return `Not applied: no rows satisfy ${describeConditions(next)}. Check the values with get_app_state (column profiles) — the filter is unchanged.`;
           setRowFilter(next);
-          return `Showing ${withheldCount(shown)} of ${t.nRows} rows where ${describeConditions(next)}. Plot only — clustering, PCA, tests and charts still use all ${t.nRows} rows. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.`;
+          return `Showing ${withheldCount(shown)} of ${t.nRows} rows where ${describeConditions(next)}. Every analysis (clustering, PCA, tests, charts, correlations, group comparisons) now runs on these rows only; the column profiles in get_app_state still describe the full dataset. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.`;
       },
 
       transferColumn: ({ source_dataset, column, mode = 'order', key_column, new_name }) => {
@@ -4193,22 +4279,25 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       // dataset, is refused rather than answered.
       sampleRows: (opts) => {
           if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const t = gate.table;
           return sampleRowsCore(t, opts);
       },
 
       getRowsWhere: (opts) => {
           if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const t = gate.table;
           return rowsWhereCore(t, opts);
       },
 
       listCategories: (column) => {
           if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const t = gate.table;
           return listCategoriesCore(t, column);
       },
 
@@ -4239,6 +4328,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setBreakdownDirection(snap.breakdownDirection === 'group' ? 'group' : 'cluster');
           setHeatmapPalette(HEATMAP_PALETTES.includes(snap.heatmapPalette) ? snap.heatmapPalette : 'Viridis');
           setMutedMap(snap.mutedMap);
+          pendingFilterRef.current = null;
           setRowFilterState(asRowFilterState(snap.rowFilter));
           freshTableRef.current = null;
       },
@@ -4853,7 +4943,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
                 {processedData.columns.includes('Cluster') && (
                     <ClusterBreakdown
-                        table={processedData}
+                        table={analysisData ?? processedData}
                         attr={breakdownBy}
                         onAttrChange={setBreakdownBy}
                         direction={breakdownDirection}
@@ -4927,7 +5017,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                           className={`absolute top-2 left-2 z-30 flex items-center gap-2 px-2.5 py-1 text-[11px] shadow-sm ${theme === 'terminal'
                               ? 'bg-black/80 border border-[#10ff50] text-[#10ff50] font-mono'
                               : 'bg-[var(--background)] border-2 border-[var(--foreground)] text-[var(--foreground)] font-bold rounded-sm'}`}
-                          title="Display filter set by the assistant. Analyses still run on all rows."
+                          title="Row filter set by the assistant. The plot and every analysis use these rows; clear it to return to the full dataset."
                       >
                           <span className="uppercase tracking-wider opacity-60">Filter</span>
                           <span>{describeConditions(rowFilter)}</span>
