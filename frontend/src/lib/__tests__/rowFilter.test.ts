@@ -93,3 +93,47 @@ describe('describeConditions', () => {
     ])).toBe('answer = A · score ≥ 30 · group in {a, b}');
   });
 });
+
+import { validateConditionsForPolicy } from '../rowFilter';
+import { analysisProfileOf } from '../validators';
+import { policyFor } from '../dataPolicy';
+
+describe('validateConditionsForPolicy — a filter may only ask what the profile answers', () => {
+  const survey = table({
+    participant_id: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'],
+    first_name: ['Rebecca', 'Tom', 'Ana', 'Lee', 'Sam', 'Kim', 'Bo', 'Ada', 'Ivy', 'Max'],
+    condition: ['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'],
+    site: ['north', 'north', 'north', 'north', 'north', 'north', 'north', 'north', 'north', 'south'],
+    age: [21, 34, 45, 29, 52, 38, 41, 27, 33, 60],
+  });
+  const priv = analysisProfileOf(survey, policyFor('private'));
+  const open = analysisProfileOf(survey, policyFor('open'));
+
+  it('open mode allows everything', () => {
+    expect(validateConditionsForPolicy(open, [{ column: 'first_name', op: 'eq', value: 'Rebecca' }])).toEqual([]);
+  });
+  it('private mode refuses identifier columns and columns with no groupable value', () => {
+    const p = validateConditionsForPolicy(priv, [
+      { column: 'participant_id', op: 'eq', value: 'p1' },
+      { column: 'first_name', op: 'contains', value: 'reb' },
+    ]);
+    expect(p).toHaveLength(2);
+    expect(p[0]).toContain('identifier');
+    expect(p[1]).toContain('no value covering enough rows');
+    expect(p.join(' ')).not.toContain('Rebecca');
+  });
+  it('a withheld value and a nonexistent value get byte-identical refusals', () => {
+    const withheld = validateConditionsForPolicy(priv, [{ column: 'site', op: 'eq', value: 'south' }]);
+    const missing = validateConditionsForPolicy(priv, [{ column: 'site', op: 'eq', value: 'east' }]);
+    expect(withheld).toHaveLength(1);
+    expect(withheld[0].replace('south', 'X')).toBe(missing[0].replace('east', 'X'));
+    expect(withheld[0]).toContain('Listed values: north');
+  });
+  it('listed values and numeric comparisons pass', () => {
+    expect(validateConditionsForPolicy(priv, [
+      { column: 'condition', op: 'in', value: ['A', 'B'] },
+      { column: 'age', op: 'gte', value: 30 },
+      { column: 'site', op: 'neq', value: 'north' },
+    ])).toEqual([]);
+  });
+});

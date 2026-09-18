@@ -1,4 +1,5 @@
 import { asNumber, type DataTable } from './table';
+import type { AnalysisProfile } from './analysisPlan';
 
 // A row filter is a conjunction of simple conditions on columns of the active
 // table: "show only rows where Q7 = 'A' and age >= 30". It is a DISPLAY filter
@@ -108,3 +109,43 @@ export const describeConditions = (conds: FilterCondition[]): string =>
       : String(value);
     return `${column} ${OP_SYMBOL[op]} ${shown}`;
   }).join(' · ');
+
+// ---------------------------------------------------------------------------
+// Policy check: what a filter may reference in private mode
+// ---------------------------------------------------------------------------
+//
+// A filter is a question about rows, so it must not be able to ask what the
+// column profile refuses to answer. "first_name = Rebecca" turns a names
+// column — which the profile withholds entirely — into a membership oracle,
+// and once analyses honour the filter, into that person's values. The rule is
+// therefore the profile's own: a condition may name only a column the profile
+// describes and only values the profile lists. A withheld value gets the SAME
+// refusal as a value that was never in the data (see validators.ts).
+
+
+export const validateConditionsForPolicy = (profile: AnalysisProfile, conds: FilterCondition[]): string[] => {
+  if (profile.policy.fullCategories) return [];
+  const problems: string[] = [];
+  for (const { column, op, value } of conds) {
+    const col = profile.columns.find(c => c.name === column);
+    if (!col) continue; // structural validation reports unknown columns
+    if (col.isIdentifier) {
+      problems.push(`"${column}" is an identifier column, so a filter on it would select individuals rather than a group.`);
+      continue;
+    }
+    if (col.isNumeric) continue;
+    const listed = (col.groups ?? []).filter(g => !g.withheld).map(g => g.value);
+    if (!listed.length) {
+      problems.push(`"${column}" has no value covering enough rows to describe a group, so it cannot be filtered on in private mode.`);
+      continue;
+    }
+    if (op === 'eq' || op === 'neq' || op === 'in') {
+      const named = (Array.isArray(value) ? value : [value]).map(String);
+      const unknown = named.filter(v => !listed.includes(v));
+      if (unknown.length) {
+        problems.push(`${unknown.map(v => `"${v}"`).join(', ')} ${unknown.length === 1 ? 'is not a value' : 'are not values'} of "${column}" that the column profile lists. Listed values: ${listed.join(', ')}.`);
+      }
+    }
+  }
+  return problems;
+};

@@ -31,7 +31,7 @@ import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
-import { buildRowMask, countMask, describeConditions, validateConditions, type FilterCondition } from "@/lib/rowFilter";
+import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, type FilterCondition } from "@/lib/rowFilter";
 import { numericTails, correlationAllowed, groupComparisonReport } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
@@ -4023,6 +4023,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const problems = validateConditions(t, conditions);
           if (!Array.isArray(conditions) || !conditions.length) return 'Give at least one condition, or pass clear=true to remove the filter.';
           if (problems.length) return `Not applied. ${problems.join(' ')} Columns: ${t.columns.join(', ')}.`;
+          // Private mode: a condition may name only columns the profile
+          // describes and values it lists — the session-wide (stricter) policy,
+          // as for the count. Refused before anything is computed, so the
+          // response cannot depend on what the rows contain.
+          const policyProblems = validateConditionsForPolicy(analysisProfileOf(t, sessionPolicy), conditions as FilterCondition[]);
+          if (policyProblems.length) return `Not applied. ${policyProblems.join(' ')}`;
           const next = mode === 'add' && rowFilter ? [...rowFilter, ...(conditions as FilterCondition[])] : (conditions as FilterCondition[]);
           const shown = countMask(buildRowMask(t, next));
           // In open mode an empty result is a mistake worth catching before it
