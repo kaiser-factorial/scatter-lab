@@ -72,7 +72,7 @@ export type AppBridge = {
     viewMode: '2D' | '3D';
     pinnedViews: number;
     // Active display filter (null = none) and how many rows it leaves visible.
-    rowFilter?: { conditions: FilterCondition[]; shown: number; total: number } | null;
+    rowFilter?: { conditions: FilterCondition[]; shown: number | string; total: number } | null;
     clusterSettings: { method: string; eps: number; minSamples: number; k: number; standardize: boolean };
     clusterBreakdown: { attribute: string; direction: 'cluster' | 'group'; palette: 'Viridis' | 'Inferno' | 'Greens' };
     pcaRuns: {

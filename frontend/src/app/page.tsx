@@ -406,6 +406,15 @@ const shapeCategories = (vals: any[]) => {
     return sortCategories(Array.from(seen));
 };
 
+// Deserialization guard for a stored row filter (undo snapshot, workspace,
+// session): anything malformed loads as "no filter".
+const asRowFilterState = (v: unknown): { datasetId: number; conditions: FilterCondition[] } | null => {
+    if (!v || typeof v !== 'object') return null;
+    const { datasetId, conditions } = v as { datasetId?: unknown; conditions?: unknown };
+    if (typeof datasetId !== "number" || !Array.isArray(conditions) || !conditions.length) return null;
+    return { datasetId, conditions: conditions as FilterCondition[] };
+};
+
 // `mask` (one boolean per row, from a row filter) drops points from every trace
 // while the colour categories are still taken from the FULL column, so a
 // filter that empties a category never shifts anybody's palette index.
@@ -2276,7 +2285,13 @@ export default function Home() {
   const [mutedMap, setMutedMap] = useState<MuteMap>({});
   // Assistant-set display filter on the active dataset (null = show all rows).
   // Plot-only: analyses keep running on the full table.
-  const [rowFilter, setRowFilter] = useState<FilterCondition[] | null>(null);
+  // Stamped with the dataset it was written for: a filter names columns of
+  // one table, and scoping by id (rather than resetting in an effect) means
+  // undo snapshots and workspaces carry the scope with them for free.
+  const [rowFilterState, setRowFilterState] = useState<{ datasetId: number; conditions: FilterCondition[] } | null>(null);
+  const rowFilter = rowFilterState && rowFilterState.datasetId === activeId ? rowFilterState.conditions : null;
+  const setRowFilter = (conds: FilterCondition[] | null) =>
+      setRowFilterState(conds?.length && activeId != null ? { datasetId: activeId, conditions: conds } : null);
   // Recomputed only when the table or the filter changes; null when unfiltered
   // so buildTraces takes its unmasked fast path. Conditions on columns that
   // have since vanished (a re-run replacing PC columns) fail validation and
@@ -2305,14 +2320,6 @@ export default function Home() {
       if (skipMuteReset.current) { skipMuteReset.current = false; return; }
       setMutedMap({});
   }, [colorBy, activeId]);
-
-  // A row filter names columns of one dataset — drop it when the active
-  // dataset changes, except during a workspace load / undo, which restore it.
-  const skipFilterReset = useRef(false);
-  useEffect(() => {
-      if (skipFilterReset.current) { skipFilterReset.current = false; return; }
-      setRowFilter(null);
-  }, [activeId]);
 
 
   // A 2D viewport is only meaningful for the columns it was framed on — dropping
@@ -2691,7 +2698,7 @@ export default function Home() {
           version: wsStore.WORKSPACE_VERSION,
           tables, datasets: datasetsOut, pinnedViews: pinsOut, analysisViews,
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
-          notes, mutedMap, rowFilter,
+          notes, mutedMap, rowFilter: rowFilterState,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
           workspaceName: workspaceName.trim() || undefined,
           // Assistant transcript + wire history ride along (optional section,
@@ -2803,8 +2810,7 @@ export default function Home() {
           setRange2d(ws.range2d ?? null);
           setNotes(ws.notes ?? "");
           setMutedMap(ws.mutedMap ?? {});
-          skipFilterReset.current = true;
-          setRowFilter(Array.isArray(ws.rowFilter) && ws.rowFilter.length ? ws.rowFilter : null);
+          setRowFilterState(asRowFilterState(ws.rowFilter));
           setClusterMethod(ws.clusterMethod ?? "NONE");
           setEps(ws.eps ?? 0.5);
           setMinSamples(ws.minSamples ?? 5);
@@ -2856,7 +2862,7 @@ export default function Home() {
           wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* IndexedDB unavailable */ });
       }, 1500);
   }, [datasets, pinnedViews, analysisViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
-      notes, mutedMap, rowFilter, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
+      notes, mutedMap, rowFilterState, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
       breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
 
   // Flush a pending save when the tab hides or unloads — this is what catches
@@ -3584,6 +3590,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset?.dataMode],
   );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
+  // Private mode withholds counts under the rare-value threshold, like the
+  // column profiles do — a filter that isolates two people must not say "2".
+  const withheldCount = (n: number): number | string =>
+      !sessionPolicy.fullCategories && valueIsTooRare(n) ? 'fewer than 5' : n;
 
   const columnProfiles = (): ColumnProfile[] => {
       const t = latestTable();
@@ -3685,8 +3695,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           shapeBy,
           viewMode,
           pinnedViews: pinnedViews.length,
+          // Private mode withholds small counts here as in the column profiles.
           rowFilter: rowMask && rowFilter
-              ? { conditions: rowFilter, shown: countMask(rowMask), total: processedData?.nRows ?? 0 }
+              ? { conditions: rowFilter, shown: withheldCount(countMask(rowMask)), total: processedData?.nRows ?? 0 }
               : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
@@ -4033,13 +4044,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (problems.length) return `Not applied. ${problems.join(' ')} Columns: ${t.columns.join(', ')}.`;
           const next = mode === 'add' && rowFilter ? [...rowFilter, ...(conditions as FilterCondition[])] : (conditions as FilterCondition[]);
           const shown = countMask(buildRowMask(t, next));
-          if (shown === 0) return `Not applied: no rows satisfy ${describeConditions(next)}. Check the values with get_app_state (column profiles) — the filter is unchanged.`;
+          // In open mode an empty result is a mistake worth catching before it
+          // blanks the plot. In private mode "0" would confirm that a withheld
+          // value does not exist, so the filter is applied and reported the
+          // same way as any other small count.
+          if (shown === 0 && sessionPolicy.fullCategories) return `Not applied: no rows satisfy ${describeConditions(next)}. Check the values with get_app_state (column profiles) — the filter is unchanged.`;
           setRowFilter(next);
-          // Private mode withholds counts under the rare-value threshold, like
-          // the column profiles do — a filter that isolates two people should
-          // not report "2".
-          const shownText = !sessionPolicy.fullCategories && valueIsTooRare(shown) ? 'fewer than 5' : String(shown);
-          return `Showing ${shownText} of ${t.nRows} rows where ${describeConditions(next)}. Plot only — clustering, PCA, tests and charts still use all ${t.nRows} rows. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.`;
+          return `Showing ${withheldCount(shown)} of ${t.nRows} rows where ${describeConditions(next)}. Plot only — clustering, PCA, tests and charts still use all ${t.nRows} rows. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.`;
       },
 
       transferColumn: ({ source_dataset, column, mode = 'order', key_column, new_name }) => {
@@ -4216,7 +4227,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
       snapshot: () => ({
           datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews,
-          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap, rowFilter,
+          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap, rowFilter: rowFilterState,
       }),
 
       restore: (snap: any) => {
@@ -4241,8 +4252,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setBreakdownDirection(snap.breakdownDirection === 'group' ? 'group' : 'cluster');
           setHeatmapPalette(HEATMAP_PALETTES.includes(snap.heatmapPalette) ? snap.heatmapPalette : 'Viridis');
           setMutedMap(snap.mutedMap);
-          skipFilterReset.current = true;
-          setRowFilter(Array.isArray(snap.rowFilter) && snap.rowFilter.length ? snap.rowFilter : null);
+          setRowFilterState(asRowFilterState(snap.rowFilter));
           freshTableRef.current = null;
       },
   };
