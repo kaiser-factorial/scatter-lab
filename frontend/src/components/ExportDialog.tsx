@@ -11,7 +11,12 @@ import { DATA_FORMATS, type DataFormat, type ImageFormat } from '@/lib/export';
 // Portalled to <body> and `fixed` for the same reason InfoDialog is: the
 // sidebar is a positioned, scrolling stacking context over a WebGL canvas.
 
-export type ImageExportOptions = { format: ImageFormat; info: boolean; axes: boolean; scale: 1 | 2 | 4 };
+export type ImageExportOptions = {
+  format: ImageFormat;
+  title: boolean; legend: boolean;
+  axes: boolean; grid: boolean; labels: boolean;
+  scale: 1 | 2 | 4;
+};
 export type DataExportOptions = { format: DataFormat; rows: 'all' | 'visible'; includeDerived: boolean };
 
 export type ExportDialogProps = {
@@ -19,10 +24,13 @@ export type ExportDialogProps = {
   onClose: () => void;
   theme?: string;
   viewMode: '2D' | '3D';
-  /** Persisted "Add title & legend" setting; the dialog edits it in place. */
-  info: boolean;
-  onInfoChange: (v: boolean) => void;
+  /** Persisted title / legend chrome; the dialog edits it in place. */
+  chrome: { title: boolean; legend: boolean };
+  onChromeChange: (v: { title: boolean; legend: boolean }) => void;
+  /** The plot's own axes toggle — the default for the three axis options. */
   axesOn: boolean;
+  /** One frame with the given options, as a data URL (null = unavailable). */
+  renderPreview: (opts: ImageExportOptions) => Promise<string | null>;
   nRows: number;
   filter: { description: string; shown: number } | null;
   hasDerived: boolean;
@@ -55,15 +63,35 @@ export const ExportDialog = (props: ExportDialogProps) => {
 };
 
 const ExportForm = ({
-  kind, onClose, theme, viewMode, info, onInfoChange, axesOn, nRows, filter, hasDerived, busy, onExportImage, onExportData,
+  kind, onClose, theme, viewMode, chrome, onChromeChange, axesOn, renderPreview, nRows, filter, hasDerived, busy, onExportImage, onExportData,
 }: ExportDialogProps & { kind: 'image' | 'data' }) => {
   const [imageFormat, setImageFormat] = useState<ImageFormat>('png');
   const [axes, setAxes] = useState(axesOn);
+  const [grid, setGrid] = useState(axesOn);
+  const [labels, setLabels] = useState(axesOn);
+  // The frame last rendered and the options it was rendered for; it is
+  // stale whenever the current options differ (no state write in the effect).
+  const [preview, setPreview] = useState<{ src: string | null; key: string }>({ src: null, key: '' });
   const [scale, setScale] = useState<1 | 2 | 4>(2);
   const [dataFormat, setDataFormat] = useState<DataFormat>('csv');
   const [rows, setRows] = useState<'all' | 'visible'>(filter ? 'visible' : 'all');
   const [includeDerived, setIncludeDerived] = useState(true);
   const panel = useRef<HTMLDivElement>(null);
+  const isImage = kind === 'image';
+
+  // Preview: one frame, re-rendered a beat after the last change. A render
+  // that finishes after a newer one started is dropped.
+  const previewKey = `${chrome.title}|${chrome.legend}|${axes}|${grid}|${labels}`;
+  useEffect(() => {
+    if (!isImage) return;
+    let live = true;
+    const t = window.setTimeout(() => {
+      renderPreview({ format: 'png', title: chrome.title, legend: chrome.legend, axes, grid, labels, scale: 1 })
+        .then(src => { if (live) setPreview({ src, key: previewKey }); });
+    }, 250);
+    return () => { live = false; window.clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isImage, previewKey]);
 
   const bauhaus = theme === 'primary';
   const accent = bauhaus ? 'var(--p-blue)' : 'var(--system-green)';
@@ -86,10 +114,10 @@ const ExportForm = ({
     </label>
   );
 
-  const isImage = kind === 'image';
   const rowCount = rows === 'visible' && filter ? filter.shown : nRows;
+  const imageOpts: ImageExportOptions = { format: imageFormat, title: chrome.title, legend: chrome.legend, axes, grid, labels, scale };
   const submit = () => {
-    if (isImage) onExportImage({ format: imageFormat, info, axes, scale });
+    if (isImage) onExportImage(imageOpts);
     else onExportData({ format: dataFormat, rows: filter ? rows : 'all', includeDerived });
   };
 
@@ -118,9 +146,27 @@ const ExportForm = ({
                 })}
               </section>
               <section className="space-y-1">
-                {heading('Include')}
-                {check(info, onInfoChange, 'Title & legend', 'the axis names as a title, plus the colour key or colour bar')}
-                {check(axes, setAxes, 'Axes, gridlines & labels', 'off gives the bare point cloud')}
+                {heading('Preview')}
+                <div className="relative w-full aspect-[4/3] border overflow-hidden bg-white" style={{ borderColor: rule }}>
+                  {/* A data URL from Plotly — not something next/image can optimise. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {preview.src && <img src={preview.src} alt="Export preview" className={`w-full h-full object-contain ${preview.key !== previewKey ? 'opacity-50' : ''}`} />}
+                  {(!preview.src || preview.key !== previewKey) && (
+                    <span className="absolute inset-0 flex items-center justify-center text-[11px] text-[#666666]">{preview.src ? 'Updating…' : 'Rendering preview…'}</span>
+                  )}
+                </div>
+                <p className="opacity-60 text-[11px]">{imageFormat === 'gif' ? 'One frame of the rotation, as it will be dressed.' : imageFormat === 'html' ? 'The starting frame of the interactive file.' : 'As it will be saved, at reduced size.'}</p>
+              </section>
+              <section className="space-y-1">
+                {heading('Chrome')}
+                {check(chrome.title, v => onChromeChange({ ...chrome, title: v }), 'Title', 'the axis names and colouring, plus any active filter')}
+                {check(chrome.legend, v => onChromeChange({ ...chrome, legend: v }), 'Legend', 'the colour key, or the colour bar for a continuous variable')}
+              </section>
+              <section className="space-y-1">
+                {heading('Axes')}
+                {check(axes, setAxes, 'Axis lines & ticks')}
+                {check(grid, setGrid, 'Gridlines')}
+                {check(labels, setLabels, 'Axis titles')}
               </section>
               {imageFormat === 'png' && (
                 <section className="space-y-1">

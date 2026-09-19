@@ -523,10 +523,14 @@ unbiased-sample check, held in reserve.
 8c. **Export dialog — done (2026-09-18).** The Export section is two buttons, **Image**
    and **Data**, each opening `src/components/ExportDialog.tsx`. Image: PNG (1×/2×/4×),
    SVG (2D only — the 2D trace is SVG `scatter`), rotating GIF (3D only), or offline
-   HTML, each with "Title & legend" (the persisted `includeExportInfo`) and a new
-   per-export "Axes, gridlines & labels" toggle that defaults to the plot's own axes
-   setting — `setExportDressing` relayouts the same axis keys `buildPlotLayout` uses
-   and restores them after the capture. Data: CSV / TSV / XLSX (SheetJS, dynamic
+   HTML, with five individual toggles in two groups — Chrome: Title, Legend (persisted
+   as `exportChrome`; older workspaces' `includeExportInfo` loads as both) — Axes:
+   axis lines & ticks, gridlines, axis titles (per export, default to the plot's
+   own axes toggle). `setExportDressing` relayouts the same axis keys
+   `buildPlotLayout` uses and restores them after the capture. A live **preview**
+   (`renderExportPreview`, debounced 250 ms) draws one frame on an off-screen Plotly
+   div with the chosen dressing and the live camera / 2D window, so the real plot
+   never flickers; GIF and HTML preview their first frame. Data: CSV / TSV / XLSX (SheetJS, dynamic
    import) / JSON; all rows or only the filtered ones (file name gains `_filtered`);
    with or without derived columns (`isDerivedColumn`: PC*, COMP_*, Cluster).
    Serialization is pure in `src/lib/export.ts` (tested). The four export functions

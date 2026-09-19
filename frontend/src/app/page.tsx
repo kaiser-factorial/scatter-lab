@@ -2239,7 +2239,10 @@ export default function Home() {
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [isExporting, setIsExporting] = useState("");
-  const [includeExportInfo, setIncludeExportInfo] = useState(true);
+  // Persisted export chrome (title / legend individually); older workspaces
+  // carried one `includeExportInfo` boolean, which loads as both.
+  const [exportChrome, setExportChrome] = useState<{ title: boolean; legend: boolean }>({ title: true, legend: true });
+  const includeExportInfo = exportChrome.title || exportChrome.legend;
   const [exportDialog, setExportDialog] = useState<'image' | 'data' | null>(null);
   
   // Data state: cached datasets (columnar — see DataTable), one active at a time
@@ -2732,7 +2735,7 @@ export default function Home() {
           tables, datasets: datasetsOut, pinnedViews: pinsOut, analysisViews,
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
           notes, mutedMap, rowFilter: rowFilterState,
-          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
+          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo, exportChrome,
           workspaceName: workspaceName.trim() || undefined,
           // Assistant transcript + wire history ride along (optional section,
           // still format 1 — older builds simply ignore it). Falls back to the
@@ -2854,7 +2857,9 @@ export default function Home() {
           setBreakdownBy(ws.breakdownBy ?? "");
           setBreakdownDirection(ws.breakdownDirection === 'group' ? 'group' : 'cluster');
           setHeatmapPalette(HEATMAP_PALETTES.includes(ws.heatmapPalette) ? ws.heatmapPalette : 'Viridis');
-          setIncludeExportInfo(ws.includeExportInfo ?? true);
+          setExportChrome(ws.exportChrome && typeof ws.exportChrome === 'object'
+              ? { title: ws.exportChrome.title !== false, legend: ws.exportChrome.legend !== false }
+              : { title: ws.includeExportInfo ?? true, legend: ws.includeExportInfo ?? true });
           setWorkspaceName(name);
           // Snapshot semantics: the workspace's conversation (or none) replaces
           // the current one. Sanitized, never validated-and-refused — damaged
@@ -2897,7 +2902,7 @@ export default function Home() {
       }, 1500);
   }, [datasets, pinnedViews, analysisViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
       notes, mutedMap, rowFilterState, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
-      breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
+      breakdownDirection, heatmapPalette, exportChrome, workspaceName, convVersion]);
 
   // Flush a pending save when the tab hides or unloads — this is what catches
   // a close/refresh inside the debounce window. No pending timer = nothing new.
@@ -3175,39 +3180,57 @@ export default function Home() {
   // Temporarily dress the live plot with a descriptive title + legend for
   // capture, then undress. Any later re-render also restores the props-driven
   // layout, so a failed restore can't stick.
-  // What an image export carries beyond the points. `info` is the persisted
-  // "title & legend" setting; `axes` is per export and defaults to the plot's
-  // own axes toggle, so an export without a choice looks like the screen.
-  type ExportDressing = { info: boolean; axes: boolean };
-  const defaultDressing = (): ExportDressing => ({ info: includeExportInfo, axes: showAxes[viewMode] });
+  // What an image export carries beyond the points, one flag each: title and
+  // legend come from the persisted chrome setting; axis lines & ticks,
+  // gridlines and axis titles default to the plot's own axes toggle, so an
+  // export without a choice looks like the screen.
+  type ExportDressing = { title: boolean; legend: boolean; axes: boolean; grid: boolean; labels: boolean };
+  const defaultDressing = (): ExportDressing => ({
+      title: exportChrome.title, legend: exportChrome.legend,
+      axes: showAxes[viewMode], grid: showAxes[viewMode], labels: showAxes[viewMode],
+  });
+  const dressingFrom = (opts: Partial<ImageExportOptions>): ExportDressing => {
+      const d = defaultDressing();
+      for (const k of ['title', 'legend', 'axes', 'grid', 'labels'] as const) if (opts[k] != null) d[k] = opts[k]!;
+      return d;
+  };
+  const exportTitleText = () => {
+      if (!activeDataset) return '';
+      const labels = effectiveLabels(activeDataset, viewMode);
+      const axesStr = viewMode === "3D" ? `${labels.x} × ${labels.y} × ${labels.z}` : `${labels.x} × ${labels.y}`;
+      return `${axesStr} · colored by ${colorBy}${filterSuffix(rowMask ? rowFilter : null)}`;
+  };
+  // Per-axis Plotly keys for a dressing (relayout form, dotted).
+  const axisDressingKeys = (d: ExportDressing, labels: AxisLabels): Record<string, unknown> => {
+      const one = (prefix: string, label: string): Record<string, unknown> => ({
+          [`${prefix}.showgrid`]: d.grid,
+          [`${prefix}.zeroline`]: d.axes, [`${prefix}.showline`]: d.axes, [`${prefix}.showticklabels`]: d.axes,
+          [`${prefix}.title.text`]: d.labels ? label : '',
+      });
+      return viewMode === "3D"
+          ? { ...one('scene.xaxis', labels.x), ...one('scene.yaxis', labels.y), ...one('scene.zaxis', labels.z) }
+          : { ...one('xaxis', labels.x), ...one('yaxis', labels.y) };
+  };
   const setExportDressing = async (Plotly: any, gd: any, on: boolean, dressing: ExportDressing = defaultDressing()) => {
       if (!activeDataset || !processedData) return;
       const labels = effectiveLabels(activeDataset, viewMode);
+      const live = showAxes[viewMode];
       // Axes differ from the live toggle only when asked; restoring puts the
       // live setting back (a re-render would too, but not before the capture).
-      if (dressing.axes !== showAxes[viewMode]) {
-          const want = on ? dressing.axes : showAxes[viewMode];
-          const axisKeys = (prefix: string, label: string): Record<string, unknown> => ({
-              [`${prefix}.showgrid`]: want, [`${prefix}.zeroline`]: want, [`${prefix}.showticklabels`]: want,
-              [`${prefix}.title.text`]: want ? label : '',
-          });
-          await Plotly.relayout(gd, viewMode === "3D"
-              ? { ...axisKeys('scene.xaxis', labels.x), ...axisKeys('scene.yaxis', labels.y), ...axisKeys('scene.zaxis', labels.z) }
-              : { ...axisKeys('xaxis', labels.x), ...axisKeys('yaxis', labels.y) });
+      if (dressing.axes !== live || dressing.grid !== live || dressing.labels !== live) {
+          await Plotly.relayout(gd, axisDressingKeys(on ? dressing : { ...dressing, axes: live, grid: live, labels: live }, labels));
       }
-      if (!dressing.info) return;
-      const axesStr = viewMode === "3D" ? `${labels.x} × ${labels.y} × ${labels.z}` : `${labels.x} × ${labels.y}`;
+      if (!dressing.title && !dressing.legend) return;
       const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
       await Plotly.relayout(gd, on
           ? {
-              'title.text': `${axesStr} · colored by ${colorBy}${filterSuffix(rowFilter)}`,
-              'title.font.color': '#111111',
-              showlegend: kind === "categorical",
+              ...(dressing.title ? { 'title.text': exportTitleText(), 'title.font.color': '#111111' } : {}),
+              showlegend: dressing.legend && kind === "categorical",
               'legend.font.color': '#444444',
               'legend.bgcolor': 'rgba(255,255,255,0.7)',
             }
           : { 'title.text': `${activeDataset.name} · live`, showlegend: false });
-      if (kind === "continuous") {
+      if (dressing.legend && kind === "continuous") {
           // The single continuous trace is index 0 — show its colorbar instead of a legend
           await Plotly.restyle(gd, on
               ? {
@@ -3221,11 +3244,59 @@ export default function Home() {
       }
   };
 
+  // One frame for the export dialog's preview, drawn on an off-screen plot so
+  // the live view never flickers: same traces, light chrome, the chosen
+  // dressing, the live camera / 2D window. Purged right after capture.
+  const renderExportPreview = async (opts: Partial<ImageExportOptions>): Promise<string | null> => {
+      if (!activeDataset || !processedData) return null;
+      const d = dressingFrom(opts);
+      const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
+      const labels = effectiveLabels(activeDataset, viewMode);
+      const axes = effectiveAxes(activeDataset, viewMode);
+      const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
+      const data = buildTraces(processedData, colorBy, viewMode, axes, labels, mutedMap, false, shapeBy, true, rowMask);
+      const gdLive = getActivePlotDiv();
+      const layout = buildPlotLayout({
+          dark: false, title: d.title ? exportTitleText() : '', colorBy, axisNames: labels, mode: viewMode, axesOn: true,
+          aspect, window2d: viewMode === "2D" ? get2dRange() : null,
+          camera: gdLive?.layout?.scene?.camera ?? camera,
+      });
+      layout.paper_bgcolor = '#ffffff'; layout.plot_bgcolor = '#ffffff';
+      if (layout.scene) layout.scene.bgcolor = '#ffffff';
+      // The full title at 480 px wide would run off both edges.
+      if (layout.title) layout.title = { ...layout.title, font: { ...(layout.title.font ?? {}), size: 11 }, automargin: true };
+      layout.showlegend = d.legend && kind === "categorical";
+      layout.legend = { ...(layout.legend ?? {}), font: { color: '#444444' }, bgcolor: 'rgba(255,255,255,0.7)' };
+      if (d.legend && kind === "continuous" && data[0]?.marker) {
+          data[0].marker = { ...data[0].marker, showscale: true, colorbar: { title: { text: colorBy }, thickness: 12 } };
+      }
+      // Dotted relayout keys → nested layout for newPlot.
+      for (const [key, val] of Object.entries(axisDressingKeys(d, labels))) {
+          const path = key.split('.');
+          let node: Record<string, unknown> = layout;
+          for (const part of path.slice(0, -1)) node = (node[part] ??= {}) as Record<string, unknown>;
+          node[path[path.length - 1]] = val;
+      }
+      const host = document.createElement('div');
+      host.style.cssText = 'position:fixed;left:-10000px;top:0;width:480px;height:360px;';
+      document.body.appendChild(host);
+      try {
+          await withTimeout(Plotly.newPlot(host, data, layout, { staticPlot: true }), 10000, 'preview plot');
+          return await withTimeout(Plotly.toImage(host, { format: 'png', width: 480, height: 360, scale: 1 }), 10000, 'preview capture');
+      } catch (err) {
+          console.error(err);
+          return null;
+      } finally {
+          try { Plotly.purge(host); } catch { /* nothing to purge */ }
+          host.remove();
+      }
+  };
+
   const exportPNG = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       if (!activeDataset) return 'No active dataset to export.';
       const format = opts.format === 'svg' ? 'svg' : 'png';
       if (format === 'svg' && viewMode !== '2D') return 'SVG export is available only for a 2D view.';
-      const dressing: ExportDressing = { ...defaultDressing(), ...(opts.info != null ? { info: opts.info } : {}), ...(opts.axes != null ? { axes: opts.axes } : {}) };
+      const dressing: ExportDressing = dressingFrom(opts);
       const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
       const gd = getActivePlotDiv();
       if (!gd || !gd.data) return 'The active plot is not ready to export yet.';
@@ -3263,7 +3334,7 @@ export default function Home() {
   const exportGIF = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       const gd = getActivePlotDiv();
       if (!gd || !activeDataset) return 'The active plot is not ready to export yet.';
-      const dressing: ExportDressing = { ...defaultDressing(), ...(opts.info != null ? { info: opts.info } : {}), ...(opts.axes != null ? { axes: opts.axes } : {}) };
+      const dressing: ExportDressing = dressingFrom(opts);
       if (viewMode !== "3D") return 'A rotating GIF is available only for a 3D view.';
       if (isExporting) return 'Another export is already in progress.';
       const wasRotating = isRotating;
@@ -3351,15 +3422,14 @@ export default function Home() {
 
   const exportHTML = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       if (!activeDataset || !processedData) return 'No active dataset to export.';
-      const dressing: ExportDressing = { ...defaultDressing(), ...(opts.info != null ? { info: opts.info } : {}), ...(opts.axes != null ? { axes: opts.axes } : {}) };
-      const includeInfo = dressing.info;
+      const dressing: ExportDressing = dressingFrom(opts);
       setIsExporting("Building HTML…");
       try {
           const labels = effectiveLabels(activeDataset, viewMode);
           const axes = effectiveAxes(activeDataset, viewMode);
           const axesStr = viewMode === "3D" ? `${labels.x} × ${labels.y} × ${labels.z}` : `${labels.x} × ${labels.y}`;
           const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
-          const title = includeInfo ? `${axesStr} · colored by ${colorBy}${filterSuffix(rowMask ? rowFilter : null)}` : `${activeDataset.name}`;
+          const title = dressing.title ? `${axesStr} · colored by ${colorBy}${filterSuffix(rowMask ? rowFilter : null)}` : `${activeDataset.name}`;
 
           // No decorative floor, and coordinates at 6 significant figures: no
           // scatter plot resolves the 17th digit, and the two together took a
@@ -3378,7 +3448,7 @@ export default function Home() {
                   }
                   return t;
               });
-          if (includeInfo && kind === "continuous" && (data[0] as { marker?: Record<string, unknown> })?.marker) {
+          if (dressing.legend && kind === "continuous" && (data[0] as { marker?: Record<string, unknown> })?.marker) {
               const m = (data[0] as { marker: Record<string, unknown> }).marker;
               m.showscale = true;
               m.colorbar = { title: { text: colorBy }, thickness: 14 };
@@ -3388,20 +3458,19 @@ export default function Home() {
           // resolve in a bare file); start from the user's current camera angle
           const gd = getActivePlotDiv();
           const startCam = gd?.layout?.scene?.camera ?? camera;
-          const axesOn = dressing.axes;
           const exportAspect = aspect;
           const layout: any = {
               autosize: true,
               margin: viewMode === "2D" ? { l: 50, r: 20, b: 50, t: 60 } : { l: 0, r: 0, b: 0, t: 60 },
               title: { text: title, font: { color: '#111111', size: 16 } },
               paper_bgcolor: 'white', plot_bgcolor: 'white',
-              showlegend: includeInfo && kind === "categorical",
+              showlegend: dressing.legend && kind === "categorical",
               legend: { font: { color: '#333333' }, bgcolor: 'rgba(255,255,255,0.8)' },
           };
           const axisCfg = (label: string, g: string) => ({
-              showgrid: axesOn, zeroline: axesOn, showticklabels: axesOn,
+              showgrid: dressing.grid, zeroline: dressing.axes, showline: dressing.axes, showticklabels: dressing.axes,
               gridcolor: g, zerolinecolor: '#888888', tickfont: { color: '#888888' },
-              title: { text: axesOn ? label : '', font: { color: '#111111' } },
+              title: { text: dressing.labels ? label : '', font: { color: '#111111' } },
           });
           if (viewMode === "3D") {
               // Exports must match the screen, including the box shape.
@@ -5471,9 +5540,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         onClose={() => setExportDialog(null)}
         theme={theme}
         viewMode={viewMode}
-        info={includeExportInfo}
-        onInfoChange={setIncludeExportInfo}
+        chrome={exportChrome}
+        onChromeChange={setExportChrome}
         axesOn={showAxes[viewMode]}
+        renderPreview={renderExportPreview}
         nRows={processedData?.nRows ?? 0}
         filter={rowMask && rowFilter ? { description: describeConditions(rowFilter), shown: countMask(rowMask) } : null}
         hasDerived={!!processedData?.columns.some(isDerivedColumn)}
