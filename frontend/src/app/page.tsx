@@ -3264,7 +3264,13 @@ export default function Home() {
       layout.paper_bgcolor = '#ffffff'; layout.plot_bgcolor = '#ffffff';
       if (layout.scene) layout.scene.bgcolor = '#ffffff';
       // The full title at 480 px wide would run off both edges.
-      if (layout.title) layout.title = { ...layout.title, font: { ...(layout.title.font ?? {}), size: 11 }, automargin: true };
+      if (layout.title) {
+          // Wrap at the separators so a filtered title fits: the real export is wider.
+          const text = String(layout.title.text ?? '');
+          const lines = text.length > 60 ? text.split(' · ') : [text];
+          layout.title = { ...layout.title, text: lines.join('<br>'), font: { ...(layout.title.font ?? {}), size: 11 }, y: 0.99, yanchor: 'top' };
+          layout.margin = { ...(layout.margin ?? {}), t: 16 + 14 * lines.length };
+      }
       layout.showlegend = d.legend && kind === "categorical";
       layout.legend = { ...(layout.legend ?? {}), font: { color: '#444444' }, bgcolor: 'rgba(255,255,255,0.7)' };
       if (d.legend && kind === "continuous" && data[0]?.marker) {
