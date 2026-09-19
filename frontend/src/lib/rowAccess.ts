@@ -1,6 +1,7 @@
 import { asNumber, type DataTable } from './table';
 import { sampleIndices } from './random';
 import { MAX_SAMPLE_ROWS, MAX_SAMPLE_COLUMNS, MAX_CELL_CHARS } from './dataPolicy';
+import { cellMatches } from './rowFilter';
 
 // The open-mode row-reading tools, as pure functions over a table.
 //
@@ -91,25 +92,7 @@ export const rowsWhereCore = (t: DataTable, { column, op, value, columns, limit 
   if (typeof prep === 'string') return prep;
   const cap = Math.min(Math.max(Math.floor(limit ?? 10), 1), MAX_SAMPLE_ROWS);
   const vals = t.data[column];
-  const num = typeof value === 'number' ? value : asNumber(value);
-  const matches = (v: unknown): boolean => {
-    if (v == null) return false;
-    switch (op) {
-      case 'eq': {
-        const nv = asNumber(v);
-        return (num !== null && nv !== null) ? nv === num : String(v) === String(value);
-      }
-      case 'lt': case 'gt': {
-        const nv = asNumber(v);
-        if (num === null || nv === null) return false;
-        return op === 'lt' ? nv < num : nv > num;
-      }
-      case 'contains':
-        return String(v).toLowerCase().includes(String(value).toLowerCase());
-      default:
-        return false;
-    }
-  };
+  const matches = (v: unknown): boolean => cellMatches(v, op, value);
   const idx: number[] = [];
   let total = 0;
   for (let i = 0; i < t.nRows; i++) {

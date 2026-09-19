@@ -16,6 +16,7 @@ const loadOpenAI = async (): Promise<typeof OpenAIType> => {
   return OpenAICtor;
 };
 import { METHODS_TOPICS, searchMethods } from './methods';
+import type { FilterCondition } from './rowFilter';
 import { combinedPolicy, MAX_SAMPLE_ROWS, type DataMode, type DataPolicy } from './dataPolicy';
 import { MARK_KINDS, MAX_PLAN_REVISIONS, TEST_KINDS } from './analysisPlan';
 import type {
@@ -41,6 +42,8 @@ export type ColumnProfile = {
   // --- numeric ---
   min?: number;
   max?: number;
+  /** Private mode: an extreme shared by fewer than 5 rows was left out. */
+  tailsWithheld?: boolean;
   /** Population sd (÷n), the convention used everywhere else in this app. */
   mean?: number;
   sd?: number;
@@ -70,12 +73,16 @@ export type AppBridge = {
     shapeBy: string;
     viewMode: '2D' | '3D';
     pinnedViews: number;
+    // Active display filter (null = none) and how many rows it leaves visible.
+    rowFilter?: { conditions: FilterCondition[]; shown: number | string; total: number } | null;
     clusterSettings: { method: string; eps: number; minSamples: number; k: number; standardize: boolean };
     clusterBreakdown: { attribute: string; direction: 'cluster' | 'group'; palette: 'Viridis' | 'Inferno' | 'Greens' };
     pcaRuns: {
       label: string; columns: string[]; variables: string[];
       standardize: boolean; savedAt: string; varianceExplained: number[];
       missing?: { strategy: 'median' | 'complete' | 'iterative'; imputedCells: number; rowsUsed: number; rowsDropped: number };
+      /** Row filter the run was fitted under; rows outside it have no score. */
+      filter?: FilterCondition[];
     }[];
   };
   setPlot: (opts: { x?: string; y?: string; z?: string; color_by?: string; shape_by?: string; view_mode?: '2D' | '3D' }) => string;
@@ -101,6 +108,7 @@ export type AppBridge = {
   // app management
   switchDataset: (name: string) => string;
   setCategoryVisibility: (categories: string[], state: 'normal' | 'muted' | 'hidden') => string;
+  setRowFilter: (opts: { conditions?: unknown; mode?: 'replace' | 'add'; clear?: boolean }) => string;
   transferColumn: (opts: { source_dataset: string; column: string; mode?: 'order' | 'match'; key_column?: string; new_name?: string }) => string;
   removePin: (index: number) => string;
   saveWorkspaceAs: (name: string) => Promise<string>;
@@ -147,7 +155,7 @@ export const GUIDE_TARGETS = [
 // Tools that change what the user sees — a turn using any of these offers Undo
 export const MUTATING_TOOLS = new Set([
   'set_plot', 'run_clustering', 'pin_view', 'load_demo_data',
-  'switch_dataset', 'set_category_visibility', 'transfer_column', 'remove_pin',
+  'switch_dataset', 'set_category_visibility', 'set_row_filter', 'transfer_column', 'remove_pin',
   'run_pca', 'run_test', 'plot_chart',
 ]);
 
@@ -167,7 +175,7 @@ export const TUTORIAL: Record<string, string> = {
   clustering:
     'In "4. Cluster", pick DBSCAN (density-based; eps = neighborhood radius, min samples = density threshold; points in no cluster become gray "Noise") or K-Means (choose k). Clustering runs on the currently plotted axes and adds a Cluster column, which also becomes the point coloring. The "Standardize variables (z-score)" checkbox gives every variable equal weight in the distance — its default follows the data: on for mixed scales, off for PC scores and shared-scale items (where it is a deliberate methodological choice). Below the button, "Cluster info by" cross-tabulates clusters against any categorical variable — "% of cluster" shows composition, "% of group" normalizes away base rates. Choose Viridis, Inferno, or Greens and use "Save heatmap" to download a PNG with its 0–100% colour scale legend.',
   analyze:
-    'Statistical tests and charts run through YOU, via the run_test and plot_chart tools — there is currently no sidebar section for them, so do not direct the user to one. run_test covers Welch\'s t, Mann–Whitney U, Kruskal–Wallis, Kolmogorov–Smirnov, and chi-square; plot_chart covers ECDF, histogram, box, violin, normal Q–Q, bar (vertical/horizontal), and line over a time column. Results appear as panes on the canvas next to the live view — a results card for tests (exact p bolded below 0.05, effect size, CI; no significance stars) or the drawn chart, each closable with its X. The canvas holds the live view plus 3 extra panes (pins and analyses combined). Separately, "View dataset table" in the Data section opens a read-only, sortable, filterable table of the raw rows — purely local, available in both data modes.',
+    'Statistical tests and charts run through YOU, via the run_test and plot_chart tools — there is currently no sidebar section for them, so do not direct the user to one. run_test covers Welch\'s t, Mann–Whitney U, Kruskal–Wallis, Kolmogorov–Smirnov, and chi-square; plot_chart covers ECDF, histogram, box, violin, normal Q–Q, bar (vertical/horizontal), and line over a time column. Results appear as panes on the canvas next to the live view — a results card for tests (exact p bolded below 0.05, effect size, CI; no significance stars) or the drawn chart, each closable with its X. The canvas holds the live view plus 3 extra panes (pins and analyses combined). Separately, "View dataset table" in the Data section opens a read-only, sortable, filterable table of the raw rows — purely local, available in both data modes. To show only a subgroup on the plot ("only people who answered A on Q7", "age 30 and over"), use set_row_filter — the plot and every analysis tool then use those rows only (a chip on the canvas shows the rule and the visible count, and the user can clear it with its X), so a subgroup analysis is: set the filter, then run the analysis. Results and pane titles carry the filter. Column profiles in get_app_state always describe the full dataset.',
   compare_pin:
     '"Pin View" (section 5, View) freezes the current plot as a snapshot; the canvas tiles into a grid (up to 4 panes) so different axis choices, colorings, or cluster runs can be compared side by side. The live view keeps updating; pins do not.',
   transfer:
@@ -515,6 +523,36 @@ const BASE_TOOLS: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'set_row_filter',
+      description:
+        'Show only the rows that satisfy every condition (a display filter on the active dataset), e.g. "only people who answered A on Q7" or "age >= 30 and group in {x, y}". Works on ANY column, unlike set_category_visibility (which only fades/hides categories of the color-by column). Conditions AND together; rows with a missing value in a filtered column are excluded. The plot AND every analysis (clustering, PCA, tests, charts, correlations, group comparisons, cluster breakdowns) then use only these rows — rows outside the filter get no cluster label or PC score. The column profiles in get_app_state keep describing the full dataset. In private mode a filter that leaves, or excludes, fewer than 5 rows blocks analyses, and conditions may only name columns and values the column profile lists. Call with clear=true to remove the filter. Returns how many rows remain visible.',
+      parameters: {
+        type: 'object',
+        properties: {
+          conditions: {
+            type: 'array',
+            description: 'Conditions that must all hold. Omit when clear=true.',
+            items: {
+              type: 'object',
+              properties: {
+                column: { type: 'string' },
+                op: { type: 'string', enum: ['eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'in', 'contains'], description: 'eq/neq compare numerically when both sides are numbers, else as strings; lt/lte/gt/gte are numeric; in takes a list in value; contains is a case-insensitive substring.' },
+                value: { description: 'A string or number, or an array of them for op "in".' },
+              },
+              required: ['column', 'op', 'value'],
+              additionalProperties: false,
+            },
+          },
+          mode: { type: 'string', enum: ['replace', 'add'], description: 'replace (default) discards any existing filter; add ANDs the new conditions onto it.' },
+          clear: { type: 'boolean', description: 'Remove the current filter and show every row.' },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'transfer_column',
       description:
         'Copy a column (typically Cluster labels) from another loaded dataset into the active one, aligned by row order or by a shared key column. Reports how many rows matched — warn the user if alignment looks wrong.',
@@ -698,7 +736,7 @@ export const buildSystemPrompt = (bridge: AppBridge): string => {
   // tool list toolsFor() built from the same policy, so both derive from it.
   const accessParagraph = policy.rowAccess
     ? `Every loaded dataset was explicitly declared public/open by the user. In addition to aggregate statistics you may inspect raw data: sample_rows (seeded random sample or top-N by a column), get_rows_where (filtered rows), and list_categories (full value counts, including single-row values). Each call returns at most ${MAX_SAMPLE_ROWS} rows — a token budget, not a privacy rule. Still prefer aggregates first: pull rows to verify anomalies, inspect outliers or specific cases, or answer questions the summaries cannot.`
-    : `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as min/max/mean/sd/quartiles — use those to notice skew, ceiling effects and likely outliers rather than asking for the data. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.${anyOpen ? ' (Some loaded datasets are marked open, but at least one is private, so the whole conversation runs at the private level — row tools are unavailable until every loaded dataset is open.)' : ''}`;
+    : `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as mean/sd/quartiles, plus min and max only when at least 5 rows share that extreme (tailsWithheld marks a column whose extreme belonged to too few people to report) — use the quartiles to notice skew and ceiling effects rather than asking for the data. Group statistics (compare_groups, cluster breakdowns, tests, charts) list only groups of at least 5 rows; the rest are pooled or omitted unnamed. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.${anyOpen ? ' (Some loaded datasets are marked open, but at least one is private, so the whole conversation runs at the private level — row tools are unavailable until every loaded dataset is open.)' : ''}`;
   const cols = s.columns
     .map(c =>
       c.kind === 'numeric'
@@ -916,6 +954,8 @@ export const runAssistantTurn = async (
           return bridge.switchDataset(input.name);
         case 'set_category_visibility':
           return bridge.setCategoryVisibility(input.categories ?? [], input.state);
+        case 'set_row_filter':
+          return bridge.setRowFilter(input ?? {});
         case 'transfer_column':
           return bridge.transferColumn(input);
         case 'remove_pin':

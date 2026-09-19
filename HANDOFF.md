@@ -479,6 +479,45 @@ unbiased-sample check, held in reserve.
      `colorBy` model, so it probably wants a transient "selection" overlay trace (or a
      synthetic boolean column) that leaves `colorBy` intact and clears on the next turn.
      Would pair well with the undo snapshot already taken per mutating turn.
+8b. **Assistant row filter — done (2026-09-18).** `set_row_filter` (tool) / `setRowFilter`
+   (bridge) restricts the active dataset to rows satisfying a conjunction of
+   conditions on ANY column (`eq neq lt lte gt gte in contains`; predicate shared with
+   `get_rows_where` in `src/lib/rowFilter.ts`, tested). The plot AND every analysis
+   use the visible rows: everything goes through one gate, `analysisTable()` in
+   page.tsx — clustering and PCA (both the sidebar and the assistant; rows outside
+   the filter get a null label / score, drawn as N/A), tests, charts, correlate,
+   compare_groups, cluster breakdowns and heatmaps, suggest_k/eps, and the open-mode
+   row readers. Results, pane titles, provenance and `pcaRuns[].filter` carry the
+   rule. `pendingFilterRef` makes a filter set earlier in the same model turn visible
+   to the next tool call (React has not re-rendered yet — same trick as
+   `freshTableRef`). Colour categories in `buildTraces` still come from the full
+   column so palette indices never shift; pins freeze the mask; the HTML export
+   honours it; undo, workspaces and the autosaved session persist it, scoped to the
+   dataset id it was written for. A chip on the canvas (`data-guide="row-filter"`)
+   shows the rule and `shown / total` with an X to clear.
+
+   **Privacy (private mode, `src/lib/aggregatePolicy.ts` + `validateConditionsForPolicy`):**
+   the floor is the profile's own `MIN_AGGREGATE_COUNT = 5`, applied everywhere a
+   number reaches the assistant. A filter may name only columns the profile describes
+   and values it lists (identifier columns and columns with no value covering 5 rows
+   are refused; a withheld value gets the same refusal as a nonexistent one); a
+   filter leaving fewer than 5 rows reports "fewer than 5" and blocks every analysis
+   with one fixed message, and so does one EXCLUDING fewer than 5 (reported as "all
+   but fewer than 5"), since a filtered aggregate minus the unfiltered one would
+   describe the excluded few; column profiles in `get_app_state` always describe the
+   FULL table. **Known limit, Corina's call:** the floor stops direct disclosure and
+   single-step subtraction. It does not stop chained differencing — two filters that
+   differ by one row (`age ≥ 60`, n=12, then `age ≥ 61`, n=11) each analysed and
+   subtracted. Stopping that needs query history or noise; the filter is the first
+   tool that intersects conditions, so it makes this materially easier than before.
+   Smaller follow-ups: the PCA panel's "rows survive" preview counts the full table
+   while the run uses the filtered rows; chart notes still print the exact "m rows
+   omitted" under the privacy floor; CSV export and `transfer_column` are not
+   analyses and are not filtered. Independently of the filter (a review finding, 2026-09-18):
+   `compare_groups` lists only groups of ≥ 5 rows and pools the rest unnamed;
+   numeric profiles report min/max only when ≥ 5 rows share that extreme
+   (`tailsWithheld` otherwise); `correlate` needs 5 pairs. Tests pin the reviewer's
+   nine-plus-one case. Open mode is unchanged throughout.
 9. **Clustering: the gap is inputs, not algorithms (reviewed 2026-08-02).** Two findings
    worth acting on before any new method is added:
    - ~~No standardization.~~ **Done (2026-08-02):** "Standardize variables (z-score)"

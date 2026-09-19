@@ -40,7 +40,7 @@ const bridgeFor = (mode: 'private' | 'open'): { current: AppBridge } => {
       getState: () => ({
         datasets: [{ name: 'iris', nRows: 12, active: true, dataMode: mode }],
         columns: [], axes: { x: 'a', y: 'b', z: null }, colorBy: 'a', shapeBy: '',
-        viewMode: '2D' as const, pinnedViews: 0,
+        viewMode: '2D' as const, pinnedViews: 0, rowFilter: null,
         clusterSettings: { method: 'NONE', eps: 0.5, minSamples: 5, k: 3, standardize: false },
         clusterBreakdown: { attribute: '', direction: 'cluster' as const, palette: 'Viridis' as const },
         pcaRuns: [],

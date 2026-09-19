@@ -26,11 +26,13 @@ import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import type { ConversationBridge } from "@/components/AssistantPanel";
 import { GUIDE_TARGETS, paintYield } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
-import { correlation, compareGroups as statsCompareGroups, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
+import { correlation, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
+import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, subsetTable, scatterBack, type FilterCondition } from "@/lib/rowFilter";
+import { numericTails, correlationAllowed, groupComparisonReport, filterMeetsFloor } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
@@ -276,6 +278,8 @@ type PcaRun = {
     savedAt: string;
     varianceExplained: number[];
     missing?: MissingReport;
+    /** The row filter the run was computed under (rows outside it are unscored). */
+    filter?: FilterCondition[];
 };
 
 // One sentence naming what happened to the incomplete rows. Returns '' when
@@ -405,9 +409,22 @@ const shapeCategories = (vals: any[]) => {
     return sortCategories(Array.from(seen));
 };
 
-const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "2D", axes: Axes, labels: AxisLabels, muted: MuteMap = {}, dark = false, shapeField = "", includeFloor = true) => {
+// Deserialization guard for a stored row filter (undo snapshot, workspace,
+// session): anything malformed loads as "no filter".
+const asRowFilterState = (v: unknown): { datasetId: number; conditions: FilterCondition[] } | null => {
+    if (!v || typeof v !== 'object') return null;
+    const { datasetId, conditions } = v as { datasetId?: unknown; conditions?: unknown };
+    if (typeof datasetId !== "number" || !Array.isArray(conditions) || !conditions.length) return null;
+    return { datasetId, conditions: conditions as FilterCondition[] };
+};
+
+// `mask` (one boolean per row, from a row filter) drops points from every trace
+// while the colour categories are still taken from the FULL column, so a
+// filter that empties a category never shifts anybody's palette index.
+const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "2D", axes: Axes, labels: AxisLabels, muted: MuteMap = {}, dark = false, shapeField = "", includeFloor = true, mask: boolean[] | null = null) => {
     if (!table || table.nRows === 0) return [];
     const n = table.nRows;
+    const keep = (i: number) => !mask || mask[i];
     const px = table.data[axes.x] ?? [];
     const py = table.data[axes.y] ?? [];
     const pz = axes.z ? (table.data[axes.z] ?? []) : new Array(n).fill(0);
@@ -447,6 +464,7 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
         const stride = shapeCats.length + 1;
         const grouped = new Map<number, { x: any[], y: any[], z: any[], color: any, shape: string | null, ci: number, si: number }>();
         for (let i = 0; i < n; i++) {
+            if (!keep(i)) continue;
             const cval = colorVals[i] ?? "N/A";
             const sval = shapeAt(i);
             const ci = colorRank.get(cval) ?? 0;
@@ -516,11 +534,19 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
             type: mode === "3D" ? 'scatter3d' : 'scatter',
             hovertemplate
         };
-        if (!shapeOn) {
+        if (!shapeOn && !mask) {
             traces.push({ ...base, x: px, y: py, z: mode === "3D" ? pz : undefined, name: colorField, marker: markerFor(colorVals) });
+        } else if (!shapeOn) {
+            const fx: unknown[] = [], fy: unknown[] = [], fz: unknown[] = [], fc: unknown[] = [];
+            for (let i = 0; i < n; i++) {
+                if (!keep(i)) continue;
+                fx.push(px[i]); fy.push(py[i]); fz.push(pz[i]); fc.push(colorVals[i]);
+            }
+            traces.push({ ...base, x: fx, y: fy, z: mode === "3D" ? fz : undefined, name: colorField, marker: markerFor(fc) });
         } else {
             const buckets: Record<string, { x: any[], y: any[], z: any[], c: any[] }> = {};
             for (let i = 0; i < n; i++) {
+                if (!keep(i)) continue;
                 const sval = shapeAt(i)!;
                 const b = (buckets[sval] ??= { x: [], y: [], z: [], c: [] });
                 b.x.push(px[i]); b.y.push(py[i]); b.z.push(pz[i]); b.c.push(colorVals[i]);
@@ -546,6 +572,7 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
         const SHADOW_TARGET = 4000;
         const shadowStride = n > SHADOW_TARGET ? Math.ceil(n / SHADOW_TARGET) : 1;
         for (let i = 0; i < n; i++) {
+            if (!keep(i)) continue;
             if (hasHidden && muted[String(colorVals[i] ?? "N/A")] === 'hidden') continue;
             if (px[i] != null) {
                 if (px[i] < x_min) x_min = px[i];
@@ -1753,8 +1780,8 @@ const ViewPlot = memo(({ view, title, colorBy, axesOn, aspect, window2d, camera,
 }) => {
     const { theme } = useTheme();
     const traces = useMemo(
-        () => buildTraces(view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted ?? {}, theme === 'terminal', view.shapeBy ?? ""),
-        [view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted, theme, view.shapeBy]
+        () => buildTraces(view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted ?? {}, theme === 'terminal', view.shapeBy ?? "", true, view.mask ?? null),
+        [view.data, view.colorBy, view.viewMode, view.axes, view.labels, view.muted, theme, view.shapeBy, view.mask]
     );
     // The layout object is now stable across renders that do not change it,
     // which is what react-plotly.js actually keys on: it re-plots whenever
@@ -2216,6 +2243,13 @@ export default function Home() {
   // Data state: cached datasets (columnar — see DataTable), one active at a time
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
+  // Tool calls in one model turn run before React re-renders, so a
+  // switch_dataset (or load_demo_data) followed by set_row_filter must stamp
+  // the NEW dataset. The bridge records the switch here together with the
+  // table it switched to; the record is honoured only while that table is
+  // still the latest one, so a later human click on another dataset (which
+  // replaces the table) makes it fall back to state by itself.
+  const pendingSwitchRef = useRef<{ id: number; table: DataTable } | null>(null);
   const [colorBy, setColorBy] = useState<string>("");
   // Second categorical channel, rendered as marker symbols. "" = off.
   const [shapeBy, setShapeBy] = useState<string>("");
@@ -2259,6 +2293,40 @@ export default function Home() {
   const [notes, setNotes] = useState("");
   // Legend mute states for the active view's colorBy, keyed by String(value)
   const [mutedMap, setMutedMap] = useState<MuteMap>({});
+  // Assistant-set display filter on the active dataset (null = show all rows).
+  // Plot-only: analyses keep running on the full table.
+  // Stamped with the dataset it was written for: a filter names columns of
+  // one table, and scoping by id (rather than resetting in an effect) means
+  // undo snapshots and workspaces carry the scope with them for free.
+  const [rowFilterState, setRowFilterState] = useState<{ datasetId: number; conditions: FilterCondition[] } | null>(null);
+  const rowFilter = rowFilterState && rowFilterState.datasetId === activeId ? rowFilterState.conditions : null;
+  // Tool calls in one model response run before React re-renders, so a
+  // set_row_filter followed by compare_groups in the same turn must not
+  // analyse the previous filter. The ref carries the just-set conditions
+  // until state catches up (same idea as freshTableRef for tables); it is
+  // honoured only for the dataset it was written for.
+  const pendingFilterRef = useRef<{ datasetId: number; conditions: FilterCondition[] | null } | null>(null);
+  const setRowFilter = (conds: FilterCondition[] | null) => {
+      const next = conds?.length ? conds : null;
+      const id = liveActiveId();
+      if (id != null) pendingFilterRef.current = { datasetId: id, conditions: next };
+      setRowFilterState(next && id != null ? { datasetId: id, conditions: next } : null);
+  };
+  // Recomputed only when the table or the filter changes; null when unfiltered
+  // so buildTraces takes its unmasked fast path. Conditions on columns that
+  // have since vanished (a re-run replacing PC columns) fail validation and
+  // the filter is treated as absent rather than blanking the plot.
+  const rowMask = useMemo<boolean[] | null>(() => {
+      if (!processedData || !rowFilter?.length) return null;
+      if (validateConditions(processedData, rowFilter).length) return null;
+      return buildRowMask(processedData, rowFilter);
+  }, [processedData, rowFilter]);
+  // The visible rows as a table, for the panels that summarise "the data":
+  // the Cluster Info breakdown reads this so it describes what is on screen.
+  const analysisData = useMemo(
+      () => (processedData && rowMask ? subsetTable(processedData, rowMask) : processedData),
+      [processedData, rowMask],
+  );
 
   const toggleMuted = (val: any) => {
       const key = String(val);
@@ -2471,6 +2539,9 @@ export default function Home() {
     };
     setDatasets(prev => [...prev, dataset]);
     setActiveId(id);
+    // A tool that runs before the re-render (load_demo_data → set_row_filter)
+    // must see this dataset as the active one.
+    pendingSwitchRef.current = { id, table };
     // The scan-or-not question was answered in the add-dataset config, so the
     // checker either opens straight away or not at all — no second prompt.
     // (The detector still only runs on request: scanning every column on
@@ -2656,7 +2727,7 @@ export default function Home() {
           version: wsStore.WORKSPACE_VERSION,
           tables, datasets: datasetsOut, pinnedViews: pinsOut, analysisViews,
           activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
-          notes, mutedMap,
+          notes, mutedMap, rowFilter: rowFilterState,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, includeExportInfo,
           workspaceName: workspaceName.trim() || undefined,
           // Assistant transcript + wire history ride along (optional section,
@@ -2768,6 +2839,8 @@ export default function Home() {
           setRange2d(ws.range2d ?? null);
           setNotes(ws.notes ?? "");
           setMutedMap(ws.mutedMap ?? {});
+          pendingFilterRef.current = null;
+          setRowFilterState(asRowFilterState(ws.rowFilter));
           setClusterMethod(ws.clusterMethod ?? "NONE");
           setEps(ws.eps ?? 0.5);
           setMinSamples(ws.minSamples ?? 5);
@@ -2819,7 +2892,7 @@ export default function Home() {
           wsStore.saveSession(buildPayloadRef.current()).catch(() => { /* IndexedDB unavailable */ });
       }, 1500);
   }, [datasets, pinnedViews, analysisViews, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, camera, range2d,
-      notes, mutedMap, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
+      notes, mutedMap, rowFilterState, clusterMethod, eps, minSamples, k, standardize, breakdownBy,
       breakdownDirection, heatmapPalette, includeExportInfo, workspaceName, convVersion]);
 
   // Flush a pending save when the tab hides or unloads — this is what catches
@@ -3026,9 +3099,12 @@ export default function Home() {
       // a plain 30ms timer can fire before the click frame presents.
       await paintYield();
       try {
+          const gate = analysisTable();
+          if (typeof gate === 'string') { setUploadStatus(gate); return; }
+          const { table: base, mask, filter, note: filterNote } = gate;
           const ax = effectiveAxes(activeDataset!, viewMode);
-          const rawCols = [processedData.data[ax.x], processedData.data[ax.y]];
-          if (ax.z) rawCols.push(processedData.data[ax.z]);
+          const rawCols = [base.data[ax.x], base.data[ax.y]];
+          if (ax.z) rawCols.push(base.data[ax.z]);
           const axNames = [ax.x, ax.y, ...(ax.z ? [ax.z] : [])];
           // Refuse before running: a text axis used to be filled with zeros and
           // clustered on silently, reporting a full set of sizes (A11).
@@ -3043,21 +3119,24 @@ export default function Home() {
           const labels = clusterMethod === "DBSCAN"
               ? dbscan(cols, eps, minSamples)
               : kmeans(cols, k);
+          // Rows outside the filter get null (drawn as N/A), not a label they
+          // never took part in computing.
+          const fullLabels = mask ? scatterBack(processedData.nRows, mask, labels) : labels;
           const newTable: DataTable = {
               columns: processedData.columns.includes("Cluster") ? processedData.columns : [...processedData.columns, "Cluster"],
-              data: { ...processedData.data, Cluster: labels },
+              data: { ...processedData.data, Cluster: fullLabels },
               nRows: processedData.nRows
           };
           setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
-          logProvenance(activeId, `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''} wrote the "Cluster" column`);
+          logProvenance(activeId, `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column`);
           // The pre-cluster coloring is the natural default for composition breakdowns
           if (colorBy !== "Cluster") setBreakdownBy(colorBy);
           setColorBy("Cluster");
           const sizes = new Map<string, number>();
           for (const l of labels) sizes.set(l, (sizes.get(l) ?? 0) + 1);
           setUploadStatus(
-              `${clusterMethod} on ${axNames.join(' · ')} — ${sortCategories(Array.from(sizes.keys())).map(l => `${l}: ${sizes.get(l)}`).join(', ')}.`
-              + missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: processedData.nRows, rowsDropped: 0 }, processedData.nRows));
+              `${clusterMethod} on ${axNames.join(' · ')} — ${sortCategories(Array.from(sizes.keys())).map(l => `${l}: ${sizes.get(l)}`).join(', ')}.${filterNote}`
+              + missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: base.nRows, rowsDropped: 0 }, base.nRows));
       } catch (err: any) {
           setUploadStatus(`Clustering failed: ${err?.message ?? err}`);
       } finally {
@@ -3257,7 +3336,7 @@ export default function Home() {
           // scatter plot resolves the 17th digit, and the two together took a
           // measured 20,000-point 3D export from 3,831 KB to 2,148 KB with no
           // visible difference (finding F3).
-          const data = buildTraces(processedData, colorBy, viewMode, axes, labels, mutedMap, false, shapeBy, false)
+          const data = buildTraces(processedData, colorBy, viewMode, axes, labels, mutedMap, false, shapeBy, false, rowMask)
               .map(trace => {
                   const t = { ...trace } as Record<string, unknown>;
                   for (const key of ['x', 'y', 'z'] as const) {
@@ -3420,7 +3499,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 ? (getActivePlotDiv()?.layout?.scene?.camera ?? cameraRef.current)
                 : null,
             muted: { ...mutedMap },
-            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}` });
+            // A pin keeps the subgroup it was taken on; the rule rides along
+            // for the label and for the assistant's undo/workspace restore.
+            mask: rowMask,
+            rowFilter: rowMask ? rowFilter : null,
+            label: `${activeDataset?.name ?? 'Pinned'} · ${colorBy}${rowMask ? ` · ${describeConditions(rowFilter!)}` : ''}` });
       startPinning(() => setPinnedViews(prev => [...prev, pin]));
   };
 
@@ -3440,8 +3523,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   // the two entry points. Returns the aggregate text the caller may show or
   // hand to the model; a rejection returns the typed failures, formatted.
   const runAnalysisPlan = (plan: unknown): string => {
-      const t = latestTable();
-      if (!t || !activeDataset) return 'No dataset loaded.';
+      const gate = analysisTable();
+      if (typeof gate === 'string') return gate;
+      const { table: t, filter, note } = gate;
+      if (!activeDataset) return 'No dataset loaded.';
+      // Profile of the VISIBLE rows: group withholding then counts what the
+      // analysis will actually see, which can only be stricter.
       const profile = analysisProfileOf(t, activePolicy);
       const failures: ValidationFailure[] = validatePlan(plan, profile);
       if (failures.length) return formatFailures(failures);
@@ -3452,25 +3539,39 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       try {
           if (p.kind === 'test') {
               const result = runTestPlan(p, t, profile);
-              const label = `${result.statLabel}: ${p.column} by ${p.groupBy}`;
+              const label = `${result.statLabel}: ${p.column} by ${p.groupBy}${filterSuffix(filter)}`;
               startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label, test: result }]));
-              logProvenance(activeId, `Ran ${p.test} test: ${p.column} by ${p.groupBy}${p.groups ? ` (groups: ${p.groups.join(', ')})` : ''}`);
-              return `${formatTestResult(result)}\nA results card was added to the canvas.`;
+              logProvenance(activeId, `Ran ${p.test} test: ${p.column} by ${p.groupBy}${p.groups ? ` (groups: ${p.groups.join(', ')})` : ''}${filterSuffix(filter)}`);
+              return `${formatTestResult(result)}${note}\nA results card was added to the canvas.`;
           }
-          const chart = compileChart(p, t, profile);
+          const compiled = compileChart(p, t, profile);
+          const chart = filter ? { ...compiled, title: `${compiled.title}${filterSuffix(filter)}` } : compiled;
           startPinning(() => setAnalysisViews(prev => [...prev, { id: Date.now(), kind: 'analysis', label: chart.title, chart }]));
           logProvenance(activeId, `Plotted ${p.mark} chart: ${chart.title}`);
-          return `${chart.summary}${chart.notes.length ? `\nNotes: ${chart.notes.join(' ')}` : ''}\nThe chart was added to the canvas.`;
+          return `${chart.summary}${chart.notes.length ? `\nNotes: ${chart.notes.join(' ')}` : ''}${note}\nThe chart was added to the canvas.`;
       } catch (err) {
           return `Analysis error: ${(err as Error)?.message ?? err}`;
       }
   };
 
   const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
-      const t = freshTableRef.current ?? processedData;
-      if (!t || !activeDataset) return 'No dataset loaded.';
+      const gate = analysisTable();
+      if (typeof gate === 'string') { setUploadStatus(gate); return gate; }
+      const { table: base, full: t, mask, filter, note: filterNote } = gate;
+      if (!activeDataset) return 'No dataset loaded.';
       try {
-          const res = runPCA(t, vars, { k, standardize, label, missing });
+          const sub = runPCA(base, vars, { k, standardize, label, missing });
+          // Under a filter the PCA is fitted on the visible rows only; scores
+          // are scattered back into the full table, null for the rest.
+          const res = mask
+              ? (() => {
+                  const data = { ...t.data };
+                  for (const c of sub.replaced) delete data[c];
+                  for (const c of sub.columns) data[c] = scatterBack(t.nRows, mask, sub.table.data[c]);
+                  const columns = [...t.columns.filter(c => !sub.replaced.includes(c) && !sub.columns.includes(c)), ...sub.columns];
+                  return { ...sub, table: { columns, data, nRows: t.nRows } };
+              })()
+              : sub;
           freshTableRef.current = res.table;
           const topContributors = Object.fromEntries(
               Object.entries(res.loadings).map(([pc, rows]) => [pc, rows.slice(0, 5)])
@@ -3480,6 +3581,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               label: res.label, columns: cols, variables: vars, k: res.k, standardize,
               savedAt: new Date().toISOString(), varianceExplained: res.varianceExplained,
               missing: res.missing,
+              ...(filter ? { filter } : {}),
           };
           setDatasets(prev => prev.map(d => {
               if (d.id !== activeId) return d;
@@ -3503,17 +3605,17 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   pcaRuns: [...(d.pcaRuns ?? []).filter(r => r.label !== res.label), run],
               };
           }));
-          logProvenance(activeId, `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing}) added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}`);
+          logProvenance(activeId, `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing})${filterSuffix(filter)} added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}`);
           if (res.k < 3) setViewMode('2D');
           setPcaInfo({ varianceExplained: res.varianceExplained, cumulative: res.cumulative, spectrum: res.spectrum, eigenvalues: res.eigenvalues, standardize, k: res.k, columns: res.columns });
           const pct = res.varianceExplained.map((v, i) => `${cols[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(', ');
           const replacedNote = res.replaced.length
               ? ` Replaced the previous ${res.label ? `"${res.label}"` : 'unnamed'} run (${res.replaced.join(', ')}).`
               : '';
-          const impNote = missingNote(res.missing, t.nRows);
+          const impNote = missingNote(res.missing, base.nRows);
           const msg = res.k === 1
-              ? `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept the top component as composite "${cols[0]}" — ${pct} of variance.${replacedNote} It is plotted on the X axis.${impNote}`
-              : `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept ${res.k} components — ${pct} (cumulative ${(res.cumulative[res.cumulative.length - 1] * 100).toFixed(0)}%).${replacedNote} Scores added as ${res.label ? `${res.label}-labeled` : 'PC'} columns and plotted.${impNote}`;
+              ? `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept the top component as composite "${cols[0]}" — ${pct} of variance.${replacedNote} It is plotted on the X axis.${filterNote}${impNote}`
+              : `PCA on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}): kept ${res.k} components — ${pct} (cumulative ${(res.cumulative[res.cumulative.length - 1] * 100).toFixed(0)}%).${replacedNote} Scores added as ${res.label ? `${res.label}-labeled` : 'PC'} columns and plotted.${filterNote}${impNote}`;
           setUploadStatus(msg);
           return msg;
       } catch (err: any) {
@@ -3530,6 +3632,45 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   const freshTableRef = useRef<DataTable | null>(null);
   useEffect(() => { freshTableRef.current = null; }, [processedData]);
   const latestTable = (): DataTable | null => freshTableRef.current ?? processedData;
+  const liveActiveId = (): number | null => {
+      const p = pendingSwitchRef.current;
+      return p && latestTable() === p.table ? p.id : activeId;
+  };
+
+  // --- The analysis gate -----------------------------------------------------
+  // Every analysis — clustering, PCA, tests, charts, correlations, group
+  // comparisons, diagnostics, and the open-mode row readers — starts here, so
+  // the chip's promise ("analyses use the visible rows") holds everywhere. In
+  // private mode a filter that leaves fewer than MIN_AGGREGATE_COUNT rows is
+  // refused with one fixed message: a subgroup that small is a person, and
+  // any statistic over it would be that person's value. The column profiles
+  // in get_app_state deliberately do NOT go through here — filter to five
+  // rows and a filtered profile's quartiles are individual values.
+  const FILTER_FLOOR_MESSAGE: Record<'too-few-shown' | 'too-few-excluded', string> = {
+      'too-few-shown': 'The active row filter leaves fewer than 5 rows, which is below the privacy floor in private mode. Widen or clear the filter (set_row_filter) before running an analysis.',
+      'too-few-excluded': 'The active row filter excludes fewer than 5 rows, so an analysis on it could be subtracted from one on the full data to describe those few people. Narrow or clear the filter (set_row_filter) before running an analysis.',
+  };
+  type AnalysisInput = { table: DataTable; full: DataTable; mask: boolean[] | null; filter: FilterCondition[] | null; note: string };
+  // The filter as of NOW, including one set earlier in this same turn.
+  const currentFilter = (): FilterCondition[] | null => {
+      const id = liveActiveId();
+      const committed = rowFilterState && rowFilterState.datasetId === id ? rowFilterState.conditions : null;
+      const pend = pendingFilterRef.current;
+      return pend && pend.datasetId === id && pend.conditions !== committed ? pend.conditions : committed;
+  };
+  const analysisTable = (): AnalysisInput | string => {
+      const t = latestTable();
+      if (!t) return 'No dataset loaded.';
+      const conds = currentFilter();
+      if (!conds?.length || validateConditions(t, conds).length) return { table: t, full: t, mask: null, filter: null, note: '' };
+      const mask = buildRowMask(t, conds);
+      const shown = countMask(mask);
+      const floor = filterMeetsFloor(shown, t.nRows, sessionPolicy);
+      if (floor !== 'ok') return FILTER_FLOOR_MESSAGE[floor];
+      if (shown === 0) return `The active row filter (${describeConditions(conds)}) leaves no rows. Widen or clear it (set_row_filter) before running an analysis.`;
+      return { table: subsetTable(t, mask), full: t, mask, filter: conds, note: ` [on the filtered rows: ${describeConditions(conds)} — ${shown} of ${t.nRows}]` };
+  };
+  const filterSuffix = (filter: FilterCondition[] | null) => (filter ? ` · ${describeConditions(filter)}` : '');
 
   // What the assistant may see is the ACTIVE dataset's own mode — profiles
   // describe one dataset. (The tool list is stricter: combinedPolicy over all
@@ -3543,6 +3684,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset?.dataMode],
   );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
+  // Private mode withholds counts under the rare-value threshold, like the
+  // column profiles do — a filter that isolates two people must not say "2".
+  const withheldCount = (n: number): number | string =>
+      !sessionPolicy.fullCategories && valueIsTooRare(n) ? 'fewer than 5' : n;
 
   const columnProfiles = (): ColumnProfile[] => {
       const t = latestTable();
@@ -3562,10 +3707,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
           if (isNumeric) {
               // Shape, not just extent. min/max alone cannot tell the assistant
-              // that a variable is skewed, that its "0–100" range is really
-              // 0–10 with one outlier at 100, or that a 1–7 item is stacked at
-              // the ceiling — all things it should be warning the user about.
-              // Still strictly aggregate: no value is attributable to a row.
+              // that a variable is skewed or that a 1–7 item is stacked at the
+              // ceiling — things it should be warning the user about. But the
+              // extremes ARE attributable: the maximum is the value of whoever
+              // is at the top, so in private mode an extreme is reported only
+              // when at least five rows share it (numericTails). Quartiles
+              // stay — with n ≥ 5 they sit in the middle of the distribution.
               nums.sort((a, b) => a - b);
               const n = nums.length;
               const q = (p: number) => n ? nums[Math.min(n - 1, Math.floor(p * n))] : NaN;
@@ -3573,9 +3720,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               // Population sd (÷n), matching the rest of the app.
               const sd = n ? Math.sqrt(nums.reduce((s, v) => s + (v - mean) ** 2, 0) / n) : NaN;
               const r = (x: number) => (Number.isFinite(x) ? Math.round(x * 1e4) / 1e4 : x);
+              const tails = numericTails(nums, policy);
               return {
                   name: col, kind: 'numeric' as const, missing,
-                  min: r(nums[0]), max: r(nums[n - 1]),
+                  ...(tails.min != null ? { min: r(tails.min) } : {}),
+                  ...(tails.max != null ? { max: r(tails.max) } : {}),
+                  ...(tails.tailsWithheld ? { tailsWithheld: true } : {}),
                   mean: r(mean), sd: r(sd), q1: r(q(0.25)), median: r(q(0.5)), q3: r(q(0.75)),
               };
           }
@@ -3644,6 +3794,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           shapeBy,
           viewMode,
           pinnedViews: pinnedViews.length,
+          // Private mode withholds small counts here as in the column profiles.
+          rowFilter: rowMask && rowFilter
+              ? { conditions: rowFilter, shown: filterMeetsFloor(countMask(rowMask), processedData?.nRows ?? 0, sessionPolicy) === 'too-few-excluded' ? 'all but fewer than 5' : withheldCount(countMask(rowMask)), total: processedData?.nRows ?? 0 }
+              : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
           pcaRuns: (activeDataset?.pcaRuns ?? []).map(r => ({
@@ -3651,6 +3805,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               standardize: r.standardize, savedAt: r.savedAt,
               varianceExplained: r.varianceExplained.map(v => Math.round(v * 1000) / 1000),
               missing: r.missing && { strategy: r.missing.strategy, imputedCells: r.missing.imputedCells, rowsUsed: r.missing.rowsUsed, rowsDropped: r.missing.rowsDropped },
+              ...(r.filter ? { filter: r.filter } : {}),
           })),
       }),
 
@@ -3706,11 +3861,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       runClustering: (method, opts) => {
-          const t = latestTable();
-          if (!t || !activeDataset) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: base, full: t, mask, filter, note: filterNote } = gate;
+          if (!activeDataset) return 'No dataset loaded.';
           const ax = effectiveAxes(activeDataset, viewMode);
-          const rawCols = [t.data[ax.x], t.data[ax.y]];
-          if (ax.z) rawCols.push(t.data[ax.z]);
+          const rawCols = [base.data[ax.x], base.data[ax.y]];
+          if (ax.z) rawCols.push(base.data[ax.z]);
           const useEps = opts.eps ?? eps, useMin = opts.min_samples ?? minSamples, useK = opts.k ?? k;
           const useStd = opts.standardize ?? standardize;
           const axNames = [ax.x, ax.y, ...(ax.z ? [ax.z] : [])];
@@ -3721,14 +3878,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const cols = useStd ? zscoreCellColumns(rawCols) : rawCols;
           const imp = countImputed(rawCols, axNames);
           const labels = method === 'DBSCAN' ? dbscan(cols, useEps, useMin) : kmeans(cols, useK);
+          const fullLabels = mask ? scatterBack(t.nRows, mask, labels) : labels;
           const newTable: DataTable = {
               columns: t.columns.includes('Cluster') ? t.columns : [...t.columns, 'Cluster'],
-              data: { ...t.data, Cluster: labels },
+              data: { ...t.data, Cluster: fullLabels },
               nRows: t.nRows,
           };
           freshTableRef.current = newTable;
           setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
-          logProvenance(activeId, `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''} wrote the "Cluster" column`);
+          logProvenance(activeId, `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column`);
           setClusterMethod(method);
           if (opts.eps != null) setEps(opts.eps);
           if (opts.min_samples != null) setMinSamples(opts.min_samples);
@@ -3742,12 +3900,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const stdNote = useStd
               ? ` Variables were z-scored first${method === 'DBSCAN' ? ' (eps is in SD units)' : ''}.`
               : ' Variables were used on their raw scales.';
-          return `${method} done on ${ax.z ? '3' : '2'} axes (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')}). Sizes — ${summary}.${stdNote}${missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: t.nRows, rowsDropped: 0 }, t.nRows)} Points are now colored by cluster.`;
+          return `${method} done on ${ax.z ? '3' : '2'} axes (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')}). Sizes — ${summary}.${filterNote}${mask ? ' Rows outside the filter were not clustered and show as N/A.' : ''}${stdNote}${missingNote({ strategy: 'median', imputedCells: imp.cells, totalCells: imp.total, byVariable: imp.byVariable, rowsUsed: base.nRows, rowsDropped: 0 }, base.nRows)} Points are now colored by cluster.`;
       },
 
       getClusterBreakdown: (attribute) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
           const clusterCol = t.data['Cluster'];
           if (!clusterCol) return 'No clustering has been run yet — call run_clustering first.';
           if (!attribute || !t.columns.includes(attribute)) {
@@ -3786,12 +3945,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               const rows = shown.map(([v, n]) => `${v} ${Math.round((n / total) * 100)}% (${n})`).join(', ');
               const tail = hidden ? `${shown.length ? ', ' : ''}${hidden} rarer value${hidden === 1 ? '' : 's'} not listed` : '';
               return `${ck} (n=${total}): ${rows}${tail}`;
-          }).join('\n');
+          }).join('\n') + note;
       },
 
       saveClusterHeatmap: async ({ attribute, direction, palette }) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t } = gate;
           if (!t.data.Cluster) return 'No clustering has been run yet — call run_clustering first.';
           const candidates = t.columns.filter(c => c !== 'Cluster' && getColorFieldKind(t.data[c] ?? []) === 'categorical');
           if (!candidates.includes(attribute)) {
@@ -3842,6 +4002,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const existing = datasets.find(d => d.name === 'iris');
           if (existing) {
               if (existing.id !== activeId) selectDataset(existing.id);
+              pendingSwitchRef.current = { id: existing.id, table: existing.table };
               freshTableRef.current = existing.table;
               return `The demo dataset is already loaded (${existing.table.nRows} rows) and is now the active dataset — no need to load it again.`;
           }
@@ -3869,13 +4030,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       correlate: (colA, colB) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
           const bad = [colA, colB].filter(c => !c || !numericColumns(t).includes(c));
           if (bad.length) return `Not numeric columns: ${bad.join(', ')}. Numeric: ${numericColumns(t).join(', ')}.`;
           const { n, pearson, spearman } = correlation(t.data[colA], t.data[colB]);
-          if (pearson == null) return `Not enough complete pairs (n=${n}) to correlate ${colA} and ${colB}.`;
-          return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).`;
+          if (pearson == null || !correlationAllowed(n, activePolicy)) return `Not enough complete pairs to correlate ${colA} and ${colB}${activePolicy.fullCategories ? ` (n=${n})` : ' (fewer than 5 in private mode)'}.`;
+          return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).${note}`;
       },
 
       // Both go through the ONE analysis gate (validator → executor → pane →
@@ -3884,41 +4046,20 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       plotChart: (plan) => runAnalysisPlan(plan),
 
       compareGroups: (numericCol, groupCol) => {
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
           if (!numericColumns(t).includes(numericCol)) return `"${numericCol}" is not a numeric column. Numeric: ${numericColumns(t).join(', ')}.`;
           if (!t.columns.includes(groupCol)) return `"${groupCol}" is not a column.`;
-          const res = statsCompareGroups(t.data[numericCol], t.data[groupCol]);
-          if (!res.groups.length) return 'No complete observations to compare.';
-
-          // A grouping with (nearly) one row per group is an identifier, not a
-          // grouping: eta-squared is 1.000 by construction and means nothing.
-          // Refusing beats reporting a number that reads as a perfect result.
-          if (res.nGroups >= res.overall.n) {
-              return `"${groupCol}" has ${res.nGroups} distinct values across ${res.overall.n} observations — one per row. That is an identifier rather than a grouping, and eta-squared would be exactly 1.000 by construction. Pick a column with repeated values (a condition, demographic, or cluster).`;
-          }
-          if (res.nGroups > res.overall.n / 2) {
-              return `"${groupCol}" has ${res.nGroups} distinct values across only ${res.overall.n} observations (smallest group n=${res.minGroupN}). Group means are not estimable at that granularity and eta-squared would be inflated to near 1 by construction. Pick a coarser grouping.`;
-          }
-
-          const lines = res.groups.map(g => `${g.group}: mean=${g.mean.toFixed(2)}, sd=${g.sd == null ? 'n/a' : g.sd.toFixed(2)}, n=${g.n}`);
-          // Caveats the number cannot carry on its own.
-          const caveats: string[] = [];
-          if (res.singletonGroups) {
-              caveats.push(`${res.singletonGroups} group${res.singletonGroups === 1 ? ' has' : 's have'} a single observation, so no standard deviation exists for ${res.singletonGroups === 1 ? 'it' : 'them'}`);
-          }
-          if (res.minGroupN < 30) {
-              caveats.push(`the smallest group has n=${res.minGroupN}, so its mean is unstable`);
-          }
-          if (res.etaSquared != null && res.omegaSquared != null && res.etaSquared - res.omegaSquared > 0.05) {
-              caveats.push(`eta-squared is inflated here by the number of groups — omega-squared is the corrected figure`);
-          }
-          return `${numericCol} by ${groupCol} (overall mean=${res.overall.mean.toFixed(2)}, sd=${res.overall.sd == null ? 'n/a' : res.overall.sd.toFixed(2)} [sample, n-1], n=${res.overall.n}, ${res.nGroups} groups):\n${lines.join('\n')}\neta-squared=${res.etaSquared?.toFixed(3) ?? 'n/a'}, omega-squared=${res.omegaSquared?.toFixed(3) ?? 'n/a'} (share of variance explained by group; descriptive effect sizes, not significance tests).${caveats.length ? ` Note: ${caveats.join('; ')}.` : ''}`;
+          const report = groupComparisonReport(numericCol, groupCol, t.data[numericCol], t.data[groupCol], activePolicy);
+          return report.ok ? report.message + note : report.message;
       },
 
       suggestK: (maxK, standardizeArg) => {
-          const t = latestTable();
-          if (!t || !activeDataset) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
+          if (!activeDataset) return 'No dataset loaded.';
           const ax = effectiveAxes(activeDataset, viewMode);
           // Diagnostics must see the same units the clustering will use, or the
           // suggestion answers a different question than the run. run_clustering
@@ -3932,12 +4073,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const rows = silhouetteByK(cols, kmeans, maxK);
           if (!rows.length) return 'Too few complete rows on the current axes to evaluate.';
           const best = rows.reduce((a, b) => (b.silhouette > a.silhouette ? b : a));
-          return `Mean silhouette by k on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ', z-scored' : ', raw scales'} — pass standardize=${useStd} to run_clustering to match:\n${rows.map(r => `k=${r.k}: ${r.silhouette.toFixed(3)}${r.k === best.k ? '  ← best' : ''}`).join('\n')}\n(Computed on up to 1200 sampled rows. Higher = better separated; values under ~0.25 suggest weak structure.)`;
+          return `Mean silhouette by k on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ', z-scored' : ', raw scales'} — pass standardize=${useStd} to run_clustering to match:\n${rows.map(r => `k=${r.k}: ${r.silhouette.toFixed(3)}${r.k === best.k ? '  ← best' : ''}`).join('\n')}\n(Computed on up to 1200 sampled rows. Higher = better separated; values under ~0.25 suggest weak structure.)${note}`;
       },
 
       suggestEps: (minSamplesArg, standardizeArg) => {
-          const t = latestTable();
-          if (!t || !activeDataset) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const { table: t, note } = gate;
+          if (!activeDataset) return 'No dataset loaded.';
           const ms = minSamplesArg ?? minSamples;
           const useStd = standardizeArg ?? standardize;   // see suggestK (D2)
           const ax = effectiveAxes(activeDataset, viewMode);
@@ -3947,7 +4090,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const res = kDistancePercentiles(cols, ms);
           if (!res) return 'Too few complete rows on the current axes.';
           const p = res.percentiles;
-          return `k-distance percentiles for min_samples=${ms} on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ' after z-scoring (eps will be in SD units)' : ' on raw scales'}: p50=${p.p50.toFixed(3)}, p75=${p.p75.toFixed(3)}, p90=${p.p90.toFixed(3)}, p95=${p.p95.toFixed(3)}, max=${p.max.toFixed(3)}. These are distances to each point's ${res.kthNeighbor}-nearest neighbour — min_samples counts the point itself, so that is the eps at which a point becomes a core point. A good eps usually sits near the knee (~p90–p95); smaller eps → more points labeled Noise. Computed on ${res.n} rows${res.n >= 2000 ? ' (a seeded random sample, capped at 2000)' : ''}. Pass standardize=${useStd} to run_clustering so the run uses these units.`;
+          return `k-distance percentiles for min_samples=${ms} on (${[ax.x, ax.y, ax.z].filter(Boolean).join(', ')})${useStd ? ' after z-scoring (eps will be in SD units)' : ' on raw scales'}: p50=${p.p50.toFixed(3)}, p75=${p.p75.toFixed(3)}, p90=${p.p90.toFixed(3)}, p95=${p.p95.toFixed(3)}, max=${p.max.toFixed(3)}. These are distances to each point's ${res.kthNeighbor}-nearest neighbour — min_samples counts the point itself, so that is the eps at which a point becomes a core point. A good eps usually sits near the knee (~p90–p95); smaller eps → more points labeled Noise. Computed on ${res.n} rows${res.n >= 2000 ? ' (a seeded random sample, capped at 2000)' : ''}. Pass standardize=${useStd} to run_clustering so the run uses these units.${note}`;
       },
 
       switchDataset: (name) => {
@@ -3955,6 +4098,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (!ds) return `No dataset named "${name}". Loaded: ${datasets.map(d => d.name).join(', ') || 'none'}.`;
           if (ds.id === activeId) return `"${ds.name}" is already active.`;
           selectDataset(ds.id);
+          pendingSwitchRef.current = { id: ds.id, table: ds.table };
           freshTableRef.current = ds.table;
           return `Switched active dataset to "${ds.name}" (${ds.table.nRows} rows).`;
       },
@@ -3974,6 +4118,38 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               return next;
           });
           return `${state === 'normal' ? 'Restored' : state === 'muted' ? 'Muted' : 'Hid'} ${categories.length} categor${categories.length === 1 ? 'y' : 'ies'} of ${colorBy}.`;
+      },
+
+      setRowFilter: ({ conditions, mode = 'replace', clear }) => {
+          const t = latestTable();
+          if (!t) return 'No dataset loaded.';
+          const active = currentFilter();
+          if (clear) {
+              if (!active) return 'No row filter was active — all rows are already shown.';
+              setRowFilter(null);
+              return `Cleared the row filter — all ${t.nRows} rows are shown again.`;
+          }
+          const problems = validateConditions(t, conditions);
+          if (!Array.isArray(conditions) || !conditions.length) return 'Give at least one condition, or pass clear=true to remove the filter.';
+          if (problems.length) return `Not applied. ${problems.join(' ')} Columns: ${t.columns.join(', ')}.`;
+          // Private mode: a condition may name only columns the profile
+          // describes and values it lists — the session-wide (stricter) policy,
+          // as for the count. Refused before anything is computed, so the
+          // response cannot depend on what the rows contain.
+          const policyProblems = validateConditionsForPolicy(analysisProfileOf(t, sessionPolicy), conditions as FilterCondition[]);
+          if (policyProblems.length) return `Not applied. ${policyProblems.join(' ')}`;
+          const next = mode === 'add' && active ? [...active, ...(conditions as FilterCondition[])] : (conditions as FilterCondition[]);
+          const shown = countMask(buildRowMask(t, next));
+          // In open mode an empty result is a mistake worth catching before it
+          // blanks the plot. In private mode "0" would confirm that a withheld
+          // value does not exist, so the filter is applied and reported the
+          // same way as any other small count.
+          if (shown === 0 && sessionPolicy.fullCategories) return `Not applied: no rows satisfy ${describeConditions(next)}. Check the values with get_app_state (column profiles) — the filter is unchanged.`;
+          setRowFilter(next);
+          const floor = filterMeetsFloor(shown, t.nRows, sessionPolicy);
+          const shownText = floor === 'too-few-excluded' ? `all but fewer than 5` : String(withheldCount(shown));
+          const floorNote = floor === 'ok' ? '' : ` Note: in private mode this filter ${floor === 'too-few-shown' ? 'leaves' : 'excludes'} fewer than 5 rows, so analyses are blocked until it is ${floor === 'too-few-shown' ? 'widened' : 'narrowed'} or cleared.`;
+          return `Showing ${shownText} of ${t.nRows} rows where ${describeConditions(next)}. Every analysis (clustering, PCA, tests, charts, correlations, group comparisons) now runs on these rows only; the column profiles in get_app_state still describe the full dataset. The user can clear it from the chip on the canvas, or call set_row_filter with clear=true.${floorNote}`;
       },
 
       transferColumn: ({ source_dataset, column, mode = 'order', key_column, new_name }) => {
@@ -4129,28 +4305,31 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       // dataset, is refused rather than answered.
       sampleRows: (opts) => {
           if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const t = gate.table;
           return sampleRowsCore(t, opts);
       },
 
       getRowsWhere: (opts) => {
           if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const t = gate.table;
           return rowsWhereCore(t, opts);
       },
 
       listCategories: (column) => {
           if (!sessionPolicy.rowAccess) return 'Row access is not available: the session is in Private data mode.';
-          const t = latestTable();
-          if (!t) return 'No dataset loaded.';
+          const gate = analysisTable();
+          if (typeof gate === 'string') return gate;
+          const t = gate.table;
           return listCategoriesCore(t, column);
       },
 
       snapshot: () => ({
           datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews,
-          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap,
+          clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap, rowFilter: rowFilterState,
       }),
 
       restore: (snap: any) => {
@@ -4175,6 +4354,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setBreakdownDirection(snap.breakdownDirection === 'group' ? 'group' : 'cluster');
           setHeatmapPalette(HEATMAP_PALETTES.includes(snap.heatmapPalette) ? snap.heatmapPalette : 'Viridis');
           setMutedMap(snap.mutedMap);
+          pendingFilterRef.current = null;
+          setRowFilterState(asRowFilterState(snap.rowFilter));
           freshTableRef.current = null;
       },
   };
@@ -4275,11 +4456,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               id: 'active', data: processedData, colorBy, shapeBy,
               axes: effectiveAxes(activeDataset, viewMode),
               labels: effectiveLabels(activeDataset, viewMode),
-              viewMode, showAxes: showAxes[viewMode], aspect, muted: mutedMap,
+              viewMode, showAxes: showAxes[viewMode], aspect, muted: mutedMap, mask: rowMask,
               label: `${activeDataset.name} · live`,
           }
           : null),
-      [processedData, activeDataset, colorBy, shapeBy, viewMode, showAxes, aspect, mutedMap],
+      [processedData, activeDataset, colorBy, shapeBy, viewMode, showAxes, aspect, mutedMap, rowMask],
   );
   const allViews = useMemo(
       () => (activeView ? [activeView, ...pinnedViews, ...analysisViews] : []),
@@ -4788,7 +4969,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
                 {processedData.columns.includes('Cluster') && (
                     <ClusterBreakdown
-                        table={processedData}
+                        table={analysisData ?? processedData}
                         attr={breakdownBy}
                         onAttrChange={setBreakdownBy}
                         direction={breakdownDirection}
@@ -4856,6 +5037,28 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   <TmuxGrid views={allViews} renderView={renderView} />
                   <ThemedNotes notes={notes} setNotes={setNotes} theme={theme} />
                   <ThemedLegend view={allViews[0]} theme={theme} muted={mutedMap} onToggle={toggleMuted} />
+                  {rowMask && rowFilter && processedData && (
+                      <div
+                          data-guide="row-filter"
+                          className={`absolute top-2 left-2 z-30 flex items-center gap-2 px-2.5 py-1 text-[11px] shadow-sm ${theme === 'terminal'
+                              ? 'bg-black/80 border border-[#10ff50] text-[#10ff50] font-mono'
+                              : 'bg-[var(--background)] border-2 border-[var(--foreground)] text-[var(--foreground)] font-bold rounded-sm'}`}
+                          title="Row filter set by the assistant. The plot and every analysis use these rows; clear it to return to the full dataset."
+                      >
+                          <span className="uppercase tracking-wider opacity-60">Filter</span>
+                          <span>{describeConditions(rowFilter)}</span>
+                          <span className="opacity-60">{countMask(rowMask)} / {processedData.nRows}</span>
+                          <button
+                              type="button"
+                              onClick={() => setRowFilter(null)}
+                              aria-label="Clear row filter"
+                              title="Clear filter — show all rows"
+                              className="ml-1 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-0 p-0 flex items-center"
+                          >
+                              <X size={12} />
+                          </button>
+                      </div>
+                  )}
               </>
           ) : (
               <EmptyState
