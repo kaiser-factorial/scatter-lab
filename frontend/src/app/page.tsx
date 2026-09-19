@@ -10,7 +10,6 @@ import { Accordion, AccordionItem, Separator } from "puxel";
 import { readTable, listSheets, type SheetInfo } from "@/lib/parse";
 import { asNumber, isNumericColumn } from "@/lib/table";
 import { scanTable, numericColumnsOf, categoricalColumnsOf } from "@/lib/profile";
-import { CSV_BOM, csvCell } from "@/lib/csv";
 import { processUpload } from "@/lib/engine";
 import { dbscan, kmeans, zscoreCellColumns, suggestStandardize, countImputed, nonNumericAxes } from "@/lib/cluster";
 import * as wsStore from "@/lib/workspaces";
@@ -38,6 +37,8 @@ import { InfoTip } from "@/components/InfoTip";
 import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
 import { RecodeDialog } from "@/components/RecodeDialog";
+import { ExportDialog, type ImageExportOptions, type DataExportOptions } from "@/components/ExportDialog";
+import { selectExportColumns, serializeTable, dataExportFilename, isDerivedColumn } from "@/lib/export";
 import { buildClusterCrosstab, buildClusterHeatmap, downloadClusterHeatmapPng, HEATMAP_PALETTES, sortClusterLabels, type BreakdownDirection, type HeatmapPalette } from "@/lib/clusterBreakdown";
 import { MARK_KINDS, TEST_KINDS, formatFailures, type AnalysisPlan, type ChartPlan, type TestPlan, type ValidationFailure } from "@/lib/analysisPlan";
 import { analysisProfileOf, validatePlan } from "@/lib/validators";
@@ -2239,6 +2240,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [isExporting, setIsExporting] = useState("");
   const [includeExportInfo, setIncludeExportInfo] = useState(true);
+  const [exportDialog, setExportDialog] = useState<'image' | 'data' | null>(null);
   
   // Data state: cached datasets (columnar — see DataTable), one active at a time
   const [datasets, setDatasets] = useState<Dataset[]>([]);
@@ -3171,9 +3173,27 @@ export default function Home() {
   // Temporarily dress the live plot with a descriptive title + legend for
   // capture, then undress. Any later re-render also restores the props-driven
   // layout, so a failed restore can't stick.
-  const setExportDressing = async (Plotly: any, gd: any, on: boolean) => {
-      if (!includeExportInfo || !activeDataset || !processedData) return;
+  // What an image export carries beyond the points. `info` is the persisted
+  // "title & legend" setting; `axes` is per export and defaults to the plot's
+  // own axes toggle, so an export without a choice looks like the screen.
+  type ExportDressing = { info: boolean; axes: boolean };
+  const defaultDressing = (): ExportDressing => ({ info: includeExportInfo, axes: showAxes[viewMode] });
+  const setExportDressing = async (Plotly: any, gd: any, on: boolean, dressing: ExportDressing = defaultDressing()) => {
+      if (!activeDataset || !processedData) return;
       const labels = effectiveLabels(activeDataset, viewMode);
+      // Axes differ from the live toggle only when asked; restoring puts the
+      // live setting back (a re-render would too, but not before the capture).
+      if (dressing.axes !== showAxes[viewMode]) {
+          const want = on ? dressing.axes : showAxes[viewMode];
+          const axisKeys = (prefix: string, label: string): Record<string, unknown> => ({
+              [`${prefix}.showgrid`]: want, [`${prefix}.zeroline`]: want, [`${prefix}.showticklabels`]: want,
+              [`${prefix}.title.text`]: want ? label : '',
+          });
+          await Plotly.relayout(gd, viewMode === "3D"
+              ? { ...axisKeys('scene.xaxis', labels.x), ...axisKeys('scene.yaxis', labels.y), ...axisKeys('scene.zaxis', labels.z) }
+              : { ...axisKeys('xaxis', labels.x), ...axisKeys('yaxis', labels.y) });
+      }
+      if (!dressing.info) return;
       const axesStr = viewMode === "3D" ? `${labels.x} × ${labels.y} × ${labels.z}` : `${labels.x} × ${labels.y}`;
       const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
       await Plotly.relayout(gd, on
@@ -3199,8 +3219,11 @@ export default function Home() {
       }
   };
 
-  const exportPNG = async (): Promise<string | null> => {
+  const exportPNG = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       if (!activeDataset) return 'No active dataset to export.';
+      const format = opts.format === 'svg' ? 'svg' : 'png';
+      if (format === 'svg' && viewMode !== '2D') return 'SVG export is available only for a 2D view.';
+      const dressing: ExportDressing = { ...defaultDressing(), ...(opts.info != null ? { info: opts.info } : {}), ...(opts.axes != null ? { axes: opts.axes } : {}) };
       const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
       const gd = getActivePlotDiv();
       if (!gd || !gd.data) return 'The active plot is not ready to export yet.';
@@ -3212,21 +3235,21 @@ export default function Home() {
       try {
           // One frame for the rAF loop to observe the flag before capturing.
           await new Promise(r => requestAnimationFrame(() => r(null)));
-          await setExportDressing(Plotly, gd, true);
+          await setExportDressing(Plotly, gd, true, dressing);
           await Plotly.downloadImage(gd, {
-              format: 'png',
+              format,
               width: gd.offsetWidth || 900,
               height: gd.offsetHeight || 700,
-              scale: 2,
+              scale: format === 'svg' ? 1 : (opts.scale ?? 2),
               filename: `${activeDataset.name}_${colorBy}_${viewMode}`,
           });
       } catch (err) {
           console.error(err);
-          const message = 'PNG export failed — see console.';
+          const message = `${format.toUpperCase()} export failed — see console.`;
           setUploadStatus(message);
           return message;
       } finally {
-          try { await setExportDressing(Plotly, gd, false); } catch { /* a re-render restores the live plot */ }
+          try { await setExportDressing(Plotly, gd, false, dressing); } catch { /* a re-render restores the live plot */ }
           setIsRotating(wasRotating);
       }
       return null;
@@ -3235,9 +3258,10 @@ export default function Home() {
   const withTimeout = <T,>(p: Promise<T>, ms: number, what: string): Promise<T> =>
       Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${what} timed out`)), ms))]);
 
-  const exportGIF = async (): Promise<string | null> => {
+  const exportGIF = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       const gd = getActivePlotDiv();
       if (!gd || !activeDataset) return 'The active plot is not ready to export yet.';
+      const dressing: ExportDressing = { ...defaultDressing(), ...(opts.info != null ? { info: opts.info } : {}), ...(opts.axes != null ? { axes: opts.axes } : {}) };
       if (viewMode !== "3D") return 'A rotating GIF is available only for a 3D view.';
       if (isExporting) return 'Another export is already in progress.';
       const wasRotating = isRotating;
@@ -3258,7 +3282,7 @@ export default function Home() {
       try {
           const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
           const { GIFEncoder, quantize, applyPalette } = await import('gifenc');
-          await setExportDressing(Plotly, gd, true);
+          await setExportDressing(Plotly, gd, true, dressing);
           const canvas = document.createElement('canvas');
           canvas.width = W; canvas.height = H;
           const ctx = canvas.getContext('2d')!;
@@ -3313,7 +3337,7 @@ export default function Home() {
           try {
               const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
               const finalGd = getActivePlotDiv();
-              if (finalGd && finalGd.data) await setExportDressing(Plotly, finalGd, false);
+              if (finalGd && finalGd.data) await setExportDressing(Plotly, finalGd, false, dressing);
           } catch { /* a re-render restores the props-driven layout anyway */ }
           setCamera(prevCam);
           setIsRotating(wasRotating);
@@ -3322,15 +3346,17 @@ export default function Home() {
       return null;
   };
 
-  const exportHTML = async (): Promise<string | null> => {
+  const exportHTML = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       if (!activeDataset || !processedData) return 'No active dataset to export.';
+      const dressing: ExportDressing = { ...defaultDressing(), ...(opts.info != null ? { info: opts.info } : {}), ...(opts.axes != null ? { axes: opts.axes } : {}) };
+      const includeInfo = dressing.info;
       setIsExporting("Building HTML…");
       try {
           const labels = effectiveLabels(activeDataset, viewMode);
           const axes = effectiveAxes(activeDataset, viewMode);
           const axesStr = viewMode === "3D" ? `${labels.x} × ${labels.y} × ${labels.z}` : `${labels.x} × ${labels.y}`;
           const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
-          const title = includeExportInfo ? `${axesStr} · colored by ${colorBy}` : `${activeDataset.name}`;
+          const title = includeInfo ? `${axesStr} · colored by ${colorBy}` : `${activeDataset.name}`;
 
           // No decorative floor, and coordinates at 6 significant figures: no
           // scatter plot resolves the 17th digit, and the two together took a
@@ -3349,7 +3375,7 @@ export default function Home() {
                   }
                   return t;
               });
-          if (includeExportInfo && kind === "continuous" && (data[0] as { marker?: Record<string, unknown> })?.marker) {
+          if (includeInfo && kind === "continuous" && (data[0] as { marker?: Record<string, unknown> })?.marker) {
               const m = (data[0] as { marker: Record<string, unknown> }).marker;
               m.showscale = true;
               m.colorbar = { title: { text: colorBy }, thickness: 14 };
@@ -3359,20 +3385,20 @@ export default function Home() {
           // resolve in a bare file); start from the user's current camera angle
           const gd = getActivePlotDiv();
           const startCam = gd?.layout?.scene?.camera ?? camera;
-          const axesOn = showAxes[viewMode];
+          const axesOn = dressing.axes;
           const exportAspect = aspect;
           const layout: any = {
               autosize: true,
               margin: viewMode === "2D" ? { l: 50, r: 20, b: 50, t: 60 } : { l: 0, r: 0, b: 0, t: 60 },
               title: { text: title, font: { color: '#111111', size: 16 } },
               paper_bgcolor: 'white', plot_bgcolor: 'white',
-              showlegend: includeExportInfo && kind === "categorical",
+              showlegend: includeInfo && kind === "categorical",
               legend: { font: { color: '#333333' }, bgcolor: 'rgba(255,255,255,0.8)' },
           };
           const axisCfg = (label: string, g: string) => ({
               showgrid: axesOn, zeroline: axesOn, showticklabels: axesOn,
               gridcolor: g, zerolinecolor: '#888888', tickfont: { color: '#888888' },
-              title: { text: label, font: { color: '#111111' } },
+              title: { text: axesOn ? label : '', font: { color: '#111111' } },
           });
           if (viewMode === "3D") {
               // Exports must match the screen, including the box shape.
@@ -3437,26 +3463,52 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       return null;
   };
 
-  const exportDatasetCsv = (): string | null => {
-      const table = freshTableRef.current ?? processedData;
-      if (!activeDataset || !table) return 'No active dataset to export.';
-      const rows = [
-          table.columns.map(csvCell).join(','),
-          ...Array.from({ length: table.nRows }, (_, row) =>
-              table.columns.map(column => csvCell(table.data[column]?.[row])).join(',')
-          ),
-      ];
-      // BOM: without it Excel reads the file as the system codepage, so any
-      // non-ASCII column name or value arrives mangled (C12).
-      const blob = new Blob([CSV_BOM + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const downloadBlob = (blob: Blob, filename: string) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${activeDataset.name}_data.csv`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  // Dataset export. `rows: 'visible'` writes the filtered subset (the file
+  // name says so); the assistant's save_active_dataset_csv always writes every
+  // row. The BOM on CSV/TSV is what keeps Excel from mangling non-ASCII (C12).
+  const exportDataset = async ({ format, rows, includeDerived }: DataExportOptions): Promise<string | null> => {
+      const full = freshTableRef.current ?? processedData;
+      if (!activeDataset || !full) return 'No active dataset to export.';
+      const filtered = rows === 'visible' && !!rowMask;
+      const table = filtered ? subsetTable(full, rowMask) : full;
+      const columns = selectExportColumns(table, includeDerived);
+      try {
+          if (format === 'xlsx') {
+              const XLSX = await import('xlsx');
+              const aoa = [columns, ...Array.from({ length: table.nRows }, (_, i) => columns.map(c => table.data[c]?.[i] ?? null))];
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'data');
+              const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
+              downloadBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), dataExportFilename(activeDataset.name, 'xlsx', filtered));
+          } else {
+              const { content, mime, ext } = serializeTable(table, columns, format);
+              downloadBlob(new Blob([content], { type: mime }), dataExportFilename(activeDataset.name, ext, filtered));
+          }
+      } catch (err) {
+          console.error(err);
+          const message = `${format.toUpperCase()} export failed — see console.`;
+          setUploadStatus(message);
+          return message;
+      }
+      return null;
+  };
+  const exportDatasetCsv = (): string | null => {
+      // Synchronous for the bridge: CSV needs no dynamic import.
+      const full = freshTableRef.current ?? processedData;
+      if (!activeDataset || !full) return 'No active dataset to export.';
+      const { content, mime, ext } = serializeTable(full, full.columns, 'csv');
+      downloadBlob(new Blob([content], { type: mime }), dataExportFilename(activeDataset.name, ext, false));
       return null;
   };
 
@@ -4993,24 +5045,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               )}
 
               <SidebarSection title="Export" step={6} hasBorder theme={theme} guide="export" order={6}>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button onClick={exportPNG} disabled={!!isExporting} title="Save PNG of the active view" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-blue)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
-                      <Download className="h-4 w-4" /> PNG
+                  <div className="grid grid-cols-2 gap-2">
+                    <button ref={gifButtonRef} onClick={() => setExportDialog('image')} disabled={!!isExporting} title="Save the active view as PNG, SVG, GIF or interactive HTML" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-blue)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
+                      <Download className="h-4 w-4" /> {isExporting || 'Image'}
                     </button>
-                    <button ref={gifButtonRef} onClick={exportGIF} disabled={viewMode === "2D" || !!isExporting} title="Save rotating GIF (3D only)" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
-                      <Download className="h-4 w-4" /> GIF
-                    </button>
-                    <button onClick={exportHTML} disabled={!!isExporting} title="Save interactive HTML" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-red)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
-                      <Download className="h-4 w-4" /> HTML
+                    <button onClick={() => setExportDialog('data')} disabled={!!isExporting} title="Save the dataset as CSV, TSV, XLSX or JSON" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
+                      <Download className="h-4 w-4" /> Data
                     </button>
                   </div>
-                  <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-                      <input type="checkbox" checked={includeExportInfo} onChange={e => setIncludeExportInfo(e.target.checked)} />
-                      <span className="opacity-80">Add title & legend to exports</span>
-                  </label>
-                  <button onClick={exportDatasetCsv} disabled={!!isExporting} className={`scatterlab-action-button w-full flex items-center justify-center gap-2 py-2 text-sm font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-white text-black':'bg-[var(--system-green)] border border-[var(--system-green)] text-black'}`}>
-                      <Download className="w-4 h-4" /> Save Dataset CSV
-                  </button>
               </SidebarSection>
             </>
           )}
@@ -5419,6 +5461,23 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           table, which every derived view reads from, and hands the dialog the
           account of what changed so the user sees the effect rather than a
           silent success. */}
+      <ExportDialog
+        kind={exportDialog}
+        onClose={() => setExportDialog(null)}
+        theme={theme}
+        viewMode={viewMode}
+        info={includeExportInfo}
+        onInfoChange={setIncludeExportInfo}
+        axesOn={showAxes[viewMode]}
+        nRows={processedData?.nRows ?? 0}
+        filter={rowMask && rowFilter ? { description: describeConditions(rowFilter), shown: countMask(rowMask) } : null}
+        hasDerived={!!processedData?.columns.some(isDerivedColumn)}
+        busy={!!isExporting}
+        // Close first, in the same batch as the export's own state change: the
+        // GIF loop must not see a re-render mid-capture (see exportGIF).
+        onExportImage={(o) => { setExportDialog(null); void (o.format === 'gif' ? exportGIF(o) : o.format === 'html' ? exportHTML(o) : exportPNG(o)); }}
+        onExportData={(o) => { setExportDialog(null); void exportDataset(o); }}
+      />
       <RecodeDialog
         stage={showRecode}
         table={processedData}
