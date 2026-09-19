@@ -3177,9 +3177,6 @@ export default function Home() {
       return `${a.toFixed(p)}…${b.toFixed(p)}`;
   };
 
-  // Temporarily dress the live plot with a descriptive title + legend for
-  // capture, then undress. Any later re-render also restores the props-driven
-  // layout, so a failed restore can't stick.
   // What an image export carries beyond the points, one flag each: title and
   // legend come from the persisted chrome setting; axis lines & ticks,
   // gridlines and axis titles default to the plot's own axes toggle, so an
@@ -3211,70 +3208,47 @@ export default function Home() {
           ? { ...one('scene.xaxis', labels.x), ...one('scene.yaxis', labels.y), ...one('scene.zaxis', labels.z) }
           : { ...one('xaxis', labels.x), ...one('yaxis', labels.y) };
   };
-  const setExportDressing = async (Plotly: any, gd: any, on: boolean, dressing: ExportDressing = defaultDressing()) => {
-      if (!activeDataset || !processedData) return;
-      const labels = effectiveLabels(activeDataset, viewMode);
-      const live = showAxes[viewMode];
-      // Axes differ from the live toggle only when asked; restoring puts the
-      // live setting back (a re-render would too, but not before the capture).
-      if (dressing.axes !== live || dressing.grid !== live || dressing.labels !== live) {
-          await Plotly.relayout(gd, axisDressingKeys(on ? dressing : { ...dressing, axes: live, grid: live, labels: live }, labels));
-      }
-      if (!dressing.title && !dressing.legend) return;
-      const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
-      await Plotly.relayout(gd, on
-          ? {
-              ...(dressing.title ? { 'title.text': exportTitleText(), 'title.font.color': '#111111' } : {}),
-              showlegend: dressing.legend && kind === "categorical",
-              'legend.font.color': '#444444',
-              'legend.bgcolor': 'rgba(255,255,255,0.7)',
-            }
-          : { 'title.text': `${activeDataset.name} · live`, showlegend: false });
-      if (dressing.legend && kind === "continuous") {
-          // The single continuous trace is index 0 — show its colorbar instead of a legend
-          await Plotly.restyle(gd, on
-              ? {
-                  'marker.showscale': true,
-                  'marker.colorbar.title.text': colorBy,
-                  'marker.colorbar.title.font.color': '#444444',
-                  'marker.colorbar.tickfont.color': '#444444',
-                  'marker.colorbar.thickness': 12,
-                }
-              : { 'marker.showscale': false }, [0]);
-      }
-  };
 
-  // One frame for the export dialog's preview, drawn on an off-screen plot so
-  // the live view never flickers: same traces, light chrome, the chosen
-  // dressing, the live camera / 2D window. Purged right after capture.
-  const renderExportPreview = async (opts: Partial<ImageExportOptions>): Promise<string | null> => {
+  // Every still image — the dialog preview, PNG, SVG and each GIF frame — is
+  // drawn on an off-screen plot from the same figure: the live traces, light
+  // chrome, the chosen dressing, the live camera / 2D window. The live pane is
+  // never touched (no flicker, no restore step, no WebGL deadlock), and the
+  // output has a fixed 4:3 frame instead of whatever shape the viewport left
+  // the pane in — a narrow window used to give a narrow, title-clipped export.
+  const EXPORT_W = 1200, EXPORT_H = 900;
+  const buildExportFigure = (d: ExportDressing) => {
       if (!activeDataset || !processedData) return null;
-      const d = dressingFrom(opts);
-      const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
       const labels = effectiveLabels(activeDataset, viewMode);
       const axes = effectiveAxes(activeDataset, viewMode);
       const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
       const data = buildTraces(processedData, colorBy, viewMode, axes, labels, mutedMap, false, shapeBy, true, rowMask);
       const gdLive = getActivePlotDiv();
+      const liveCam: SceneCamera = gdLive?.layout?.scene?.camera ?? camera;
+      // A little further back than on screen: the 4:3 frame gives the title
+      // its own band, so the same eye distance would clip the box top and bottom.
+      const eye = liveCam.eye ?? camera.eye;
+      const exportCam: SceneCamera = { ...liveCam, eye: { x: eye.x * 1.15, y: eye.y * 1.15, z: eye.z * 1.15 } };
       const layout = buildPlotLayout({
           dark: false, title: d.title ? exportTitleText() : '', colorBy, axisNames: labels, mode: viewMode, axesOn: true,
           aspect, window2d: viewMode === "2D" ? get2dRange() : null,
-          camera: gdLive?.layout?.scene?.camera ?? camera,
+          camera: exportCam,
       });
       layout.paper_bgcolor = '#ffffff'; layout.plot_bgcolor = '#ffffff';
       if (layout.scene) layout.scene.bgcolor = '#ffffff';
-      // The full title at 480 px wide would run off both edges.
-      if (layout.title) {
-          // Wrap at the separators so a filtered title fits: the real export is wider.
+      layout.margin = { ...(layout.margin ?? {}), t: 24, b: viewMode === "2D" ? 50 : 10 };
+      if (layout.title && d.title) {
+          // Wrap at the separators so a filtered title fits the frame.
           const text = String(layout.title.text ?? '');
-          const lines = text.length > 60 ? text.split(' · ') : [text];
-          layout.title = { ...layout.title, text: lines.join('<br>'), font: { ...(layout.title.font ?? {}), size: 13 }, y: 1, yanchor: 'top', pad: { t: 8 } };
-          layout.margin = { ...(layout.margin ?? {}), t: 24 + 18 * lines.length };
+          const lines = text.length > 70 ? text.split(' · ') : [text];
+          layout.title = { ...layout.title, text: lines.join('<br>'), font: { ...(layout.title.font ?? {}), size: 18 }, y: 1, yanchor: 'top', pad: { t: 12 } };
+          layout.margin.t = 32 + 26 * lines.length;
+      } else {
+          delete layout.title;
       }
       layout.showlegend = d.legend && kind === "categorical";
       layout.legend = { ...(layout.legend ?? {}), font: { color: '#444444' }, bgcolor: 'rgba(255,255,255,0.7)' };
       if (d.legend && kind === "continuous" && data[0]?.marker) {
-          data[0].marker = { ...data[0].marker, showscale: true, colorbar: { title: { text: colorBy }, thickness: 12 } };
+          data[0].marker = { ...data[0].marker, showscale: true, colorbar: { title: { text: colorBy }, thickness: 14 } };
       }
       // Dotted relayout keys → nested layout for newPlot.
       for (const [key, val] of Object.entries(axisDressingKeys(d, labels))) {
@@ -3283,53 +3257,55 @@ export default function Home() {
           for (const part of path.slice(0, -1)) node = (node[part] ??= {}) as Record<string, unknown>;
           node[path[path.length - 1]] = val;
       }
+      return { data, layout };
+  };
+  const withOffscreenPlot = async <T,>(d: ExportDressing, width: number, height: number, run: (Plotly: any, host: HTMLDivElement) => Promise<T>): Promise<T | null> => {
+      const fig = buildExportFigure(d);
+      if (!fig) return null;
+      const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
       const host = document.createElement('div');
-      host.style.cssText = 'position:fixed;left:-10000px;top:0;width:720px;height:540px;';
+      host.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;height:${height}px;`;
       document.body.appendChild(host);
       try {
-          await withTimeout(Plotly.newPlot(host, data, layout, { staticPlot: true }), 10000, 'preview plot');
-          return await withTimeout(Plotly.toImage(host, { format: 'png', width: 720, height: 540, scale: 1 }), 10000, 'preview capture');
-      } catch (err) {
-          console.error(err);
-          return null;
+          await withTimeout(Plotly.newPlot(host, fig.data, fig.layout, { staticPlot: true }), 15000, 'export plot');
+          return await run(Plotly, host);
       } finally {
           try { Plotly.purge(host); } catch { /* nothing to purge */ }
           host.remove();
       }
+  };
+  const renderExportPreview = async (opts: Partial<ImageExportOptions>): Promise<string | null> => {
+      try {
+          return await withOffscreenPlot(dressingFrom(opts), EXPORT_W, EXPORT_H, (Plotly, host) =>
+              withTimeout(Plotly.toImage(host, { format: 'png', width: 800, height: 600, scale: 1 }) as Promise<string>, 10000, 'preview capture'));
+      } catch (err) {
+          console.error(err);
+          return null;
+      }
+  };
+  const downloadDataUrl = (url: string, filename: string) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
   };
 
   const exportPNG = async (opts: Partial<ImageExportOptions> = {}): Promise<string | null> => {
       if (!activeDataset) return 'No active dataset to export.';
       const format = opts.format === 'svg' ? 'svg' : 'png';
       if (format === 'svg' && viewMode !== '2D') return 'SVG export is available only for a 2D view.';
-      const dressing: ExportDressing = dressingFrom(opts);
-      const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
-      const gd = getActivePlotDiv();
-      if (!gd || !gd.data) return 'The active plot is not ready to export yet.';
-      // Hold the camera still for the capture, as exportGIF already did: a PNG
-      // saved mid-rotation catches the camera in motion, so the saved angle is
-      // not the one on screen when the button was pressed (C13).
-      const wasRotating = isRotating;
-      setIsRotating(false);
       try {
-          // One frame for the rAF loop to observe the flag before capturing.
-          await new Promise(r => requestAnimationFrame(() => r(null)));
-          await setExportDressing(Plotly, gd, true, dressing);
-          await Plotly.downloadImage(gd, {
-              format,
-              width: gd.offsetWidth || 900,
-              height: gd.offsetHeight || 700,
-              scale: format === 'svg' ? 1 : (opts.scale ?? 2),
-              filename: `${activeDataset.name}_${colorBy}_${viewMode}${rowMask ? '_filtered' : ''}`,
-          });
+          const url = await withOffscreenPlot(dressingFrom(opts), EXPORT_W, EXPORT_H, (Plotly, host) =>
+              withTimeout(Plotly.toImage(host, { format, width: EXPORT_W, height: EXPORT_H, scale: format === 'svg' ? 1 : (opts.scale ?? 2) }) as Promise<string>, 30000, `${format} capture`));
+          if (!url) return 'The active plot is not ready to export yet.';
+          downloadDataUrl(url, `${activeDataset.name}_${colorBy}_${viewMode}${rowMask ? '_filtered' : ''}.${format}`);
       } catch (err) {
           console.error(err);
           const message = `${format.toUpperCase()} export failed — see console.`;
           setUploadStatus(message);
           return message;
-      } finally {
-          try { await setExportDressing(Plotly, gd, false, dressing); } catch { /* a re-render restores the live plot */ }
-          setIsRotating(wasRotating);
       }
       return null;
   };
@@ -3343,41 +3319,32 @@ export default function Home() {
       const dressing: ExportDressing = dressingFrom(opts);
       if (viewMode !== "3D") return 'A rotating GIF is available only for a 3D view.';
       if (isExporting) return 'Another export is already in progress.';
-      const wasRotating = isRotating;
-      setIsRotating(false);
-      // The whole camera, not just the eye: restoring `{ eye }` alone dropped
-      // `center`, which would undo the vertical centring on every GIF export.
-      const prevCam: SceneCamera = { ...camera, eye: { ...camera.eye } };
-      const gifOrbit = orbitFrom(camera);
       const FRAMES = 36;
-      // Cap size — GIF bytes grow fast with dimensions
-      const W = Math.min(gd.offsetWidth || 700, 720);
-      const H = Math.round(W * ((gd.offsetHeight || 600) / (gd.offsetWidth || 700)));
+      // Fixed 4:3 frame, capped — GIF bytes grow fast with dimensions.
+      const W = 720, H = 540;
       // One state update up front, then NO React state changes until the loop
-      // ends: a Plotly.react (from any re-render) landing mid-toImage deadlocks
-      // WebGL capture. Progress is written straight into the button's DOM text.
+      // ends. Frames come from an off-screen plot, so the live pane keeps
+      // rotating undisturbed; progress is written straight into a DOM span.
       setIsExporting("Rendering GIF…");
       await new Promise(r => setTimeout(r, 100));
       try {
-          const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
           const { GIFEncoder, quantize, applyPalette } = await import('gifenc');
-          await setExportDressing(Plotly, gd, true, dressing);
           const canvas = document.createElement('canvas');
           canvas.width = W; canvas.height = H;
           const ctx = canvas.getContext('2d')!;
           const gif = GIFEncoder();
           let palette: ReturnType<typeof quantize> | undefined;
           const progressNode = gifProgressRef.current;
+          const done = await withOffscreenPlot(dressing, W, H, async (Plotly, host) => {
+          const gifOrbit = orbitFrom((host as any).layout?.scene?.camera ?? camera);
           for (let i = 0; i < FRAMES; i++) {
               if (progressNode) progressNode.textContent = `Rendering ${i + 1}/${FRAMES}…`;
               const t = (2 * Math.PI * i) / FRAMES;
-              const frameGd = getActivePlotDiv();
-              if (!frameGd || !frameGd.data) throw new Error("Plot div disappeared mid-export");
-              await withTimeout(Plotly.relayout(frameGd, {
+              await withTimeout(Plotly.relayout(host, {
                   'scene.camera.eye': gifOrbit.eyeAt(gifOrbit.start + t)
               }), 10000, "camera move");
               const url: string = await withTimeout(
-                  Plotly.toImage(frameGd, { format: 'png', width: W, height: H, scale: 1 }) as Promise<string>,
+                  Plotly.toImage(host, { format: 'png', width: W, height: H, scale: 1 }) as Promise<string>,
                   15000, `frame ${i + 1} capture`);
               const img = new Image();
               await withTimeout(new Promise((res, rej) => {
@@ -3400,6 +3367,9 @@ export default function Home() {
               palette ??= quantize(rgba, 256);
               gif.writeFrame(applyPalette(rgba, palette), W, H, { palette, delay: 80 });
           }
+          return true;
+          });
+          if (!done) throw new Error('The active plot is not ready to export yet.');
           gif.finish();
           const blob = new Blob([gif.bytes()], { type: 'image/gif' });
           const a = document.createElement('a');
@@ -3413,13 +3383,6 @@ export default function Home() {
           setUploadStatus(message);
           return message;
       } finally {
-          try {
-              const Plotly = (await import('plotly.js-gl3d-dist-min')).default;
-              const finalGd = getActivePlotDiv();
-              if (finalGd && finalGd.data) await setExportDressing(Plotly, finalGd, false, dressing);
-          } catch { /* a re-render restores the props-driven layout anyway */ }
-          setCamera(prevCam);
-          setIsRotating(wasRotating);
           if (gifProgressRef.current) gifProgressRef.current.textContent = '';
           setIsExporting("");
       }

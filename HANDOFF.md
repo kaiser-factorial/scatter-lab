@@ -526,11 +526,15 @@ unbiased-sample check, held in reserve.
    HTML, with five individual toggles in two groups — Chrome: Title, Legend (persisted
    as `exportChrome`; older workspaces' `includeExportInfo` loads as both) — Axes:
    axis lines & ticks, gridlines, axis titles (per export, default to the plot's
-   own axes toggle). `setExportDressing` relayouts the same axis keys
-   `buildPlotLayout` uses and restores them after the capture. A live **preview**
-   (`renderExportPreview`, debounced 250 ms) draws one frame on an off-screen Plotly
-   div with the chosen dressing and the live camera / 2D window, so the real plot
-   never flickers; GIF and HTML preview their first frame. Data: CSV / TSV / XLSX (SheetJS, dynamic
+   own axes toggle). Every still image — the preview, PNG, SVG and each GIF
+   frame — comes from ONE off-screen figure (`buildExportFigure` +
+   `withOffscreenPlot`): live traces, light chrome, the chosen dressing, the live
+   camera (eye × 1.15 so the 4:3 frame clears the title band) / 2D window, drawn at
+   a fixed 1200×900 (GIF 720×540). The live pane is never dressed or captured any
+   more, so a narrow viewport no longer yields a narrow, clipped export, and there
+   is no restore step and no WebGL deadlock risk. The preview (debounced 250 ms) is
+   the same figure at 800×600; GIF and HTML preview their first frame. Only the
+   offline HTML still builds its own (responsive) layout. Data: CSV / TSV / XLSX (SheetJS, dynamic
    import) / JSON; all rows or only the filtered ones (file name gains `_filtered`);
    with or without derived columns (`isDerivedColumn`: PC*, COMP_*, Cluster).
    Serialization is pure in `src/lib/export.ts` (tested). The four export functions
