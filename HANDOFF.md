@@ -512,8 +512,10 @@ unbiased-sample check, held in reserve.
    tool that intersects conditions, so it makes this materially easier than before.
    Smaller follow-ups: the PCA panel's "rows survive" preview counts the full table
    while the run uses the filtered rows; chart notes still print the exact "m rows
-   omitted" under the privacy floor; CSV export and `transfer_column` are not
-   analyses and are not filtered. Independently of the filter (a review finding, 2026-09-18):
+   omitted" under the privacy floor. `transfer_column` is not an analysis and is not
+   filtered; the Data export dialog filters by choice, while the assistant's
+   `save_active_dataset_csv` always writes every row. Filtered image exports carry
+   the rule in their title and `_filtered` in the file name. Independently of the filter (a review finding, 2026-09-18):
    `compare_groups` lists only groups of ≥ 5 rows and pools the rest unnamed;
    numeric profiles report min/max only when ≥ 5 rows share that extreme
    (`tailsWithheld` otherwise); `correlate` needs 5 pairs. Tests pin the reviewer's

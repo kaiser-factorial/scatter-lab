@@ -2405,7 +2405,9 @@ export default function Home() {
 
   const dsInputRef = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
-  const gifButtonRef = useRef<HTMLButtonElement>(null);
+  // GIF progress is written straight into this span (no React state mid-loop,
+  // see exportGIF); React renders nothing inside it, so the write is safe.
+  const gifProgressRef = useRef<HTMLSpanElement>(null);
   // Which dropzone a file is currently being dragged over
   const [dragOver, setDragOver] = useState<'ds' | 'comp' | null>(null);
   // Components projection is the exception now, not the rule — hidden until asked for
@@ -3198,7 +3200,7 @@ export default function Home() {
       const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
       await Plotly.relayout(gd, on
           ? {
-              'title.text': `${axesStr} · colored by ${colorBy}`,
+              'title.text': `${axesStr} · colored by ${colorBy}${filterSuffix(rowFilter)}`,
               'title.font.color': '#111111',
               showlegend: kind === "categorical",
               'legend.font.color': '#444444',
@@ -3241,7 +3243,7 @@ export default function Home() {
               width: gd.offsetWidth || 900,
               height: gd.offsetHeight || 700,
               scale: format === 'svg' ? 1 : (opts.scale ?? 2),
-              filename: `${activeDataset.name}_${colorBy}_${viewMode}`,
+              filename: `${activeDataset.name}_${colorBy}_${viewMode}${rowMask ? '_filtered' : ''}`,
           });
       } catch (err) {
           console.error(err);
@@ -3288,7 +3290,7 @@ export default function Home() {
           const ctx = canvas.getContext('2d')!;
           const gif = GIFEncoder();
           let palette: ReturnType<typeof quantize> | undefined;
-          const progressNode = gifButtonRef.current;
+          const progressNode = gifProgressRef.current;
           for (let i = 0; i < FRAMES; i++) {
               if (progressNode) progressNode.textContent = `Rendering ${i + 1}/${FRAMES}…`;
               const t = (2 * Math.PI * i) / FRAMES;
@@ -3325,7 +3327,7 @@ export default function Home() {
           const blob = new Blob([gif.bytes()], { type: 'image/gif' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = `${activeDataset.name}_${colorBy}_rotation.gif`;
+          a.download = `${activeDataset.name}_${colorBy}_rotation${rowMask ? '_filtered' : ''}.gif`;
           a.click();
           URL.revokeObjectURL(a.href);
       } catch (err) {
@@ -3341,6 +3343,7 @@ export default function Home() {
           } catch { /* a re-render restores the props-driven layout anyway */ }
           setCamera(prevCam);
           setIsRotating(wasRotating);
+          if (gifProgressRef.current) gifProgressRef.current.textContent = '';
           setIsExporting("");
       }
       return null;
@@ -3356,7 +3359,7 @@ export default function Home() {
           const axes = effectiveAxes(activeDataset, viewMode);
           const axesStr = viewMode === "3D" ? `${labels.x} × ${labels.y} × ${labels.z}` : `${labels.x} × ${labels.y}`;
           const kind = getColorFieldKind(processedData.data[colorBy] ?? []);
-          const title = includeInfo ? `${axesStr} · colored by ${colorBy}` : `${activeDataset.name}`;
+          const title = includeInfo ? `${axesStr} · colored by ${colorBy}${filterSuffix(rowMask ? rowFilter : null)}` : `${activeDataset.name}`;
 
           // No decorative floor, and coordinates at 6 significant figures: no
           // scatter plot resolves the 17th digit, and the two together took a
@@ -3449,7 +3452,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const blob = new Blob([html], { type: 'text/html' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = `${activeDataset.name}_${colorBy}_${viewMode}.html`;
+          a.download = `${activeDataset.name}_${colorBy}_${viewMode}${rowMask ? '_filtered' : ''}.html`;
           a.click();
           URL.revokeObjectURL(a.href);
       } catch (err) {
@@ -5046,8 +5049,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
               <SidebarSection title="Export" step={6} hasBorder theme={theme} guide="export" order={6}>
                   <div className="grid grid-cols-2 gap-2">
-                    <button ref={gifButtonRef} onClick={() => setExportDialog('image')} disabled={!!isExporting} title="Save the active view as PNG, SVG, GIF or interactive HTML" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-blue)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
-                      <Download className="h-4 w-4" /> {isExporting || 'Image'}
+                    <button onClick={() => setExportDialog('image')} disabled={!!isExporting} title="Save the active view as PNG, SVG, GIF or interactive HTML" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-blue)] text-white':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
+                      <Download className="h-4 w-4" />
+                      <span ref={gifProgressRef} />
+                      {isExporting.startsWith('Rendering') ? null : (isExporting || 'Image')}
                     </button>
                     <button onClick={() => setExportDialog('data')} disabled={!!isExporting} title="Save the dataset as CSV, TSV, XLSX or JSON" className={`scatterlab-action-button flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-bold disabled:opacity-40 ${theme==='primary'?'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]':'bg-[var(--input)] border border-[var(--primary)] text-[var(--primary)]'}`}>
                       <Download className="h-4 w-4" /> Data
