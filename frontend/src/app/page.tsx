@@ -3268,8 +3268,8 @@ export default function Home() {
           // Wrap at the separators so a filtered title fits: the real export is wider.
           const text = String(layout.title.text ?? '');
           const lines = text.length > 60 ? text.split(' · ') : [text];
-          layout.title = { ...layout.title, text: lines.join('<br>'), font: { ...(layout.title.font ?? {}), size: 11 }, y: 0.99, yanchor: 'top' };
-          layout.margin = { ...(layout.margin ?? {}), t: 16 + 14 * lines.length };
+          layout.title = { ...layout.title, text: lines.join('<br>'), font: { ...(layout.title.font ?? {}), size: 13 }, y: 1, yanchor: 'top', pad: { t: 8 } };
+          layout.margin = { ...(layout.margin ?? {}), t: 24 + 18 * lines.length };
       }
       layout.showlegend = d.legend && kind === "categorical";
       layout.legend = { ...(layout.legend ?? {}), font: { color: '#444444' }, bgcolor: 'rgba(255,255,255,0.7)' };
@@ -3284,11 +3284,11 @@ export default function Home() {
           node[path[path.length - 1]] = val;
       }
       const host = document.createElement('div');
-      host.style.cssText = 'position:fixed;left:-10000px;top:0;width:480px;height:360px;';
+      host.style.cssText = 'position:fixed;left:-10000px;top:0;width:720px;height:540px;';
       document.body.appendChild(host);
       try {
           await withTimeout(Plotly.newPlot(host, data, layout, { staticPlot: true }), 10000, 'preview plot');
-          return await withTimeout(Plotly.toImage(host, { format: 'png', width: 480, height: 360, scale: 1 }), 10000, 'preview capture');
+          return await withTimeout(Plotly.toImage(host, { format: 'png', width: 720, height: 540, scale: 1 }), 10000, 'preview capture');
       } catch (err) {
           console.error(err);
           return null;

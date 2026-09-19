@@ -108,7 +108,7 @@ const ExportForm = ({
     </label>
   );
   const check = (checked: boolean, onChange: (v: boolean) => void, label: string, hint?: string) => (
-    <label className="flex items-start gap-2 py-1 cursor-pointer">
+    <label className="flex items-start gap-2 py-1 cursor-pointer min-w-0">
       <input type="checkbox" className="mt-[3px] shrink-0" checked={checked} onChange={e => onChange(e.target.checked)} />
       <span className="min-w-0"><b>{label}</b>{hint && <span className="block opacity-60 text-[11px] leading-snug">{hint}</span>}</span>
     </label>
@@ -127,7 +127,7 @@ const ExportForm = ({
       className="fixed inset-0 z-[300] flex items-center justify-center overflow-y-auto bg-black/60 p-4"
       onMouseDown={e => { if (!panel.current?.contains(e.target as Node)) onClose(); }}
     >
-      <div ref={panel} className={`w-full max-w-md border bg-[var(--card)] text-[var(--foreground)] ${bauhaus ? 'border-[3px] border-[var(--border)]' : 'border-[var(--border)]'}`}>
+      <div ref={panel} className={`w-full ${isImage ? 'max-w-4xl' : 'max-w-lg'} border bg-[var(--card)] text-[var(--foreground)] ${bauhaus ? 'border-[3px] border-[var(--border)]' : 'border-[var(--border)]'}`}>
         <header className={`flex items-center justify-between gap-3 px-4 py-3 border-b ${bauhaus ? 'bg-[var(--p-blue)] text-white border-[var(--border)]' : 'bg-[var(--system-green)]/15 border-[var(--system-green)] text-[var(--system-green)]'}`}>
           <h2 className="text-sm font-bold uppercase tracking-wide">{isImage ? 'Export image' : 'Export data'}</h2>
           <button onClick={onClose} aria-label="Close" className={`cursor-pointer transition-all duration-150 ${bauhaus ? 'flex items-center justify-center w-6 h-6 border-2 border-[var(--border)] bg-[var(--p-red)] text-white hover:bg-[var(--p-yellow)] hover:text-[#111111]' : 'text-[var(--system-green)]/70 hover:text-[var(--system-green)] hover:scale-125'}`}>
@@ -137,15 +137,8 @@ const ExportForm = ({
 
         <div className="px-4 py-4 space-y-4 text-[12px] leading-relaxed">
           {isImage ? (
-            <>
-              <section className="space-y-1">
-                {heading('Format')}
-                {IMAGE_FORMATS.map((f, i) => {
-                  const unavailable = !!f.only && f.only !== viewMode;
-                  return option(f.id, 'image-format', imageFormat === f.id, unavailable, () => setImageFormat(f.id), f.label, f.hint, i === 0);
-                })}
-              </section>
-              <section className="space-y-1">
+            <div className="grid gap-5 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+              <section className="space-y-1 min-w-0">
                 {heading('Preview')}
                 <div className="relative w-full aspect-[4/3] border overflow-hidden bg-white" style={{ borderColor: rule }}>
                   {/* A data URL from Plotly — not something next/image can optimise. */}
@@ -157,31 +150,44 @@ const ExportForm = ({
                 </div>
                 <p className="opacity-60 text-[11px]">{imageFormat === 'gif' ? 'One frame of the rotation, as it will be dressed.' : imageFormat === 'html' ? 'The starting frame of the interactive file.' : 'As it will be saved, at reduced size.'}</p>
               </section>
-              <section className="space-y-1">
-                {heading('Chrome')}
-                {check(chrome.title, v => onChromeChange({ ...chrome, title: v }), 'Title', 'the axis names and colouring, plus any active filter')}
-                {check(chrome.legend, v => onChromeChange({ ...chrome, legend: v }), 'Legend', 'the colour key, or the colour bar for a continuous variable')}
-              </section>
-              <section className="space-y-1">
-                {heading('Axes')}
-                {check(axes, setAxes, 'Axis lines & ticks')}
-                {check(grid, setGrid, 'Gridlines')}
-                {check(labels, setLabels, 'Axis titles')}
-              </section>
-              {imageFormat === 'png' && (
+              <div className="space-y-4 min-w-0">
                 <section className="space-y-1">
-                  {heading('Resolution')}
-                  <div className="flex gap-2">
-                    {([1, 2, 4] as const).map(s => (
-                      <button key={s} type="button" onClick={() => setScale(s)}
-                        className={`px-3 py-1 text-[11px] font-bold border cursor-pointer ${scale === s ? (bauhaus ? 'bg-[var(--p-yellow)] text-[#111111] border-[var(--border)]' : 'bg-[var(--system-green)] text-black border-[var(--system-green)]') : (bauhaus ? 'border-[var(--border)] opacity-60 hover:opacity-100' : 'border-[var(--system-green)]/40 text-[var(--system-green)]/70 hover:text-[var(--system-green)]')}`}>
-                        {s}×
-                      </button>
-                    ))}
+                  {heading('Format')}
+                  {IMAGE_FORMATS.map((f, i) => {
+                    const unavailable = !!f.only && f.only !== viewMode;
+                    return option(f.id, 'image-format', imageFormat === f.id, unavailable, () => setImageFormat(f.id), f.label, f.hint, i === 0);
+                  })}
+                </section>
+                <section className="space-y-1">
+                  {heading('Chrome')}
+                  <div className="grid grid-cols-2 gap-x-3">
+                    {check(chrome.title, v => onChromeChange({ ...chrome, title: v }), 'Title')}
+                    {check(chrome.legend, v => onChromeChange({ ...chrome, legend: v }), 'Legend')}
                   </div>
                 </section>
-              )}
-            </>
+                <section className="space-y-1">
+                  {heading('Axes')}
+                  <div className="grid grid-cols-2 gap-x-3">
+                    {check(axes, setAxes, 'Lines & ticks')}
+                    {check(grid, setGrid, 'Gridlines')}
+                    {check(labels, setLabels, 'Axis titles')}
+                  </div>
+                </section>
+                {imageFormat === 'png' && (
+                  <section className="space-y-1">
+                    {heading('Resolution')}
+                    <div className="flex gap-2">
+                      {([1, 2, 4] as const).map(sc => (
+                        <button key={sc} type="button" onClick={() => setScale(sc)}
+                          className={`px-3 py-1 text-[11px] font-bold border cursor-pointer ${scale === sc ? (bauhaus ? 'bg-[var(--p-yellow)] text-[#111111] border-[var(--border)]' : 'bg-[var(--system-green)] text-black border-[var(--system-green)]') : (bauhaus ? 'border-[var(--border)] opacity-60 hover:opacity-100' : 'border-[var(--system-green)]/40 text-[var(--system-green)]/70 hover:text-[var(--system-green)]')}`}>
+                          {sc}×
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
           ) : (
             <>
               <section className="space-y-1">
