@@ -512,12 +512,37 @@ unbiased-sample check, held in reserve.
    tool that intersects conditions, so it makes this materially easier than before.
    Smaller follow-ups: the PCA panel's "rows survive" preview counts the full table
    while the run uses the filtered rows; chart notes still print the exact "m rows
-   omitted" under the privacy floor; CSV export and `transfer_column` are not
-   analyses and are not filtered. Independently of the filter (a review finding, 2026-09-18):
+   omitted" under the privacy floor. `transfer_column` is not an analysis and is not
+   filtered; the Data export dialog filters by choice, while the assistant's
+   `save_active_dataset_csv` always writes every row. Filtered image exports carry
+   the rule in their title and `_filtered` in the file name. Independently of the filter (a review finding, 2026-09-18):
    `compare_groups` lists only groups of ≥ 5 rows and pools the rest unnamed;
    numeric profiles report min/max only when ≥ 5 rows share that extreme
    (`tailsWithheld` otherwise); `correlate` needs 5 pairs. Tests pin the reviewer's
    nine-plus-one case. Open mode is unchanged throughout.
+8c. **Export dialog — done (2026-09-18).** The Export section is two buttons, **Image**
+   and **Data**, each opening `src/components/ExportDialog.tsx`. Image: PNG (1×/2×/4×),
+   SVG (2D only — the 2D trace is SVG `scatter`), rotating GIF (3D only), or offline
+   HTML, with five individual toggles in two groups — Chrome: Title, Legend (persisted
+   as `exportChrome`; older workspaces' `includeExportInfo` loads as both) — Axes:
+   axis lines & ticks, gridlines, axis titles (per export, default to the plot's
+   own axes toggle). Every still image — the preview, PNG, SVG and each GIF
+   frame — comes from ONE off-screen figure (`buildExportFigure` +
+   `withOffscreenPlot`): live traces, light chrome, the chosen dressing, the live
+   camera (eye × 1.15 so the 4:3 frame clears the title band) / 2D window, drawn at
+   a fixed 1200×900 (GIF 720×540). The live pane is never dressed or captured any
+   more, so a narrow viewport no longer yields a narrow, clipped export, and there
+   is no restore step and no WebGL deadlock risk. The preview (debounced 250 ms) is
+   the same figure at 800×600; GIF and HTML preview their first frame. Only the
+   offline HTML still builds its own (responsive) layout. Data: CSV / TSV / XLSX (SheetJS, dynamic
+   import) / JSON; all rows or only the filtered ones (file name gains `_filtered`);
+   with or without derived columns (`isDerivedColumn`: PC*, COMP_*, Cluster).
+   Serialization is pure in `src/lib/export.ts` (tested). The four export functions
+   take an options object with defaults from state, so the assistant's
+   `save_active_view_png` / `save_rotating_gif` / `save_interactive_html` /
+   `save_active_dataset_csv` are unchanged and always write every row. The dialog
+   closes in the same batch that starts an export, so the GIF loop never sees a
+   re-render mid-capture; GIF progress writes into the Image button's text as before.
 9. **Clustering: the gap is inputs, not algorithms (reviewed 2026-08-02).** Two findings
    worth acting on before any new method is added:
    - ~~No standardization.~~ **Done (2026-08-02):** "Standardize variables (z-score)"

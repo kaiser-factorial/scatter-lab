@@ -181,7 +181,7 @@ export const TUTORIAL: Record<string, string> = {
   transfer:
     'With two or more datasets loaded, "Transfer column from another dataset" (bottom of the Data section) copies a column — typically Cluster labels — into the active dataset, aligned by row order (with an automatic identity check) or by a shared key column. This lets you e.g. color one projection space by clusters found in another.',
   export:
-    'Section 6 exports the active view: PNG (2x resolution), a rotating GIF of the 3D view, or a self-contained interactive HTML file that works offline — nice for sending a spinnable 3D plot to a collaborator. It can also save the active, derived dataset as a CSV (including PCA scores and Cluster when present). "Add title & legend to exports" controls the dressing. The assistant can save all of these, but should ask before initiating any download.',
+    'Section 6 has two buttons that open an export dialog. "Image" saves the active view as PNG (1×, 2× or 4×), SVG (2D only), a rotating GIF (3D only), or a self-contained interactive HTML file that works offline — each with or without the title & legend and the axes, gridlines & labels. "Data" writes the dataset as CSV, TSV, XLSX or JSON: all rows or only the rows under the active filter (the file name gains _filtered), with or without the derived columns (PC scores, composites, Cluster). Your own export tools use the current settings and always write every row.',
   // The nine-beat prose script this used to hold is now code, in
   // lib/walkthrough.ts, where the ordering is a data structure instead of a
   // request. Keeping both would be two copies of one tour drifting apart —

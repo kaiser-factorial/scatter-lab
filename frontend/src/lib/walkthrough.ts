@@ -193,9 +193,11 @@ export const WALKTHROUGH: WalkthroughStep[] = [
     title: 'Export',
     highlight: 'export',
     say:
-      'The **Export** section saves the active view as a 2× **PNG**, a rotating **GIF** of the 3D ' +
-      'plot, or a self-contained interactive **HTML** file that spins offline in any browser. It can ' +
-      'also write the derived dataset back out as CSV, with PCA scores and cluster labels included.',
+      'The **Export** section has two buttons. **Image** saves the active view as a **PNG** (1×, 2× or 4×), ' +
+      'an **SVG** of a 2D view, a rotating **GIF** of the 3D plot, or a self-contained interactive **HTML** ' +
+      'file that spins offline in any browser, with or without the title, legend and axes. **Data** writes ' +
+      'the dataset back out as CSV, TSV, XLSX or JSON — all rows or only the filtered ones, with or without ' +
+      'the PCA scores and cluster labels this app added.',
     choices: [{ label: 'Finish the walkthrough', next: 'done' }],
   },
   {
