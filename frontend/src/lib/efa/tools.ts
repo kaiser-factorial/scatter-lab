@@ -21,6 +21,7 @@ const spec = {
         additionalProperties: false,
       },
     },
+    extraction: { type: "string", enum: ["minres", "dwls", "wlsmv"] },
     nFactors: { type: "integer", minimum: 1 },
     rotation: { type: "string", enum: ["oblimin", "promax", "varimax"] },
     missing: { type: "string", enum: ["pairwise", "complete"] },
@@ -67,8 +68,78 @@ const tool = (
 });
 export const EFA_TOOLS: ChatCompletionTool[] = [
   tool(
+    "list_efa_runs",
+    "List saved observed-data and MICE EFA analyses, with review revisions, method and sample metadata. At most 20 per page.",
+    {
+      offset: { type: "integer", minimum: 0 },
+      limit: { type: "integer", minimum: 1, maximum: 20 },
+    },
+    [],
+  ),
+  tool(
+    "get_efa_items",
+    "Read at most 20 items × 12 factors from a saved EFA. Includes pattern/structure coefficients, primary and next absolute pattern loadings, gap, communality, uniqueness, related-item polychoric correlations, review status and available within-fit SEs. Factors are one-based in output; offsets are zero-based. Primary/next scan all factors. MICE view=imputation-summary returns aligned descriptive dispersion, NOT pooled SEs; view=fit can select a one-based imputation. Failed imputations stay recorded. Private mode never returns local notes, thresholds, replacements or respondent scores. Read reviewRevision before changing items.",
+    {
+      runId: { type: "string" },
+      columns: {
+        type: "array",
+        minItems: 1,
+        maxItems: 20,
+        items: { type: "string" },
+      },
+      offset: { type: "integer", minimum: 0 },
+      limit: { type: "integer", minimum: 1, maximum: 20 },
+      factorOffset: { type: "integer", minimum: 0 },
+      factorLimit: { type: "integer", minimum: 1, maximum: 12 },
+      view: { type: "string", enum: ["fit", "imputation-summary"] },
+      imputation: { type: "integer", minimum: 1 },
+    },
+    ["runId"],
+  ),
+  tool(
+    "update_efa_items",
+    "Edit the SAME visible retain/investigate/exclude statuses and substantive notes as the local EFA table. Supply the current reviewRevision to prevent overwriting newer edits; on conflict reread. Each change is explicit, and does not refit or add scores. Retain and investigate remain included. Consider content coverage and redundant items as well as loading metrics; no cutoff determines an ideal item set. Notes stay local in private mode.",
+    {
+      runId: { type: "string" },
+      expectedReviewRevision: { type: "integer", minimum: 0 },
+      changes: {
+        type: "array",
+        minItems: 1,
+        maxItems: 100,
+        items: {
+          type: "object",
+          properties: {
+            column: { type: "string" },
+            status: {
+              type: "string",
+              enum: ["retain", "investigate", "exclude"],
+            },
+            note: { type: "string", maxLength: 2000 },
+          },
+          required: ["column", "status", "note"],
+          additionalProperties: false,
+        },
+      },
+    },
+    ["runId", "expectedReviewRevision", "changes"],
+  ),
+  tool(
+    "refit_efa_selection",
+    "Refit the visible retained/investigate item set as a NEW immutable child, preserving its parent and review revision. Supply label and substantive reasons. Default keepRows=true keeps the original fitting respondents; false can admit additional complete cases under the active filter. MICE always keeps fitting rows, removes excluded predictors and regenerates separate imputations with the saved options. Category order, reverse-keying, estimator, rotation and split stay fixed; nFactors can be explicitly changed. Returns job id: poll efa_job. No scores are added automatically.",
+    {
+      runId: { type: "string" },
+      expectedReviewRevision: { type: "integer", minimum: 0 },
+      label: { type: "string", minLength: 1, maxLength: 200 },
+      reasons: { type: "string", minLength: 1, maxLength: 2000 },
+      keepRows: { type: "boolean" },
+      nFactors: { type: "integer", minimum: 1 },
+    },
+    ["runId", "expectedReviewRevision", "label", "reasons"],
+  ),
+
+  tool(
     "run_efa",
-    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES, oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel; this tool currently runs observed-data fits. DWLS/WLSMV are not yet available.",
+    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES by default, or DWLS/WLSMV; oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel; this tool currently runs observed-data fits. WLSMV adds exact robust inference and rotated standard errors; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
     {
       spec,
       parentId: { type: "string" },
@@ -88,7 +159,7 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
   ),
   tool(
     "get_efa_diagnostics",
-    "Read permitted aggregate EFA loadings, factor correlations, communalities, residual RMS and diagnostics. Private mode omits respondent rows, score arrays, thresholds, and rare combinations.",
+    "Read bounded run-level EFA diagnostics, convergence, residual RMS and weighted inference. Use get_efa_items for loading/structure values and item reviews. Supports saved observed and MICE analyses. Private mode excludes raw data, rare combinations, notes and diagnostic prose.",
     { runId: { type: "string" } },
     ["runId"],
   ),

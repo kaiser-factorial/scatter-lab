@@ -14,6 +14,10 @@ import {
   type EfaExtraction,
 } from "./types";
 import type { WorkerRequest } from "./efa.worker";
+import {
+  planWeightedInference,
+  type InferencePlan,
+} from "./weighted-inference";
 import { validateMiceOptions, type MiceOptions } from "./mice";
 import {
   summarizeImputations,
@@ -186,10 +190,20 @@ export class EfaService {
     };
     this.jobs.set(id, job);
     this.emit();
+    let lastProgressEmission = 0;
     const progress = (p: EfaProgress) => {
       if (job.status === "running") {
+        const changedStage = p.stage !== job.progress.stage;
         job.progress = p;
-        this.emit();
+        const now = performance.now();
+        if (
+          changedStage ||
+          p.completed === p.total ||
+          now - lastProgressEmission >= 250
+        ) {
+          lastProgressEmission = now;
+          this.emit();
+        }
       }
     };
     job.promise = task(workers, progress, () => job.status === "running")
@@ -273,6 +287,7 @@ export class EfaService {
     spec: EfaSpec,
     rows: number[],
     options: MiceOptions,
+    minimumPairN = 0,
   ): EfaJob<ImputationAnalysis> {
     const snapshot = structuredClone(spec),
       membership = rows.slice(),
@@ -297,10 +312,20 @@ export class EfaService {
           spec: snapshot,
           rows: membership,
         });
+      progress({ stage: "Original observed support", completed: 0, total: 1 });
+      const supportFloor = await first.request<number>({
+        op: "observed-support",
+      });
+      if (minimumPairN > 0 && supportFloor < minimumPairN)
+        throw new EfaError(
+          "privacy",
+          "Original observed pairs are below the private aggregate floor. Imputation does not add observed support.",
+        );
       const estimatedBytes = imputationWorkingSet(data, settings),
         workerLimit = Math.min(
           this.concurrency,
           settings.imputations,
+          snapshot.extraction === "wlsmv" ? 1 : 4,
           Math.max(1, Math.floor(1024 ** 3 / Math.max(1, estimatedBytes))),
         );
       const results = await this.batches<ImputationChainResult>(
@@ -319,11 +344,17 @@ export class EfaService {
         live,
         workerLimit,
       );
-      const analysis = summarizeImputations(data, settings, results);
+      const analysis = summarizeImputations(
+        data,
+        settings,
+        results,
+        snapshot.extraction,
+        supportFloor,
+      );
       analysis.provenance.execution = {
         workers: workerLimit,
         estimatedWorkingSetBytesPerWorker: estimatedBytes,
-        note: "Concurrency reduced for expanded predictor designs using an approximate 1 GiB combined working-set budget, with at least one worker. This is a scheduling estimate, not measured peak memory or a cap on a single model.",
+        note: `Concurrency reduced for expanded predictor designs using an approximate 1 GiB combined working-set budget, with at least one worker. This is a scheduling estimate, not measured peak memory or a cap on a single model.${snapshot.extraction === "wlsmv" ? " WLSMV chains run sequentially; each robust fit separately enforces its inference allocation budget." : ""}`,
       };
       return analysis;
     });
@@ -381,6 +412,7 @@ export class EfaService {
         results.map((r) => r.indices),
         settings,
         data.fingerprint,
+        spec.extraction,
       );
     });
   }
@@ -388,7 +420,11 @@ export class EfaService {
     table: DataTable,
     spec: EfaSpec,
     rows: number[],
-  ): EfaJob<{ nRows: number; counts: number[][] }> {
+  ): EfaJob<{
+    nRows: number;
+    counts: number[][];
+    inferencePlan?: InferencePlan;
+  }> {
     const snapshot = structuredClone(spec),
       membership = rows.slice();
     return this.launch(async (workers) => {
@@ -405,7 +441,31 @@ export class EfaService {
         spec: snapshot,
         rows: membership,
       });
-      return { nRows: data.nRows, counts: data.counts };
+      return {
+        nRows: data.nRows,
+        counts: data.counts,
+        ...(snapshot.extraction === "wlsmv"
+          ? {
+              inferencePlan: planWeightedInference(
+                data.items.length,
+                snapshot.nFactors,
+                data.nRows,
+                data.items.reduce(
+                  (sum, item, i) =>
+                    sum +
+                    data.items
+                      .slice(i + 1)
+                      .reduce(
+                        (s, next) =>
+                          s + item.categories.length * next.categories.length,
+                        0,
+                      ),
+                  0,
+                ),
+              ),
+            }
+          : {}),
+      };
     });
   }
   fit(
@@ -561,6 +621,8 @@ export class EfaService {
         data.fingerprint &&
         reuse.result.provenance.inputSha256 === data.fingerprint &&
         reuse.spec.nFactors === snapshot.nFactors &&
+        (reuse.spec.extraction ?? "minres") ===
+          (snapshot.extraction ?? "minres") &&
         JSON.stringify({
           items: reuse.spec.items,
           missing: reuse.spec.missing,
@@ -573,6 +635,12 @@ export class EfaService {
           "rotation",
           "The fitted inputs changed. Create a refit before comparing rotations.",
         );
+      // Correlation workers are finished. Keep just the fitting worker while
+      // weighted covariance and rotated uncertainty use their bounded buffers.
+      if (snapshot.extraction && snapshot.extraction !== "minres")
+        workers
+          .filter((worker) => worker !== first)
+          .forEach((worker) => worker.terminate());
       return first.request<EfaResult>(
         { op: "fit", correlation, spec: snapshot, extraction },
         progress,

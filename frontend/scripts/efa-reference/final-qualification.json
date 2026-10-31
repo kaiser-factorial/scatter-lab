@@ -1,0 +1,106 @@
+{
+  "recordedAt": "2026-10-31T10:40:18.840745+00:00",
+  "status": "qualified-with-recorded-scope",
+  "engine": "scatter-efa/4",
+  "checkpointCommits": {
+    "firstRelease": "1f86b63",
+    "miceStabilityParallel": "88b1e28",
+    "weightedNumerics": "38c2a4a"
+  },
+  "scope": [
+    "Native ordinal EFA with MINRES/DWLS/WLSMV and three rotations",
+    "Separate ordinal MICE fits and respondent/group resampling",
+    "Pattern/structure heatmaps, saved reviews and immutable refits",
+    "Bounded assistant inspection, shared item edits and asynchronous observed/MICE refits",
+    "Workspace/session/undo, score ownership, exports and private aggregate boundaries"
+  ],
+  "tests": {
+    "passed": 622,
+    "failed": 0,
+    "skipped": 4,
+    "skippedCases": [],
+    "testWorkers": 2,
+    "skipScope": "Three expensive 500-item extraction references passed separately in large-reference-verification.json. One optional Node benchmark is intentionally disabled; browser benchmarks were executed."
+  },
+  "typecheck": "passed",
+  "lint": {
+    "errors": 117,
+    "warnings": 6,
+    "regressionCeiling": 123,
+    "efaIssues": 0
+  },
+  "productionBuild": {
+    "status": "passed",
+    "next": "16.2.10",
+    "compilationSeconds": 5.7,
+    "typecheckSeconds": 4.9,
+    "snapshot": "/tmp/scatter-efa-final-build.HCKdtY",
+    "method": "Isolated source/dependency copy with environment files and public qualification bundles excluded"
+  },
+  "browserReports": [
+    "weighted-ui-verification.json",
+    "assistant-ui-verification.json",
+    "extensions-ui-verification.json",
+    "large-ui-verification.json"
+  ],
+  "numericalEvidence": [
+    "weighted-qualification.json",
+    "extension-qualification.json",
+    "initialization-qualification.json",
+    "large-reference-verification.json"
+  ],
+  "benchmarks": {
+    "minres500x20000": "browser-benchmark.json",
+    "dwls500x20000": "weighted-browser-benchmark.json",
+    "parallel100x500x20000": "parallel-benchmark.attempt-4.json",
+    "miceLimited500x20000": "large-imputation-benchmark.json",
+    "wlsmv20x1000MomentSpace": "weighted-robust-browser-benchmark.json",
+    "wlsmv20x1000CaseSpace": "weighted-case-browser-benchmark.json",
+    "wlsmv500x20000AllocationCancellationOnly": "weighted-large-cancellation.json"
+  },
+  "limits": [
+    "Exact WLSMV completion at 500 items by 20000 rows remains unmeasured. Five-factor preflight estimates about 978 MB and 25.6 trillion multiply-adds; no approximate trace or estimator fallback.",
+    "The large MICE execution check uses four explicit predictors per item, two imputations and one sweep; it does not qualify default 20x10/all-predictor execution or establish chain convergence.",
+    "MICE dispersion is descriptive and not Rubin-pooled inference. Separate WLSMV fit SEs are retained; MICE score pooling and nested MICE/bootstrap are outside scope.",
+    "Normal/heavy-tail/skew R parity establishes implementation agreement, not general latent-normal model validity.",
+    "Private assistant access uses the existing aggregate floor, not differential privacy. MICE original observed support is counted in a cancellable worker. Notes and free-text diagnostics stay local in private mode.",
+    "Benchmark records retain their exact tested worker hashes and dates; they are scoped numerical execution evidence, not a new full-size benchmark of every later UI/controller change.",
+    "Pinned R reference generation ran locally. Remote CI was configured but not executed. No private participant fixtures or paid model-provider calls."
+  ],
+  "sourceSha256": {
+    "src/components/EfaBatchResults.tsx": "4fb5cda827a2db5400a34d3489798f328b017be195640141f7d6a3025178b8ea",
+    "src/components/EfaPanel.tsx": "40ccc3cf1592961eb2e3a2a053202ed90cf803b9f9ea18a806c82b64bf6381f2",
+    "src/components/EfaWeightedSummary.tsx": "f3b6bcb6dc36abc0af1fb4bfc89172fdcd45547fa3cae6482acf74f47032c3b5",
+    "src/lib/__tests__/efa-service.test.ts": "3583918cbd2be2490f66aa7be1bfcba60140e21d026f2b57b6a196475a4039a3",
+    "src/lib/__tests__/efa-weighted-state.test.ts": "81162e1fb291be03ae3d7f559956f40ed2f9fd0bb19e52d99445d18f117fe452",
+    "src/lib/__tests__/replay-efa.test.ts": "da4e4f1cf0d8555792e5a645c295695d849cdfe9ee5f85d785acb219fbf1a72e",
+    "src/lib/assistant.ts": "aff11ea1b3b067cd27ee21af8e2a256ea9f29c9ed47bc62bdbdac55237fb233a",
+    "src/lib/efa/compare.ts": "082cf9bdc5d01da940e21f18b14ef63ff5fddf4a7ed8458455594f0bbe250e2c",
+    "src/lib/efa/controller.ts": "84afa8b2f5413811db217ac4237a9a40ba91d0439ce99527123dd899a0b1c7e2",
+    "src/lib/efa/correlation.ts": "5db36d809d801dd795e72293d6697a6a7c2c17b7adc8ad2dff15a5708522d798",
+    "src/lib/efa/dwls.ts": "960dac0dddc140b222abf323c7494586916f9b784cb6c483644ab24ad158ef37",
+    "src/lib/efa/efa.worker.ts": "e152e60724e111780dc3c0d738ff5c88483daa91a5d2f21928efabc7b9112811",
+    "src/lib/efa/extraction.ts": "3f41195de95cf8781985ac8449a68385e4b50b22a25bb61eefed6d0280cd1df2",
+    "src/lib/efa/fingerprint.ts": "affb3faf3f6a4c6e114555991286dd15ae8e3d1fa524341d52b9947eeb667d77",
+    "src/lib/efa/fit.ts": "9d683c5f46db790178772081820d6c4e875110dec78a17b7fc39fb60ab7284ed",
+    "src/lib/efa/imputation-analysis.ts": "194f55f2c0803da38068cdfd41e96d38a0bad09a154bb5ccc8b3b75f49aa215a",
+    "src/lib/efa/inspection.ts": "44e344831d032713d84bb0b0328de222a9dedd7bbf6204916f14f953e2abda54",
+    "src/lib/efa/math.ts": "a1d66b7069257658579f084d27ae8f5147cbb24625b6d5f2d08f298bd61d7d18",
+    "src/lib/efa/mice.ts": "12562a773db1fbe6599573c31a97fcfeace075315717046237b808fc904f8691",
+    "src/lib/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+    "src/lib/efa/ordinal-regression.ts": "598ab395649a8619c34502a78b3e19c42f7d2c1575ee8c7ed0e8958a8d406ad8",
+    "src/lib/efa/parallel.ts": "a26dfe429efce69dfa2b53e56ee2460b387c214d4161a70377c66f73e53f0952",
+    "src/lib/efa/persistence.ts": "775c50404f6ff74f3d29c438a4822713f635a5d7cf0d4d1bd83fc2e8a896c796",
+    "src/lib/efa/prepare.ts": "bcda88c13ff8ec0f387c46305c9bce7892a84210b5a1d88da140a445c9685ea3",
+    "src/lib/efa/prepared-sample.ts": "fb3402fa11e819e4d4241b33c93af79293af23a7a556462f3d3adb9e329895fa",
+    "src/lib/efa/rotation.ts": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+    "src/lib/efa/service.ts": "a3ae7d75378e0b4373b353ac658de020816fc8f6ffb9086e6359717f6e299c87",
+    "src/lib/efa/stability.ts": "0eb28d5db13e164b1be19623c579f520eccebd2eb7e78eaf5c3300f80237d844",
+    "src/lib/efa/state.ts": "c0ed73f820bd15396cbe81b61c2b86627bde8f292ca293b970fda899f2f7e956",
+    "src/lib/efa/tools.ts": "be957c4de56e11978fcf299bfb1f33c1dc742cc9c5e95ee277f928ea031bf51d",
+    "src/lib/efa/types.ts": "463ce43177134f541fc70d142b274c3c65436c7895114231676c19f78eb15210",
+    "src/lib/efa/weighted-inference.ts": "9d3262ce54e968790186272f5a3f8d866e795e663c36ec4c738655f1586dc91f",
+    "src/lib/efa/weighted-moments.ts": "c7ad567d394971dd5d0d3fa83c0a978b01611affb1eb879aaf9b09a1cabe6612",
+    "src/lib/efa/weighted-rotation.ts": "f8937e05fb8fdeaf5d2e1eec957105ae22919ba67058c01e7184cffa19796e4e"
+  }
+}

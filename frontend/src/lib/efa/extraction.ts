@@ -227,6 +227,7 @@ export function extractMinres(
       `MINRES did not converge after ${iteration} iterations (objective ${state.objective}, projected gradient ${pgNorm}). No alternative extractor was used.`,
     );
   return {
+    estimator: "minres",
     method: `${MINRES_METHOD}; selected ${initialization.selected}`,
     initialization,
     loadings: state.loadings,

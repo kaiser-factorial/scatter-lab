@@ -1,8 +1,11 @@
 /** All persisted EFA values are JSON-compatible; working arrays stay in workers. */
 import type { ImputationAnalysis } from "./imputation-analysis";
 import type { StabilityResult } from "./stability";
+import type { WeightedTest, InferencePlan } from "./weighted-inference";
+import type { RotatedUncertainty } from "./weighted-rotation";
 export type OrdinalCategory = string | number;
 export type Rotation = "oblimin" | "varimax" | "promax";
+export type EfaEstimator = "minres" | "dwls" | "wlsmv";
 export type ItemReview = {
   status: "retain" | "investigate" | "exclude";
   note: string;
@@ -13,6 +16,8 @@ export interface EfaItem {
   reverse: boolean;
 }
 export interface EfaSpec {
+  /** Absent in older workspaces: MINRES. WLSMV uses the DWLS point fit. */
+  extraction?: EfaEstimator;
   items: EfaItem[];
   nFactors: number;
   rotation: Rotation;
@@ -95,8 +100,9 @@ export interface Convergence {
   objective: number;
   gradient: number;
 }
-export const EFA_ENGINE = "scatter-efa/3";
+export const EFA_ENGINE = "scatter-efa/4";
 export interface EfaExtraction {
+  estimator?: "minres" | "dwls";
   method?: string;
   initialization?: {
     selected: "smc" | "unit-uniqueness";
@@ -116,6 +122,19 @@ export interface EfaRotation {
   starts: number;
 }
 export interface EfaResult {
+  weighted?: {
+    estimator: "dwls" | "wlsmv";
+    samplingVariances: number[];
+    fittingWeights: number[];
+    uncertaintyMethod: string;
+    rawStatistic: number;
+    df: number;
+    robust?: {
+      test: WeightedTest;
+      standardErrors: RotatedUncertainty;
+      plan: InferencePlan;
+    };
+  };
   correlation: EfaCorrelations;
   extraction: EfaExtraction;
   rotation: EfaRotation;
@@ -155,6 +174,9 @@ export interface EfaRun {
   parentId?: string;
   kind: "fit" | "items" | "rotation" | "structure-replication";
   reviews: Record<string, ItemReview>;
+  /** Mutable review metadata; numerical results/specifications remain immutable. */
+  reviewRevision?: number;
+  parentReviewRevision?: number;
   reasons: string;
   revisedAfterHoldout: boolean;
   scoreColumns: string[];
@@ -182,6 +204,8 @@ export interface EfaImputationRun {
   eligibleRows: number[];
   parentId?: string;
   reviews: Record<string, ItemReview>;
+  reviewRevision?: number;
+  parentReviewRevision?: number;
   reasons: string;
   revisedAfterHoldout: boolean;
   result: ImputationAnalysis;

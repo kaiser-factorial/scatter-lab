@@ -8,6 +8,8 @@ import { serializeEfaCsv } from "@/lib/efa/state";
 import type { EfaJob } from "@/lib/efa/service";
 import type { MiceOptions } from "@/lib/efa/mice";
 import type { StabilityOptions } from "@/lib/efa/stability";
+import type { InferencePlan } from "@/lib/efa/weighted-inference";
+import { EfaWeightedSummary } from "./EfaWeightedSummary";
 import { ImputationResults, StabilityPanel } from "./EfaBatchResults";
 import type {
   EfaSpec,
@@ -18,6 +20,7 @@ import type {
   SampleSplit,
   ParallelResult,
   OrdinalCategory,
+  EfaEstimator,
 } from "@/lib/efa/types";
 
 export interface EfaActions {
@@ -47,7 +50,11 @@ export interface EfaActions {
   ) => Promise<string>;
   addScores: (id: string) => Promise<string>;
   parallel: (spec: EfaSpec, replicates: number) => Promise<ParallelResult>;
-  preview: (spec: EfaSpec) => Promise<{ nRows: number; counts: number[][] }>;
+  preview: (spec: EfaSpec) => Promise<{
+    nRows: number;
+    counts: number[][];
+    inferencePlan?: InferencePlan;
+  }>;
   split: (options: {
     seed: number;
     fraction: number;
@@ -87,12 +94,14 @@ function MatrixView({
   columns,
   kind,
   scaleLimit,
+  standardErrors,
 }: {
   matrix: (number | null)[][];
   rows: string[];
   columns: string[];
   kind: "loading" | "correlation" | "count";
   scaleLimit?: number;
+  standardErrors?: (number | null)[][];
 }) {
   const [offset, setOffset] = useState(0),
     [startColumn, setStartColumn] = useState(0);
@@ -114,6 +123,9 @@ function MatrixView({
           ? "Jointly observed respondents"
           : `Color scale: −${limit.toFixed(2)} to +${limit.toFixed(2)}; zero is neutral.`}{" "}
         All values are available as text.
+        {standardErrors
+          ? " Robust SEs are shown in parentheses; colors encode correlations."
+          : ""}
       </p>
       <div className="flex gap-2 text-xs">
         <label>
@@ -177,6 +189,9 @@ function MatrixView({
                     }
                   >
                     {kind === "count" ? v : number(v)}
+                    {standardErrors?.[offset + i]?.[startColumn + j] != null
+                      ? ` (${number(standardErrors[offset + i][startColumn + j])})`
+                      : ""}
                   </td>
                 ))}
               </tr>
@@ -217,6 +232,7 @@ function Results({
     | "stability"
   >("pattern");
   const [heat, setHeat] = useState(true),
+    [showSE, setShowSE] = useState(true),
     [compareId, setCompareId] = useState(""),
     [scroll, setScroll] = useState(0),
     [query, setQuery] = useState(""),
@@ -348,8 +364,9 @@ function Results({
             EFA · {title}
           </h2>
           <p className="text-xs">
-            Two-step polychoric · MINRES · {run.spec.rotation} ·{" "}
-            {run.spec.missing} deletion ·{" "}
+            Two-step polychoric ·{" "}
+            {(run.spec.extraction ?? "minres").toUpperCase()} ·{" "}
+            {run.spec.rotation} · {run.spec.missing} deletion ·{" "}
             {run.result.fittingRows.length.toLocaleString()} fitting rows ·{" "}
             {run.spec.items.length} items · {run.spec.nFactors} factors
           </p>
@@ -512,6 +529,7 @@ function Results({
         ))}
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
+        <EfaWeightedSummary result={run.result} />
         {view === "pattern" || view === "structure" ? (
           <>
             <div className="mb-3 text-xs space-y-1">
@@ -546,6 +564,17 @@ function Results({
                 />{" "}
                 Loading heatmap
               </label>
+              {(run.result.weighted?.robust ||
+                comparison?.result.weighted?.robust) && (
+                <label className="text-xs">
+                  <input
+                    type="checkbox"
+                    checked={showSE}
+                    onChange={(e) => setShowSE(e.target.checked)}
+                  />{" "}
+                  Show robust SE in parentheses
+                </label>
+              )}
               <span className="text-xs">
                 {heat
                   ? `Shared scale −${limit.toFixed(2)} to +${limit.toFixed(2)}`
@@ -704,6 +733,9 @@ function Results({
                                   style={heat ? color(v, limit) : {}}
                                 >
                                   {number(v)}
+                                  {showSE && run.result.weighted?.robust
+                                    ? ` (${number(run.result.weighted.robust.standardErrors[view][i][f])})`
+                                    : ""}
                                 </span>
                                 <span
                                   className="px-2 py-1"
@@ -715,10 +747,16 @@ function Results({
                                   }
                                 >
                                   {number(other?.[f])}
+                                  {showSE &&
+                                  comparison.result.weighted?.robust &&
+                                  sharedIndex >= 0 &&
+                                  alignment?.mapping[f] != null
+                                    ? ` (${number(comparison.result.weighted.robust.standardErrors[view][alignment.bi[sharedIndex]][alignment.mapping[f]!])})`
+                                    : ""}
                                 </span>
                               </div>
                             ) : (
-                              number(v)
+                              `${number(v)}${showSE && run.result.weighted?.robust ? ` (${number(run.result.weighted.robust.standardErrors[view][i][f])})` : ""}`
                             )}
                           </td>
                         ))}
@@ -739,11 +777,17 @@ function Results({
                         </td>
                         <td className="p-2">
                           {number(run.result.communalities[i])}
+                          {showSE && run.result.weighted?.robust
+                            ? ` (${number(run.result.weighted.robust.standardErrors.communalities[i])})`
+                            : ""}
                           {comparison &&
                             ` / ${number(sharedIndex < 0 ? null : comparison.result.communalities[alignment!.bi[sharedIndex]])}`}
                         </td>
                         <td className="p-2">
                           {number(run.result.uniquenesses[i])}
+                          {showSE && run.result.weighted?.robust
+                            ? ` (${number(run.result.weighted.robust.standardErrors.uniquenesses[i])})`
+                            : ""}
                           {comparison &&
                             ` / ${number(sharedIndex < 0 ? null : comparison.result.uniquenesses[alignment!.bi[sharedIndex]])}`}
                         </td>
@@ -797,9 +841,10 @@ function Results({
               </table>
             </div>
             <p className="text-xs mt-2">
-              Retain and investigate items remain in a refit. Exclude is applied
-              only when you select “Refit selection”. No loading cutoff assigns
-              membership or removes items automatically.
+              Review revision {run.reviewRevision ?? 0}. Retain and investigate
+              items remain in a refit. Exclude is applied only when you select
+              “Refit selection”. No loading cutoff assigns membership or removes
+              items automatically.
             </p>
           </>
         ) : view === "stability" ? (
@@ -814,8 +859,12 @@ function Results({
         ) : view === "diagnostics" ? (
           <div className="space-y-2 text-xs">
             <p>
-              MINRES: {run.result.extraction.convergence.iterations} iterations;
-              objective {run.result.extraction.convergence.objective}; projected
+              {(run.result.extraction.estimator ?? "minres").toUpperCase()}:{" "}
+              {run.result.extraction.convergence.iterations} iterations;
+              objective {run.result.extraction.convergence.objective};{" "}
+              {run.result.extraction.estimator === "dwls"
+                ? "loading"
+                : "projected"}
               gradient {run.result.extraction.convergence.gradient}. Condition
               number: {number(run.result.conditionNumber)}.
             </p>
@@ -887,6 +936,11 @@ function Results({
               <h3 className="font-bold mb-2">{title}</h3>
               <MatrixView
                 key={`${run.id}:${view}:${matrixIndices.length}`}
+                standardErrors={
+                  view === "phi"
+                    ? run.result.weighted?.robust?.standardErrors.phi
+                    : undefined
+                }
                 kind={view === "counts" ? "count" : "correlation"}
                 scaleLimit={view === "residuals" ? residualScale : undefined}
                 rows={view === "phi" ? factors : (alignment?.shared ?? items)}
@@ -915,6 +969,18 @@ function Results({
                 </h3>
                 <MatrixView
                   key={`${comparison.id}:${view}:${alignment.shared.length}`}
+                  standardErrors={
+                    view === "phi" && comparison.result.weighted?.robust
+                      ? alignment.mapping.map((i) =>
+                          alignment.mapping.map((j) =>
+                            i === null || j === null
+                              ? null
+                              : comparison.result.weighted!.robust!
+                                  .standardErrors.phi[i][j],
+                          ),
+                        )
+                      : undefined
+                  }
                   kind={view === "counts" ? "count" : "correlation"}
                   scaleLimit={view === "residuals" ? residualScale : undefined}
                   rows={view === "phi" ? factors : alignment.shared}
@@ -1077,6 +1143,7 @@ export function EfaPanel({
     [orders, setOrders] = useState<Record<string, string>>({}),
     [reverse, setReverse] = useState<Record<string, boolean>>({});
   const [factors, setFactors] = useState(2),
+    [extraction, setExtraction] = useState<EfaEstimator>("minres"),
     [rotation, setRotation] = useState<Rotation>("oblimin"),
     [missing, setMissing] = useState<"pairwise" | "complete" | "mice">(
       "pairwise",
@@ -1102,6 +1169,7 @@ export function EfaPanel({
       counts: number[][];
       key: string;
       columns: string[];
+      inferencePlan?: InferencePlan;
     } | null>(null),
     [parallel, setParallel] = useState<ParallelResult | null>(null),
     [replicates, setReplicates] = useState(100);
@@ -1123,6 +1191,7 @@ export function EfaPanel({
     orders,
     reverse,
     factors,
+    extraction,
     rotation,
     missing,
     label,
@@ -1147,6 +1216,7 @@ export function EfaPanel({
       return { column, categories, reverse: reverse[column] ?? false };
     }),
     nFactors: factors,
+    extraction,
     rotation,
     missing: missing === "mice" ? "pairwise" : missing,
     seed,
@@ -1281,6 +1351,19 @@ export function EfaPanel({
         </div>
       </details>
       <div className="grid grid-cols-2 gap-2">
+        <label className="col-span-2">
+          Extraction
+          <select
+            className={control}
+            aria-label="EFA extraction"
+            value={extraction}
+            onChange={(e) => setExtraction(e.target.value as EfaEstimator)}
+          >
+            <option value="minres">MINRES</option>
+            <option value="dwls">DWLS · ordinal variance weights</option>
+            <option value="wlsmv">WLSMV · DWLS + robust inference</option>
+          </select>
+        </label>
         <label>
           Factors
           <input
@@ -1626,6 +1709,24 @@ export function EfaPanel({
             Preview: {preview.nRows} fitting rows
             {!previewCurrent ? " · settings changed; preview again" : ""}
           </summary>
+          {previewCurrent && preview.inferencePlan && (
+            <p className="my-2">
+              Exact WLSMV inference: about{" "}
+              {Math.ceil(
+                preview.inferencePlan.estimatedBytes / 1024 ** 2,
+              ).toLocaleString()}{" "}
+              MiB working estimate and{" "}
+              {preview.inferencePlan.approximateMultiplyAdds.toLocaleString(
+                undefined,
+                { maximumFractionDigits: 0 },
+              )}{" "}
+              multiply-add operations. Large jobs may take substantially longer
+              than DWLS point fitting.
+              {missing === "mice"
+                ? ` This is repeated separately for each of ${imputations} imputations.`
+                : ""}
+            </p>
+          )}
           <div className="max-h-32 overflow-auto">
             {preview.counts.map((counts, i) => (
               <p key={i}>

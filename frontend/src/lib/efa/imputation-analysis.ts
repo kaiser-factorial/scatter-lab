@@ -14,6 +14,7 @@ import {
   type EfaResult,
   type EfaSpec,
   type Progress,
+  type EfaEstimator,
 } from "./types";
 
 export interface ImputationFailure {
@@ -40,6 +41,8 @@ export interface BetweenImputation {
   max: number | null;
 }
 export interface ImputationAnalysis {
+  /** Minimum ORIGINAL observed pair support, capped at five; imputation adds no support. */
+  observedPairFloor?: number;
   options: MiceOptions;
   requested: number;
   completed: number;
@@ -163,10 +166,31 @@ export function missingPositions(source: EfaPreparedData): number[] {
     if (!source.observed[i]) positions.push(i);
   return positions;
 }
+export function observedPairFloor(source: EfaPreparedData): number {
+  let minimum = Math.min(
+    5,
+    ...source.counts.map((counts) => counts.reduce((a, b) => a + b, 0)),
+  );
+  for (let i = 0; i < source.items.length && minimum > 0; i++)
+    for (let j = i + 1; j < source.items.length && minimum > 0; j++) {
+      let count = 0;
+      for (let row = 0; row < source.nRows; row++)
+        if (
+          source.observed[i * source.nRows + row] &&
+          source.observed[j * source.nRows + row] &&
+          ++count >= minimum
+        )
+          break;
+      minimum = Math.min(minimum, count);
+    }
+  return minimum;
+}
 export function summarizeImputations(
   source: EfaPreparedData,
   options: MiceOptions,
   chains: ImputationChainResult[],
+  estimator?: EfaEstimator,
+  supportFloor?: number,
 ): ImputationAnalysis {
   const fits = chains
       .flatMap((c) => (c.fit ? [c.fit] : []))
@@ -202,6 +226,7 @@ export function summarizeImputations(
       ),
     );
   return {
+    observedPairFloor: supportFloor ?? observedPairFloor(source),
     options: structuredClone({
       ...options,
       predictorEncoding: options.predictorEncoding ?? "ordered-polynomial",
@@ -234,13 +259,13 @@ export function summarizeImputations(
     provisional: failures.length > 0,
     provenance: {
       engine: EFA_ENGINE,
-      method:
-        "Separate ordinal polr / binary logreg conditional imputations; MINRES fitted independently to each completed dataset",
+      method: `Separate ordinal polr / binary logreg conditional imputations; ${(estimator ?? reference?.weighted?.estimator ?? "minres").toUpperCase()} fitted independently to each completed dataset`,
       inputSha256: source.fingerprint,
       alignment:
         "Signs and factor permutation only, anchored to first successful imputation",
-      uncertainty:
-        "Descriptive between-imputation dispersion only; no within-imputation variance or Rubin-pooled confidence intervals",
+      uncertainty: reference?.weighted?.robust
+        ? "Separate within-imputation robust standard errors retained in each fit; aligned between-imputation dispersion is descriptive; no Rubin-pooled confidence intervals"
+        : "Descriptive between-imputation dispersion only; no within-imputation variance or Rubin-pooled confidence intervals",
     },
   };
 }

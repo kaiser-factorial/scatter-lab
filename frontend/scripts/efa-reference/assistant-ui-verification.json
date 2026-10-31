@@ -1,0 +1,21 @@
+{
+  "recordedAt": "2026-10-31T10:34:03.676Z",
+  "status": "passed",
+  "browser": "156.0.8078.76",
+  "checks": [
+    "Real runAssistantTurn with offline replayTransport and live app bridge",
+    "WLSMV worker fit and bounded item/SE reads",
+    "Assistant changes visible in review table",
+    "User edit causes optimistic revision conflict",
+    "Immutable seven-item refit and matched comparison",
+    "Private notes withheld",
+    "Undo and session reload preserve review semantics",
+    "Both themes and pattern heatmap"
+  ],
+  "baseline": "c651c893-b3f4-4765-96e2-899e04ec74e4",
+  "child": "848553fb-3cdc-4406-a057-0d734470fd95",
+  "externalRequestsBlocked": [],
+  "providerCalls": 0,
+  "pageErrors": [],
+  "replayBundleSha256": "9363208a1a52daadff3dd7eaa1e98ed1c93e411af94140cea3845769793b552b"
+}

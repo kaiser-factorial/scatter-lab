@@ -154,6 +154,10 @@ try {
     after.efa.imputationRuns[1].spec.items.length !== 3
   )
     throw new Error("MICE refit lineage or retained baseline failed.");
+  if (after.efa.imputationRuns.some((r) => r.result.observedPairFloor !== 5))
+    throw new Error(
+      "Original observed support metadata missing from MICE results.",
+    );
   if (JSON.stringify(after.table) !== JSON.stringify(fixture.table))
     throw new Error("Source table changed.");
   await page.keyboard.press("Escape");
@@ -263,6 +267,7 @@ try {
     recordedAt: new Date().toISOString(),
     checks: [
       "explicit MICE settings and predictor review",
+      "original observed pair support computed in worker and persisted",
       "per-imputation pattern/structure heatmaps",
       "iteration traces",
       "two themes",

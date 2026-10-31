@@ -7,7 +7,7 @@ import {
   parallelObserved,
   parallelReplicate,
 } from "./parallel";
-import { fitImputationChain } from "./imputation-analysis";
+import { fitImputationChain, observedPairFloor } from "./imputation-analysis";
 import { fingerprintPrepared } from "./fingerprint";
 import type { MiceOptions } from "./mice";
 import {
@@ -49,6 +49,7 @@ export type WorkerRequest =
       spec: EfaSpec;
       rows: number[];
     }
+  | { id: number; op: "observed-support" }
   | { id: number; op: "initialize"; data: EfaPreparedData }
   | { id: number; op: "pairs"; pairs: [number, number][] }
   | {
@@ -85,6 +86,9 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       if (!prepared)
         throw new EfaError("worker", "Worker has not been prepared.");
       switch (request.op) {
+        case "observed-support":
+          value = observedPairFloor(prepared);
+          break;
         case "imputation": {
           const chain = fitImputationChain(
             prepared,

@@ -173,12 +173,22 @@ export function addScoreColumns(
   return { table: { columns, data, nRows: table.nRows }, columns: added };
 }
 export function serializeEfaCsv(run: EfaRun) {
+  const se = run.result.weighted?.robust?.standardErrors;
   const headers = [
     "item",
+    "extraction",
     ...run.result.rotation.pattern[0].map((_, i) => `pattern_F${i + 1}`),
     ...run.result.structure[0].map((_, i) => `structure_F${i + 1}`),
     "communality",
     "uniqueness",
+    ...(se
+      ? [
+          ...se.pattern[0].map((_, i) => `pattern_SE_F${i + 1}`),
+          ...se.structure[0].map((_, i) => `structure_SE_F${i + 1}`),
+          "communality_SE",
+          "uniqueness_SE",
+        ]
+      : []),
     "status",
     "note",
   ];
@@ -188,10 +198,19 @@ export function serializeEfaCsv(run: EfaRun) {
       headers,
       ...run.spec.items.map((item, i) => [
         item.column,
+        run.spec.extraction ?? "minres",
         ...run.result.rotation.pattern[i],
         ...run.result.structure[i],
         run.result.communalities[i],
         run.result.uniquenesses[i],
+        ...(se
+          ? [
+              ...se.pattern[i],
+              ...se.structure[i],
+              se.communalities[i],
+              se.uniquenesses[i],
+            ]
+          : []),
         run.reviews[item.column]?.status ?? "retain",
         run.reviews[item.column]?.note ?? "",
       ]),

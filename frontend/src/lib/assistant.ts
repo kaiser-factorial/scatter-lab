@@ -160,7 +160,7 @@ export const MUTATING_TOOLS = new Set([
   'set_plot', 'run_clustering', 'pin_view', 'load_demo_data',
   'switch_dataset', 'set_category_visibility', 'set_row_filter', 'transfer_column', 'remove_pin',
   'run_pca', 'run_test', 'plot_chart',
-  'run_efa', 'add_efa_scores', 'parallel_efa',
+  'run_efa', 'add_efa_scores', 'parallel_efa', 'update_efa_items', 'refit_efa_selection',
 ]);
 
 // Curated tutorial chunks — the single source of truth the assistant teaches
@@ -756,6 +756,8 @@ export const buildSystemPrompt = (bridge: AppBridge): string => {
 
 You can drive the app with your tools: change plot axes, coloring and marker shape, switch 2D/3D or the active dataset, run clustering, read cluster compositions, configure and save a cluster-composition heatmap, save PNG, interactive HTML, rotating GIF, or active-dataset CSV exports, mute/hide legend categories, transfer columns between datasets, pin/remove views, and save workspaces. You also have aggregate analysis tools: run_pca (in-browser principal component analysis — use it when the user wants to reduce dimensions or "see the structure" of a set of scale items; it reports how much data was imputed or dropped, which you should mention when it is not negligible), correlate (Pearson/Spearman), compare_groups (means by category + eta-squared), run_test (Welch's t, Mann–Whitney, Kruskal–Wallis, Kolmogorov–Smirnov, chi-square — exact p, CI, effect size), plot_chart (ECDF, histogram, box, violin, Q–Q, bar, line — rendered for the user as analysis views), and clustering diagnostics (suggest_k silhouette scores, suggest_eps k-distance percentiles) — prefer running these over guessing parameters or relationships. run_test and plot_chart take a PLAN that a deterministic validator gates: on rejection, revise using the [code]/Fix/Available in the result and call again — after ${MAX_PLAN_REVISIONS} rejected revisions, stop and put the failures to the user. Report exact p-values with the effect size and CI; never add significance stars. Use tools to act, then summarize what you did in one or two sentences. When the user asks a question about their data, answer from the column profiles and aggregate tool results — never invent numbers you have not seen in this conversation.
 
+Ordinal EFA has its own workflow alongside PCA. Use list_efa_runs, get_efa_diagnostics and paginated get_efa_items to inspect saved fits; never invent loadings. Distinguish pattern coefficients, structure correlations, communalities and uniquenesses. Use update_efa_items for visible review statuses/notes, then refit_efa_selection for a new child and efa_job to poll. Read the current reviewRevision first; a conflict means reread. Explain substantive coverage, cross-loadings and redundancy together; there is no universally optimal item set or additive PCA-style variance breakdown for correlated factors. compare_efa aligns factors by signs/permutation. MICE summaries describe between-imputation dispersion and do not provide Rubin-pooled inference; individual WLSMV SEs belong to separate fits. Holdout comparison is structure replication, not proof of validity. Add scores only through the explicit add_efa_scores action. Large simulations and WLSMV can take time; report the job state accurately.
+
 ${accessParagraph}
 
 Facts about THIS app that you cannot guess and are likely to get wrong from priors — state them when they come up, without needing to look them up:
@@ -932,6 +934,10 @@ export const runAssistantTurn = async (
           return await bridge.loadDemoData();
         case 'run_pca':
           return bridge.runPCA(input ?? {});
+        case 'list_efa_runs':
+        case 'get_efa_items':
+        case 'update_efa_items':
+        case 'refit_efa_selection':
         case 'run_efa':
         case 'efa_job':
         case 'get_efa_diagnostics':

@@ -1,3 +1,14 @@
+import { validateSpec } from "./prepare";
+import {
+  inspectItems,
+  inspectedFit,
+  isImputation,
+  pageInteger,
+  requireAggregate,
+  runMetadata,
+  runOverview,
+  type InspectableRun,
+} from "./inspection";
 import type { DataTable } from "../table";
 import { EfaService, type EfaJob } from "./service";
 import {
@@ -13,6 +24,7 @@ import {
   EfaError,
   type EfaSpec,
   type EfaRun,
+  type EfaImputationRun,
   type EfaState,
   type ItemReview,
   type SampleSplit,
@@ -50,6 +62,10 @@ export class EfaController {
     string,
     { datasetId: number; table: DataTable; run: EfaRun }
   >();
+  private reviewed = new Map<
+    string,
+    { datasetId: number; table: DataTable; run: InspectableRun }
+  >();
   private adapterValue?: EfaAdapter;
   private adapter: () => EfaAdapter;
   constructor(
@@ -69,6 +85,7 @@ export class EfaController {
   cancel = () => {
     this.generation++;
     this.completedRuns.clear();
+    this.reviewed.clear();
     this.service.cancelAll();
   };
   private current() {
@@ -76,12 +93,38 @@ export class EfaController {
   }
   private findRun(context: EfaContext, id: unknown) {
     const committed = context.state.runs.find((run) => run.id === id);
+    const edited = this.reviewed.get(String(id));
+    if (
+      edited &&
+      !isImputation(edited.run) &&
+      edited.datasetId === context.datasetId &&
+      edited.table === context.table &&
+      (edited.run.reviewRevision ?? 0) > (committed?.reviewRevision ?? 0)
+    )
+      return edited.run;
     if (committed) return committed;
     const pending = this.completedRuns.get(String(id));
     return pending?.datasetId === context.datasetId &&
       pending.table === context.table
       ? pending.run
       : undefined;
+  }
+  private findAnalysis(
+    context: EfaContext,
+    id: unknown,
+  ): InspectableRun | undefined {
+    const ordinary = this.findRun(context, id);
+    if (ordinary) return ordinary;
+    const committed = context.state.imputationRuns?.find((r) => r.id === id);
+    const edited = this.reviewed.get(String(id));
+    return edited &&
+      isImputation(edited.run) &&
+      edited.datasetId === context.datasetId &&
+      edited.table === context.table &&
+      (!committed ||
+        (edited.run.reviewRevision ?? 0) > (committed.reviewRevision ?? 0))
+      ? edited.run
+      : committed;
   }
   private assertCurrent(context: EfaContext, generation: number) {
     const now = this.current();
@@ -118,6 +161,7 @@ export class EfaController {
       kind?: EfaRun["kind"];
       reviews?: Record<string, ItemReview>;
       reasons?: string;
+      parentReviewRevision?: number;
       assistant?: boolean;
     } = {},
   ) {
@@ -205,6 +249,11 @@ export class EfaController {
         parentId: parent?.id,
         kind,
         reviews: structuredClone(options.reviews ?? {}),
+        reviewRevision: 0,
+        parentReviewRevision:
+          options.parentReviewRevision ??
+          parent?.reviewRevision ??
+          (parent ? 0 : undefined),
         reasons: options.reasons ?? "",
         revisedAfterHoldout: context.state.splits.some(
           (s) => !!s.holdoutOpenedAt,
@@ -308,19 +357,21 @@ export class EfaController {
     await completion;
     return job.result!;
   };
-  impute = async (
+  private startImputation = (
     spec: EfaSpec,
     options: MiceOptions,
     changes: {
       parentId?: string;
       reviews?: Record<string, ItemReview>;
       reasons?: string;
+      parentReviewRevision?: number;
+      assistant?: boolean;
     } = {},
   ) => {
     const snapshot = structuredClone(spec),
       settings = structuredClone(options),
       notes = structuredClone(changes);
-    const { context, rows } = this.input(snapshot),
+    const { context, rows } = this.input(snapshot, changes.assistant),
       generation = ++this.generation;
     if (
       notes.parentId &&
@@ -330,39 +381,68 @@ export class EfaController {
         "parent",
         "Parent imputation analysis does not exist.",
       );
-    const job = this.service.impute(context.table, snapshot, rows, settings);
+    const job = this.service.impute(
+      context.table,
+      snapshot,
+      rows,
+      settings,
+      changes.assistant && context.privateMode ? 5 : 0,
+    );
     const completion = job.promise.then((result) => {
       this.assertCurrent(context, generation);
       const id = crypto.randomUUID();
+      const state = this.current().state;
+      const saved: EfaImputationRun = {
+        id,
+        revision:
+          Math.max(
+            0,
+            ...(state.imputationRuns ?? []).map((r) => r.revision),
+            ...[...this.reviewed.values()]
+              .filter(
+                (v) =>
+                  v.datasetId === context.datasetId &&
+                  v.table === context.table &&
+                  isImputation(v.run),
+              )
+              .map((v) => v.run.revision),
+          ) + 1,
+        createdAt: new Date().toISOString(),
+        datasetRevision: this.service.revision(context.table),
+        spec: snapshot,
+        eligibleRows: rows,
+        parentId: notes.parentId,
+        reviews: notes.reviews ?? {},
+        reviewRevision: 0,
+        parentReviewRevision:
+          notes.parentReviewRevision ??
+          context.state.imputationRuns?.find((r) => r.id === notes.parentId)
+            ?.reviewRevision ??
+          (notes.parentId ? 0 : undefined),
+        reasons: notes.reasons ?? "",
+        revisedAfterHoldout: state.splits.some((s) => !!s.holdoutOpenedAt),
+        result,
+      };
+      this.reviewed.set(id, {
+        datasetId: context.datasetId,
+        table: context.table,
+        run: saved,
+      });
       this.adapter().state(context.datasetId, context.table, (state) => ({
         ...state,
-        imputationRuns: [
-          ...(state.imputationRuns ?? []),
-          {
-            id,
-            revision:
-              Math.max(
-                0,
-                ...(state.imputationRuns ?? []).map((r) => r.revision),
-              ) + 1,
-            createdAt: new Date().toISOString(),
-            datasetRevision: this.service.revision(context.table),
-            spec: snapshot,
-            eligibleRows: rows,
-            parentId: notes.parentId,
-            reviews: notes.reviews ?? {},
-            reasons: notes.reasons ?? "",
-            revisedAfterHoldout: state.splits.some((s) => !!s.holdoutOpenedAt),
-            result,
-          },
-        ],
+        imputationRuns: [...(state.imputationRuns ?? []), saved],
       }));
       return id;
     });
     this.simulations.set(job.id, completion);
     void completion.catch(() => {});
-    return completion;
+    return { job, completion };
   };
+  impute = async (
+    spec: EfaSpec,
+    options: MiceOptions,
+    changes: Parameters<EfaController["startImputation"]>[2] = {},
+  ) => this.startImputation(spec, options, changes).completion;
   stability = async (
     runId: string,
     options: Omit<StabilityOptions, "groups">,
@@ -414,15 +494,8 @@ export class EfaController {
     void completion.catch(() => {});
     return completion;
   };
-  imputationReviews = (id: string, reviews: Record<string, ItemReview>) => {
-    const c = this.current();
-    this.adapter().state(c.datasetId, c.table, (state) => ({
-      ...state,
-      imputationRuns: state.imputationRuns?.map((r) =>
-        r.id === id ? { ...r, reviews: structuredClone(reviews) } : r,
-      ),
-    }));
-  };
+  imputationReviews = (id: string, reviews: Record<string, ItemReview>) =>
+    this.saveReviews(id, reviews);
   split = (options: {
     seed: number;
     fraction: number;
@@ -452,15 +525,159 @@ export class EfaController {
     }));
     return s;
   };
+  private saveReviews(id: string, reviews: Record<string, ItemReview>) {
+    const c = this.current(),
+      run = this.findAnalysis(c, id);
+    if (!run) throw new EfaError("run", "EFA run not found.");
+    const updated = {
+      ...run,
+      reviews: structuredClone(reviews),
+      reviewRevision: (run.reviewRevision ?? 0) + 1,
+    };
+    this.reviewed.set(id, {
+      datasetId: c.datasetId,
+      table: c.table,
+      run: updated,
+    });
+    this.adapter().state(c.datasetId, c.table, (state) =>
+      isImputation(run)
+        ? {
+            ...state,
+            imputationRuns: state.imputationRuns?.map((r) =>
+              r.id === id
+                ? {
+                    ...r,
+                    reviews: updated.reviews,
+                    reviewRevision: updated.reviewRevision,
+                  }
+                : r,
+            ),
+          }
+        : {
+            ...state,
+            runs: state.runs.map((r) =>
+              r.id === id
+                ? {
+                    ...r,
+                    reviews: updated.reviews,
+                    reviewRevision: updated.reviewRevision,
+                  }
+                : r,
+            ),
+          },
+    );
+    return updated;
+  }
   reviews = (id: string, reviews: Record<string, ItemReview>) => {
-    const c = this.current();
-    this.adapter().state(c.datasetId, c.table, (state) => ({
-      ...state,
-      runs: state.runs.map((r) =>
-        r.id === id ? { ...r, reviews: structuredClone(reviews) } : r,
-      ),
-    }));
+    this.saveReviews(id, reviews);
   };
+  private checkReviewRevision(run: InspectableRun, expected: unknown) {
+    if (
+      !Number.isSafeInteger(expected) ||
+      expected !== (run.reviewRevision ?? 0)
+    )
+      throw new EfaError(
+        "review-conflict",
+        "Item reviews changed. Read get_efa_items again before editing or refitting.",
+      );
+  }
+  private updateItems(run: InspectableRun, args: Record<string, unknown>) {
+    this.checkReviewRevision(run, args.expectedReviewRevision);
+    const changes = args.changes;
+    if (!Array.isArray(changes) || !changes.length || changes.length > 100)
+      throw new EfaError("items", "Supply 1–100 explicit item review changes.");
+    const reviews = structuredClone(run.reviews),
+      seen = new Set<string>();
+    for (const change of changes) {
+      if (
+        !change ||
+        typeof change !== "object" ||
+        Array.isArray(change) ||
+        typeof change.column !== "string" ||
+        !run.spec.items.some((i) => i.column === change.column) ||
+        seen.has(change.column) ||
+        !["retain", "investigate", "exclude"].includes(change.status) ||
+        typeof change.note !== "string" ||
+        change.note.length > 2000 ||
+        Object.keys(change).some(
+          (k) => !["column", "status", "note"].includes(k),
+        )
+      )
+        throw new EfaError(
+          "items",
+          "Each change needs a unique saved item, valid status and a note of at most 2000 characters.",
+        );
+      seen.add(change.column);
+      Object.defineProperty(reviews, change.column, {
+        value: { status: change.status, note: change.note },
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+    return runMetadata(this.saveReviews(run.id, reviews));
+  }
+  private refitSelection(run: InspectableRun, args: Record<string, unknown>) {
+    this.checkReviewRevision(run, args.expectedReviewRevision);
+    if (
+      typeof args.label !== "string" ||
+      !args.label.trim() ||
+      args.label.length > 200 ||
+      typeof args.reasons !== "string" ||
+      !args.reasons.trim() ||
+      args.reasons.length > 2000 ||
+      (args.keepRows !== undefined && typeof args.keepRows !== "boolean")
+    )
+      throw new EfaError(
+        "refit",
+        "Supply a label, substantive reasons, and optional keepRows boolean.",
+      );
+    const indices = run.spec.items.flatMap((i, j) =>
+      run.reviews[i.column]?.status === "exclude" ? [] : [j],
+    );
+    const spec: EfaSpec = {
+      ...structuredClone(run.spec),
+      items: indices.map((i) => structuredClone(run.spec.items[i])),
+      nFactors: pageInteger(args.nFactors, run.spec.nFactors, 1, 499),
+      label: args.label,
+      sample: {
+        ...run.spec.sample,
+        fixedRows:
+          args.keepRows !== false || isImputation(run)
+            ? run.result.fittingRows.slice()
+            : undefined,
+      },
+    };
+    validateSpec(spec);
+    const changes = {
+      parentId: run.id,
+      parentReviewRevision: run.reviewRevision ?? 0,
+      reviews: run.reviews,
+      reasons: args.reasons,
+      assistant: true,
+    };
+    if (isImputation(run)) {
+      if (args.keepRows === false)
+        throw new EfaError(
+          "refit",
+          "MICE refits preserve the original fitting population.",
+        );
+      const mapping = new Map(indices.map((j, i) => [j, i]));
+      return this.startImputation(
+        spec,
+        {
+          ...structuredClone(run.result.options),
+          predictors: indices.map((i) =>
+            run.result.options.predictors[i].flatMap((j) =>
+              mapping.has(j) ? [mapping.get(j)!] : [],
+            ),
+          ),
+        },
+        changes,
+      ).job;
+    }
+    return this.start(spec, { ...changes, kind: "items" }).job;
+  }
   openHoldout = (id: string) => {
     const c = this.current(),
       run =
@@ -476,41 +693,16 @@ export class EfaController {
       }));
   };
 
-  /** Deliberately whitelist aggregate fields; never serialize a run/job into a
-   * tool response (those contain respondent membership and scaling details). */
   private summary(run: EfaRun, privateMode: boolean) {
-    if (
-      privateMode &&
-      (run.result.fittingRows.length < 5 ||
-        run.result.correlation.pairs.some((p) => p.n < 5))
-    )
+    try {
+      return runOverview(run, privateMode);
+    } catch {
       return {
         runId: run.id,
-        label: run.spec.label,
         withheld:
-          "This analysis includes pairs below the private aggregate floor. Inspect it locally or revise the sample.",
+          "Original observed support is below the private aggregate floor.",
       };
-    return {
-      runId: run.id,
-      label: run.spec.label,
-      revision: run.revision,
-      items: run.spec.items.map((i) => i.column),
-      nFactors: run.spec.nFactors,
-      rotation: run.spec.rotation,
-      missing: run.spec.missing,
-      kind: run.kind,
-      n: run.result.fittingRows.length,
-      pattern: run.result.rotation.pattern,
-      structure: run.result.structure,
-      phi: run.result.rotation.phi,
-      communalities: run.result.communalities,
-      rmsr: run.result.rmsr,
-      diagnostics: run.result.diagnostics.map((d) => ({
-        code: d.code,
-        message: d.message,
-      })),
-      revisedAfterHoldout: run.revisedAfterHoldout,
-    };
+    }
   }
   tool = async (
     action: string,
@@ -520,6 +712,28 @@ export class EfaController {
     try {
       const c = this.current();
       privateMode = c.privateMode;
+      if (action === "list_efa_runs") {
+        const offset = pageInteger(args.offset, 0, 0, 100000),
+          limit = pageInteger(args.limit, 20, 1, 20);
+        const runs: InspectableRun[] = [
+          ...c.state.runs,
+          ...(c.state.imputationRuns ?? []),
+        ];
+        return JSON.stringify({
+          total: runs.length,
+          offset,
+          nextOffset: offset + limit < runs.length ? offset + limit : null,
+          runs: runs.slice(offset, offset + limit).map((r) => {
+            const current = this.findAnalysis(c, r.id)!;
+            try {
+              requireAggregate(current, privateMode);
+              return runMetadata(current);
+            } catch {
+              return { runId: r.id, withheld: "Private aggregate floor" };
+            }
+          }),
+        });
+      }
       if (action === "run_efa") {
         if (!args.spec || typeof args.spec !== "object")
           throw new EfaError(
@@ -544,7 +758,7 @@ export class EfaController {
       if (action === "efa_job") {
         const job = this.service.getJob(String(args.jobId));
         if (!job) throw new EfaError("job", "Job not found.");
-        if (args.cancel === true) {
+        if (args.cancel === true && job.status === "running") {
           this.cancel();
           return JSON.stringify({ jobId: job.id, status: "cancelled" });
         }
@@ -570,7 +784,9 @@ export class EfaController {
         return JSON.stringify({
           jobId: job.id,
           status: job.status,
-          progress: job.progress,
+          progress: privateMode
+            ? { completed: job.progress.completed, total: job.progress.total }
+            : job.progress,
           ...(!privateMode && job.error ? { error: job.error } : {}),
         });
       }
@@ -583,28 +799,67 @@ export class EfaController {
           );
         return JSON.stringify({ jobId: job.id, status: job.status });
       }
-      const run = this.findRun(c, args.runId);
+      const run = this.findAnalysis(c, args.runId);
       if (!run) throw new EfaError("run", "EFA run not found.");
       if (action === "get_efa_diagnostics") {
         this.openHoldout(run.id);
-        return JSON.stringify(this.summary(run, privateMode));
+        return JSON.stringify(runOverview(run, privateMode));
       }
-      if (action === "add_efa_scores")
+      if (action === "get_efa_items") {
+        this.openHoldout(run.id);
+        return JSON.stringify(inspectItems(run, args, privateMode));
+      }
+      if (action === "update_efa_items") {
+        requireAggregate(run, privateMode);
+        return JSON.stringify({
+          ...this.updateItems(run, args),
+          message:
+            "Updated the visible item review table. No refit or score publication yet.",
+        });
+      }
+      if (action === "refit_efa_selection") {
+        requireAggregate(run, privateMode);
+        const job = this.refitSelection(run, args);
+        return JSON.stringify({
+          jobId: job.id,
+          status: job.status,
+          parentId: run.id,
+          parentReviewRevision: run.reviewRevision ?? 0,
+          message:
+            "Poll efa_job; the parent result is preserved. Scores are not added automatically.",
+        });
+      }
+      if (action === "add_efa_scores") {
+        if (isImputation(run))
+          throw new EfaError(
+            "imputation-scores",
+            "MICE scores are not pooled. Separate fit results remain available locally.",
+          );
         return await this.addScores(run.id, true);
+      }
       if (action === "compare_efa") {
-        const other = this.findRun(c, args.otherRunId);
+        const other = this.findAnalysis(c, args.otherRunId);
         if (!other) throw new EfaError("run", "Comparison run not found.");
         this.openHoldout(run.id);
         this.openHoldout(other.id);
-        const a = this.summary(run, privateMode),
-          b = this.summary(other, privateMode);
-        if ("withheld" in a || "withheld" in b)
-          return JSON.stringify({ baseline: a, comparison: b });
-        const match = compareEfaRuns(run, other);
+        const a = runOverview(run, privateMode),
+          b = runOverview(other, privateMode);
+        const asFit = (r: InspectableRun): EfaRun => ({
+          ...r,
+          kind: "fit",
+          scoreColumns: [],
+          result: inspectedFit(r),
+        });
+        const match = compareEfaRuns(asFit(run), asFit(other));
         return JSON.stringify({
           baseline: a,
           comparison: b,
-          sharedItems: match.shared,
+          sharedItems: match.shared.slice(0, 20),
+          sharedItemCount: match.shared.length,
+          removedItems: match.removedItems,
+          addedItems: match.addedItems,
+          comparisonBasis:
+            "First successful fit for MICE analyses; use get_efa_items for separate fits and descriptive summaries.",
           factorMapping: match.mapping,
           signs: match.signs,
           congruence: match.congruence,

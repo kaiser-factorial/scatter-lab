@@ -1,7 +1,11 @@
 import { Matrix, solve } from "./math";
 import { checkCorrelation, extractMinres } from "./extraction";
 import { rotate } from "./rotation";
-import { EFA_ENGINE } from "./types";
+import { EFA_ENGINE, EfaError } from "./types";
+import { extractDwls } from "./dwls";
+import { weightedMoments } from "./weighted-moments";
+import { planWeightedInference, weightedInference } from "./weighted-inference";
+import { rotatedUncertainty } from "./weighted-rotation";
 import type {
   EfaPreparedData,
   EfaCorrelations,
@@ -19,10 +23,45 @@ export function fitEfa(
   extraction?: EfaExtraction,
 ): EfaResult {
   const { conditionNumber } = checkCorrelation(correlation.matrix);
+  const estimator = spec.extraction ?? "minres",
+    pointEstimator = estimator === "minres" ? "minres" : "dwls";
+  if (!["minres", "dwls", "wlsmv"].includes(estimator))
+    throw new EfaError("method", "Unsupported EFA extractor.");
+  if (extraction && (extraction.estimator ?? "minres") !== pointEstimator)
+    throw new EfaError(
+      "extraction-reuse",
+      "A saved extraction can only be reused with its original point estimator.",
+    );
+  if (estimator === "wlsmv")
+    planWeightedInference(
+      data.items.length,
+      spec.nFactors,
+      data.nRows,
+      correlation.pairs.reduce(
+        (sum, pair) =>
+          sum +
+          data.items[pair.i].categories.length *
+            data.items[pair.j].categories.length,
+        0,
+      ),
+    );
+  const moments =
+    estimator === "minres"
+      ? undefined
+      : weightedMoments(data, correlation, progress);
   const unrotated =
-    extraction ?? extractMinres(correlation.matrix, spec.nFactors, progress);
+    extraction ??
+    (moments
+      ? extractDwls(correlation.matrix, moments, spec.nFactors, progress)
+      : extractMinres(correlation.matrix, spec.nFactors, progress));
   progress?.({ stage: "Rotation", completed: 0, total: 1 });
-  const rotation = rotate(unrotated.loadings, spec.rotation, spec.seed),
+  const rotation = rotate(
+      unrotated.loadings,
+      spec.rotation,
+      spec.seed,
+      4,
+      estimator !== "minres",
+    ),
     l = new Matrix(rotation.pattern),
     phi = new Matrix(rotation.phi),
     s = l.mmul(phi),
@@ -42,7 +81,42 @@ export function fitEfa(
         (p * (p - 1)),
     );
   const weights = solve(new Matrix(correlation.matrix), s).to2DArray();
+  let weighted: EfaResult["weighted"];
+  if (moments) {
+    weighted = {
+      estimator: estimator as "dwls" | "wlsmv",
+      samplingVariances: moments.pairs.map((pair) => pair.variance),
+      fittingWeights: Array.from(moments.weights),
+      uncertaintyMethod: moments.method,
+      rawStatistic: (data.nRows - 1) * unrotated.convergence.objective,
+      df:
+        (p * (p - 1)) / 2 -
+        (p * spec.nFactors - (spec.nFactors * (spec.nFactors - 1)) / 2),
+    };
+    if (estimator === "wlsmv") {
+      const inference = weightedInference(
+        data,
+        moments,
+        unrotated.loadings,
+        unrotated.convergence.objective,
+        progress,
+      );
+      weighted.robust = {
+        test: inference.test,
+        plan: inference.plan,
+        standardErrors: rotatedUncertainty(
+          inference.identified,
+          inference.covariance,
+          rotation,
+          spec.rotation,
+          spec.seed,
+          progress,
+        ),
+      };
+    }
+  }
   return {
+    ...(weighted ? { weighted } : {}),
     correlation,
     extraction: unrotated,
     rotation,
@@ -98,7 +172,7 @@ export function fitEfa(
       extraction:
         unrotated.method ??
         "Reused saved MINRES extraction; see the originating run for optimizer provenance",
-      rotation: `${spec.rotation}; oblimin delta=0 unnormalized; varimax normalized; promax power=4`,
+      rotation: `${spec.rotation}; oblimin delta=0 unnormalized; varimax normalized; promax power=4${estimator !== "minres" ? "; weighted varimax convergence 1e-14; no additional observed-variable rescaling" : ""}`,
       scoring:
         "linear regression approximation: ordinal ranks standardized on fitting sample; R^-1 × structure; complete rows only",
       seed: spec.seed,

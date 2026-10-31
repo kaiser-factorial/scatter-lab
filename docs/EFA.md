@@ -6,7 +6,7 @@ The EFA workflow runs entirely in browser Web Workers beside the existing PCA wo
 
 1. Load a dataset, apply any row filter, and choose **EFA** in **PCA / EFA**.
 2. Select items and review category orders and reverse keys. Ascending numeric orders are proposals. Text responses require an explicit JSON order, such as `["Disagree", "Neutral", "Agree"]`. Blank/null cells stay missing; deliberately recode questionnaire-specific missing codes before fitting.
-3. Set factor count, rotation, missing-data policy, label and sample. Defaults are oblimin, pairwise deletion and all eligible respondents. **Preview sample** shows fitting counts and category counts; setup changes require another preview.
+3. Set extraction, factor count, rotation, missing-data policy, label and sample. Defaults are MINRES, oblimin, pairwise deletion and all eligible respondents. DWLS and WLSMV are selectable; WLSMV preview includes its exact-inference allocation and work estimate. **Preview sample** shows fitting counts and category counts; setup changes require another preview.
 4. Run EFA. The wide results pane starts with loadings. Other views include structure, factor correlations, residuals, polychoric correlations, pairwise sample sizes and diagnostics. The item table virtualizes visible rows, with search and sticky identifiers.
 5. Mark items **retain**, **investigate** or **exclude**, and record notes. Primary/secondary absolute loadings, their gap, communality and the strongest related-item correlation support review. Adjustable flags never automatically assign membership or remove items.
 6. **Refit selection** saves a child run and retains the baseline. Keeping original fitting respondents is offered by default. Under complete-case deletion, removing items can admit respondents; comparisons report changed membership and pairwise counts.
@@ -31,7 +31,7 @@ References: [polycor](https://cran.r-project.org/web/packages/polycor/polycor.pd
 
 Empty category margins within a pair are omitted from its likelihood, as in polycor, while original orders and observed-level indices remain recorded. This does not merge categories. Sparse cells, near-boundary correlations, optimized uniqueness bounds, improper communalities and matrix conditioning are reported. Unestimable pairs, constant items, invalid orders, underidentified counts, nonconvergence and singular/indefinite matrices stop the job. Minimum eigenvalues at most `1e-8` are rejected. Pair contingency tables are limited to 4,096 declared cells. There is no automatic smoothing, imputation, merging or estimator substitution.
 
-Scores are ordinal linear regression approximations, not EAP/MAP estimates. Correlated factors do not receive PCA-style additive variance percentages. Failed null replicates remain in parallel-analysis results; any failure suppresses the definitive factor-count suggestion. If all fail, reference values are null. A full 500-item simulation batch was not performance-qualified and may take substantially longer than a fit.
+Scores are ordinal linear regression approximations, not EAP/MAP estimates. Correlated factors do not receive PCA-style additive variance percentages. Failed null replicates remain in parallel-analysis results; any failure suppresses the definitive factor-count suggestion. If all fail, reference values are null. A complete 100-permutation 500-item × 20,000-respondent batch passed in the recorded environment; it took 55.4 minutes, substantially longer than one fit.
 
 ## Splits and history
 
@@ -50,7 +50,7 @@ Create a saved seeded split (initial 70/30 proportion), optionally grouping and 
 
 Jobs snapshot specifications, membership and selected columns. SHA-256 fingerprints include encoded responses, missingness, item transformations and membership. Correlation caches are scoped to immutable table revisions and exact preprocessing/sample settings. Pair reuse after removal requires unchanged actual fitting rows; rotation reuse checks the fingerprint and factor count. Cancelled, failed, superseded, restored or undone jobs cannot publish results or scores.
 
-Six assistant actions share the controller: `run_efa`, `efa_job`, `get_efa_diagnostics`, `compare_efa`, `add_efa_scores`, `parallel_efa`. Fits/simulations return job IDs. Private results whitelist aggregates and omit respondent membership, scores, thresholds and response combinations. Assistant selections below five respondents, or excluding fewer than five eligible respondents, are rejected; pairwise counts below five also block assistant fitting/simulation. Locally inspecting a result does not permit disclosure of its rare aggregates. Offline replays exercise all six tools, cancellation and rejection paths without paid calls.
+The original six assistant actions share the controller: `run_efa`, `efa_job`, `get_efa_diagnostics`, `compare_efa`, `add_efa_scores`, `parallel_efa`. Fits/simulations return job IDs. Private results whitelist aggregates and omit respondent membership, scores, thresholds and response combinations. Assistant selections below five respondents, or excluding fewer than five eligible respondents, are rejected; pairwise counts below five also block assistant fitting/simulation. Locally inspecting a result does not permit disclosure of its rare aggregates. The collaboration tools described below extend this controller. Offline replays exercise all ten tools, cancellation and rejection paths without paid calls.
 
 ## Independent R qualification
 
@@ -90,7 +90,7 @@ The actual full-size result was loaded into the app: 23 table rows rendered, ite
 
 ## Reproduction
 
-Release-one commit `1f86b63` passed 512 tests in 38 files, TypeScript, the production build, and the lint regression gate (123 existing problems, zero in new EFA files). Extension checks and their current qualification status are recorded in [EFA-EXTENSIONS.md](EFA-EXTENSIONS.md). The separate optional Node benchmark is the single skipped test; the full browser benchmark above was executed. `git diff --check` also passed.
+Release-one commit `1f86b63` passed 512 tests in 38 files, TypeScript, the production build, and the lint regression gate (123 existing problems, zero in new EFA files). The final combined release passes 622 tests with four intentional skips, TypeScript, an isolated production build and the unchanged lint regression gate. The three expensive large-null comparisons passed separately; the fourth skip is the optional Node benchmark. Evidence is in `frontend/scripts/efa-reference/final-qualification.json` and [EFA-EXTENSIONS.md](EFA-EXTENSIONS.md). At the release-one checkpoint the optional Node benchmark was the single skipped test; the full browser benchmark above was executed. `git diff --check` also passed.
 
 From the repository root:
 
@@ -123,6 +123,26 @@ Saved ordinary EFA runs expose **Resampling stability**. Choose respondent or wh
 
 The MICE/stability/parallel-analysis qualification gate has passed: pinned-R tests cover whole MICE chains on heavy-tailed and skewed synthetic data, saved bootstrap refits, and 300 identical null datasets. Full application workflows and the 500-item result tables pass browser checks. The complete 500 × 20,000 batch passed all 100 permutations with no failures in 55.4 minutes on the recorded M1/Chrome environment, with other local checks running concurrently; see the [qualification ledger](EFA-EXTENSIONS.md) for evidence and limitations.
 
-## Remaining milestones
+## Weighted extraction and robust inference
 
-DWLS follows the MICE/stability/parallel-analysis qualification gate, then robust WLSMV with memory-bounded uncertainty. Assistant-led item analysis, candidate selection and saved refits follow numerical qualification. This release does not allocate the roughly 125 GB dense sampling-covariance matrix associated with 500 items. Ordinal EAP/MAP scoring, MCA and confirmatory model fitting remain outside this release.
+**DWLS** uses reciprocal two-step polychoric sampling-variance weights and an analytic loading gradient. **WLSMV** uses the same point fit plus exact scaled/shifted inference and robust standard errors for the complete rotation map. Its output distinguishes raw and corrected statistics and records both trace terms, scaling, shift, degrees of freedom and denominator. A just-identified model has no corrected test. Loading/structure and factor-correlation views show standard errors; the loading CSV and complete JSON retain them.
+
+Pairwise missingness preserves the approved pair-margin thresholds. R qualification therefore supplies these independently generated moments to pinned lavaan, rather than claiming equivalence to its default raw-data missingness procedure. Normal, heavy-tailed and skewed fixtures pass the recorded tolerances. Agreement with R does not establish that a latent-normal model fits arbitrary non-normal data. See [numerical derivation and exact qualification scope](EFA-WLS-DESIGN.md).
+
+The 500 × 20,000 DWLS fit, all rotations, scoring and holdout refit completed in Chrome. Exact WLSMV completed both moment-space and case-space checks on 20 × 1,000 data. **Full 500 × 20,000 WLSMV completion time remains unmeasured**: the preflight estimates about 978 MB and 25.6 trillion multiply-adds for five factors. Its full-size allocation/cancellation check passed. Large inference never allocates the roughly 125 GB dense sampling covariance, substitutes DWLS, or silently switches to approximate traces.
+
+MICE retains separate within-imputation WLSMV standard errors; between-imputation dispersion remains descriptive, without Rubin pooling. Bootstrapping a WLSMV baseline refits DWLS point estimates in each resample, explicitly recorded in the result; it does not recompute a robust test in every replicate.
+
+## Assistant item collaboration
+
+`list_efa_runs` lists observed and MICE analyses. `get_efa_diagnostics` now returns a bounded run overview; `get_efa_items` returns at most 20 items and 12 factor columns per page. Item results include pattern/structure values, primary and next absolute pattern loadings, their gap, communalities, uniquenesses, three strongest related-item polychoric correlations, review status and available within-fit standard errors. Primary/secondary metrics scan all factors even when the factor columns are paginated. MICE offers individual fits or aligned descriptive summaries; failed imputations remain recorded.
+
+`update_efa_items` edits the same visible retain/investigate/exclude statuses and substantive notes used by the results pane. Each edit increments a persisted `reviewRevision`. The tool requires the revision it inspected; intervening user edits cause a conflict rather than an overwrite. `refit_efa_selection` snapshots those reviews into a new child with `parentReviewRevision`, preserves method/category settings and split, and returns an asynchronous job identifier. The factor count can be explicitly changed. Original fitting rows are kept by default; observed complete-case refits can explicitly admit additional respondents. MICE refits keep original rows and remap the explicit predictor sets. Neither editing nor refitting adds scores automatically. Undo restores the previous state and cancels pending work.
+
+Private outputs omit free-text local notes and diagnostic messages in addition to response cells, row identifiers, imputation replacements, thresholds and respondent scores. The MICE disclosure floor uses **original observed pair support**, capped at five, never the number of completed/imputed rows. Older saved MICE analyses without this support metadata remain locally viewable but are withheld from private assistant inspection. Resampling membership and per-replicate records are not exposed by these tools. These are the existing aggregate-floor protections, not a formal differential-privacy guarantee.
+
+A useful request is: “Inspect the saved EFA for weak primary loadings, cross-loadings and redundant items. Mark candidates for investigation with substantive reasons; then refit the agreed selection on the original fitting rows and compare it with the baseline.” Metrics guide this review; they do not determine an ideal instrument or certify validity.
+
+## Outside this release
+
+Ordinal EAP/MAP scoring, MCA, confirmatory model fitting, pooled MICE factor scores, Rubin-pooled rotated inference and nested MICE/bootstrap pooling remain outside this release. Full-size exact WLSMV runtime qualification remains an explicit performance limitation.

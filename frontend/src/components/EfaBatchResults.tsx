@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CSV_BOM, csvCell } from "@/lib/csv";
+import { EfaWeightedSummary } from "./EfaWeightedSummary";
 import type { DataTable } from "@/lib/table";
 import type { EfaState, EfaRun, ItemReview } from "@/lib/efa/types";
 import type { EfaJob } from "@/lib/efa/service";
@@ -136,6 +137,7 @@ export function ImputationResults({
     ),
     visible = indices.slice(first, first + 22);
   const selected = r.aligned.find((f) => String(f.replicate) === chain),
+    selectedFit = r.fits.find((f) => String(f.imputation) === chain),
     limit = r.aligned.reduce(
       (m, a) =>
         [...a.pattern, ...a.structure].reduce(
@@ -162,6 +164,7 @@ export function ImputationResults({
         [
           "imputation",
           "item",
+          "extraction",
           ...Array.from(
             { length: run.spec.nFactors },
             (_, i) => `pattern_F${i + 1}`,
@@ -179,6 +182,7 @@ export function ImputationResults({
           run.spec.items.map((item, i) => [
             f.replicate + 1,
             item.column,
+            run.spec.extraction ?? "minres",
             ...f.pattern[i],
             ...f.structure[i],
             f.communalities[i],
@@ -280,6 +284,7 @@ export function ImputationResults({
       </div>
       <p className="text-xs">
         {r.completed}/{r.requested} fitted imputations ·{" "}
+        {(run.spec.extraction ?? "minres").toUpperCase()} ·{" "}
         {r.fittingRows.length.toLocaleString()} fitting respondents ·{" "}
         {r.missingPositions.length.toLocaleString()} imputed cells per completed
         chain · {r.options.iterations} sweeps · {r.options.predictorEncoding}{" "}
@@ -325,6 +330,15 @@ export function ImputationResults({
         </span>
       </div>
       <div className="flex-1 min-h-0 overflow-auto space-y-3">
+        {selectedFit && <EfaWeightedSummary result={selectedFit.result} />}
+        {run.spec.extraction === "wlsmv" && (
+          <p className="text-xs">
+            Each completed fit retains its own robust uncertainty. The
+            between-imputation summary is descriptive; within- and
+            between-imputation variances have not been pooled. Full standard
+            errors are included in the complete MICE JSON.
+          </p>
+        )}
         {r.completed > 0 ? (
           <div
             key={`${run.id}-${query}`}
@@ -580,8 +594,9 @@ export function ImputationResults({
           </button>
         )}
         <p>
-          Refits keep fitting rows, rerun separate imputations and remove
-          excluded items from predictor sets.
+          Review revision {run.reviewRevision ?? 0}. Refits keep fitting rows,
+          rerun separate imputations and remove excluded items from predictor
+          sets.
         </p>
       </div>
       <p role="status" className="text-xs">

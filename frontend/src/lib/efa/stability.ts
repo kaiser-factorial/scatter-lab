@@ -4,6 +4,7 @@ import { correlate } from "./correlation";
 import { fitEfa } from "./fit";
 import { preparedSample } from "./prepared-sample";
 import { MINRES_METHOD } from "./extraction";
+import { DWLS_METHOD } from "./dwls";
 import {
   EfaError,
   EFA_ENGINE,
@@ -11,6 +12,7 @@ import {
   type EfaResult,
   type EfaSpec,
   type Progress,
+  type EfaEstimator,
 } from "./types";
 
 export interface AlignedReplica {
@@ -131,6 +133,7 @@ export function summarizeStability(
   samples: number[][],
   options: StabilityOptions,
   inputSha256?: string,
+  estimator: EfaEstimator = "minres",
 ): StabilityResult {
   const p = reference.rotation.pattern.length,
     k = reference.rotation.phi.length;
@@ -151,7 +154,10 @@ export function summarizeStability(
     provenance: {
       inputSha256,
       engine: EFA_ENGINE,
-      extraction: MINRES_METHOD,
+      extraction:
+        estimator === "minres"
+          ? MINRES_METHOD
+          : `${DWLS_METHOD}${estimator === "wlsmv" ? "; DWLS point refits of a WLSMV baseline; no per-replicate robust tests or delta standard errors" : ""}`,
       alignment: "Signs and permutation only, relative to the saved baseline",
       generator:
         "mulberry32; sample seed = batch seed + zero-based replicate index",
@@ -288,6 +294,7 @@ export function bootstrapStability(
     samples,
     options,
     source.fingerprint,
+    spec.extraction,
   );
 }
 export function validateStability(options: StabilityOptions) {
@@ -324,7 +331,12 @@ export function stabilityReplicate(
     bootstrapIndices(source.nRows, options.seed + index, options.groups);
   try {
     const sample = resampleData(source, indices),
-      fit = fitEfa(sample, correlate(sample, progress), spec, progress);
+      fit = fitEfa(
+        sample,
+        correlate(sample, progress),
+        spec.extraction === "wlsmv" ? { ...spec, extraction: "dwls" } : spec,
+        progress,
+      );
     return { indices, replica: alignReplica(reference, fit, index) };
   } catch (error) {
     return {

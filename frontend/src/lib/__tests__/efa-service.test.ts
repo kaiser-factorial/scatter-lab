@@ -2,7 +2,10 @@ import { it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { EfaService } from "../efa/service";
 import { prepareEfa } from "../efa/prepare";
-import { fitImputationChain } from "../efa/imputation-analysis";
+import {
+  fitImputationChain,
+  observedPairFloor,
+} from "../efa/imputation-analysis";
 import type { WorkerRequest } from "../efa/efa.worker";
 import type { EfaPreparedData, EfaSpec } from "../efa/types";
 import type { DataTable } from "../table";
@@ -58,6 +61,8 @@ function harness(slow = false) {
                 this.prepared = request.data;
                 value = true;
               }
+              if (request.op === "observed-support")
+                value = observedPairFloor(this.prepared!);
               if (request.op === "imputation") {
                 value = fitImputationChain(
                   this.prepared!,
@@ -174,4 +179,23 @@ it("rejects invalid imputation settings before allocating workers", () => {
     ),
   ).toThrow(/incomplete respondents/);
   expect(h.workers).toHaveLength(0);
+});
+it("checks original observed support in a worker before private imputation begins", async () => {
+  const h = harness(),
+    table = structuredClone(fixture.table),
+    first = table.columns[0];
+  table.data[first] = table.data[first].map((_, i) =>
+    i < 4 ? 1 + (i % 2) : null,
+  );
+  const job = h.service.impute(
+    table,
+    spec,
+    Array.from({ length: table.nRows }, (_, i) => i),
+    fixture.options,
+    5,
+  );
+  await expect(job.promise).rejects.toThrow(/Original observed pairs/);
+  expect(h.completed).toEqual([]);
+  expect(h.workers).toHaveLength(1);
+  expect(h.workers[0].terminated).toBe(true);
 });

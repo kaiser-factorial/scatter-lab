@@ -32,6 +32,9 @@ export function validateEfaState(value: unknown, nRows: number) {
     Array.isArray(v) &&
     v.length === p &&
     v.every((x) => typeof x === "number" && Number.isFinite(x));
+  const reviewRevision = (v: unknown) =>
+    v === undefined ||
+    (typeof v === "number" && Number.isSafeInteger(v) && v >= 0);
   const ids = new Set<string>();
   for (const s of value.splits) {
     if (
@@ -92,6 +95,8 @@ export function validateEfaState(value: unknown, nRows: number) {
       !record(v.spec) ||
       !record(v.result) ||
       !record(v.reviews) ||
+      !reviewRevision(v.reviewRevision) ||
+      !reviewRevision(v.parentReviewRevision) ||
       !rows(v.eligibleRows) ||
       !Array.isArray(v.scoreColumns) ||
       v.scoreColumns.some((x) => typeof x !== "string")
@@ -165,6 +170,104 @@ export function validateEfaState(value: unknown, nRows: number) {
       )
     )
       return fail();
+    const estimator = run.spec.extraction ?? "minres";
+    if (
+      (r.extraction.estimator ?? "minres") !==
+      (estimator === "minres" ? "minres" : "dwls")
+    )
+      return fail();
+    if (estimator === "minres" && r.weighted !== undefined) return fail();
+    if (estimator !== "minres") {
+      const w = r.weighted,
+        m = (p * (p - 1)) / 2,
+        q = p * k - (k * (k - 1)) / 2,
+        df = m - q,
+        n = r.fittingRows.length;
+      if (
+        !record(w) ||
+        w.estimator !== estimator ||
+        !numeric(w.samplingVariances, m) ||
+        !numeric(w.fittingWeights, m) ||
+        w.samplingVariances.some((v) => v <= 0) ||
+        w.fittingWeights.some(
+          (v, i) => v <= 0 || Math.abs(v * w.samplingVariances[i] - 1) > 1e-8,
+        ) ||
+        typeof w.uncertaintyMethod !== "string" ||
+        !Number.isFinite(w.rawStatistic) ||
+        w.rawStatistic < 0 ||
+        w.df !== df
+      )
+        return fail();
+      if (estimator === "dwls" && w.robust !== undefined) return fail();
+      if (estimator === "wlsmv") {
+        const robust = w.robust;
+        if (
+          !record(robust) ||
+          !record(robust.test) ||
+          !record(robust.plan) ||
+          !record(robust.standardErrors)
+        )
+          return fail();
+        const t = robust.test,
+          se = robust.standardErrors,
+          plan = robust.plan;
+        if (
+          t.df !== df ||
+          t.denominator !== n - 1 ||
+          t.rawStatistic !== w.rawStatistic ||
+          ![t.trace, t.traceSquared].every(
+            (v) => Number.isFinite(v) && v >= -1e-8,
+          ) ||
+          !matrix(se.pattern, p, k) ||
+          !matrix(se.structure, p, k) ||
+          !matrix(se.phi, k, k) ||
+          !numeric(se.communalities, p) ||
+          !numeric(se.uniquenesses, p) ||
+          [
+            ...se.pattern.flat(),
+            ...se.structure.flat(),
+            ...se.phi.flat(),
+            ...se.communalities,
+            ...se.uniquenesses,
+          ].some((v) => v < 0) ||
+          !Number.isFinite(se.derivativeMaxRelativeChange) ||
+          se.derivativeMaxRelativeChange < 0 ||
+          se.derivativeMaxRelativeChange > 0.005 ||
+          typeof se.method !== "string"
+        )
+          return fail();
+        if (
+          df === 0
+            ? [t.scalingFactor, t.shift, t.statistic, t.pValue].some(
+                (v) => v !== null,
+              )
+            : ![t.scalingFactor, t.shift, t.statistic, t.pValue].every(
+                (v) => typeof v === "number" && Number.isFinite(v),
+              ) ||
+              t.scalingFactor! <= 0 ||
+              t.pValue! < 0 ||
+              t.pValue! > 1
+        )
+          return fail();
+        if (
+          !["moments", "cases"].includes(plan.space) ||
+          plan.parameters !== q ||
+          plan.pairs !== m ||
+          plan.rows !== n ||
+          !Number.isInteger(plan.blockSize) ||
+          plan.blockSize < 1 ||
+          plan.blockSize > 128 ||
+          !Number.isFinite(plan.estimatedBytes) ||
+          plan.estimatedBytes <= 0 ||
+          plan.estimatedBytes > plan.budgetBytes ||
+          !Number.isFinite(plan.budgetBytes) ||
+          plan.budgetBytes > 1024 ** 3 ||
+          !Number.isFinite(plan.approximateMultiplyAdds) ||
+          plan.approximateMultiplyAdds <= 0
+        )
+          return fail();
+      }
+    }
     if (
       !Number.isFinite(r.rmsr) ||
       r.diagnostics.some(
@@ -227,7 +330,9 @@ export function validateEfaState(value: unknown, nRows: number) {
         !record(raw.result) ||
         !record(raw.spec) ||
         !rows(raw.eligibleRows) ||
-        !reviewMap(raw.reviews)
+        !reviewMap(raw.reviews) ||
+        !reviewRevision(raw.reviewRevision) ||
+        !reviewRevision(raw.parentReviewRevision)
       )
         return fail();
       const run = raw as unknown as NonNullable<
@@ -242,6 +347,10 @@ export function validateEfaState(value: unknown, nRows: number) {
         return fail();
       }
       if (
+        (r.observedPairFloor !== undefined &&
+          (!Number.isInteger(r.observedPairFloor) ||
+            r.observedPairFloor < 0 ||
+            r.observedPairFloor > 5)) ||
         run.spec.missing !== "pairwise" ||
         !Number.isInteger(run.revision) ||
         run.revision < 1 ||

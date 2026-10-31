@@ -1,6 +1,6 @@
 # Weighted ordinal EFA: numerical engine and qualification
 
-The isolated native numerical implementation now passes the small independent R qualification described below. Product integration is still in progress; these methods are not yet selectable in the EFA panel. MICE, resampling and the full parallel-analysis batch passed their gate on 2026-10-31. R remains a development/reference dependency; the application remains native TypeScript in browser workers.
+The native numerical implementation passes the independent R qualification described below. DWLS and WLSMV are now selectable in the EFA panel, with worker execution, preflight estimates, persistence, scoring, exports and assistant inspection. MICE, resampling and the full parallel-analysis batch passed their gate on 2026-10-31. R remains a development/reference dependency; the application remains native TypeScript in browser workers.
 
 ## Preserve the meaning of the input correlations
 
@@ -64,7 +64,7 @@ Rotated loading and factor-correlation standard errors must account for the rota
 
 Reference fixtures must cover normal, heavy-tailed and skewed latent responses, binary/mixed category counts, reverse keys, complete-case and pairwise missingness, and sparse/weak/improper cases. Compare weights, objective, reproduced correlations, pattern/structure, factor correlations, robust standard errors, traces and corrected tests. A non-normal fixture passing parity checks establishes agreement with the stated method; it does not establish that its latent-normal assumptions hold for arbitrary data.
 
-The numerical modules remain isolated while worker/service, persistence, UI and assistant integration are completed. Weighted scoring, batch semantics, restored-run validation and assistant privacy still need product-level regression checks before release.
+Product regression checks cover weighted scoring, separate MICE fits, DWLS point bootstrap semantics, workspace validation, loading/SE exports and assistant privacy. Browser checks cover all three rotations, item refits, holdout structure replication, both themes and restoration. The final verification record is `frontend/scripts/efa-reference/final-qualification.json`; the earlier `weighted-qualification.json` remains a historical numerical checkpoint.
 
 ## Current evidence and limits
 
@@ -80,4 +80,4 @@ The full synthetic **500-item × 20,000-row DWLS** browser run passed: about 18.
 
 A **20-item × 1,000-row** WLSMV browser run completed all three rotations and their robust standard errors plus a 300-row holdout refit. Its full Oblimin inference/SE stages took about 0.94 seconds, and cancellation was exercised during rotated-SE computation. See `weighted-robust-browser-benchmark.json`.
 
-These measurements do **not** establish completion time for exact WLSMV at 500 × 20,000. Its current preflight selects case space, estimates approximately 978 MB of working allocations and 25.6 trillion multiply-add operations. A separate full-size run reached case projection after allocation, kept the browser responsive and cancelled in 0.4 ms; `weighted-large-cancellation.json` labels this explicitly as an interrupted allocation/cancellation check, not a completed robust fit. Product integration must expose the work estimate and cancellation, without silently substituting DWLS or a stochastic trace approximation.
+These measurements do **not** establish completion time for exact WLSMV at 500 × 20,000. Its current preflight selects case space, estimates approximately 978 MB of working allocations and 25.6 trillion multiply-add operations. A separate full-size run reached case projection after allocation, kept the browser responsive and cancelled in 0.4 ms; `weighted-large-cancellation.json` labels this explicitly as an interrupted allocation/cancellation check, not a completed robust fit. Product integration exposes the work estimate and cancellation, without silently substituting DWLS or a stochastic trace approximation.

@@ -160,7 +160,8 @@ it("private diagnostics never disclose respondent membership, thresholds, scores
   const summary = JSON.parse(
     await t.controller.tool("get_efa_diagnostics", { runId }),
   );
-  expect(summary.pattern).toHaveLength(8);
+  expect(summary.nItems).toBe(8);
+  expect(summary.readItemsWith).toContain("get_efa_items");
   expect(summary).not.toHaveProperty("fittingRows");
   expect(summary).not.toHaveProperty("pairs");
   expect(summary).not.toHaveProperty("means");
@@ -181,7 +182,7 @@ it("private diagnostics never disclose respondent membership, thresholds, scores
     },
   });
   expect(await t.controller.tool("get_efa_diagnostics", { runId })).toContain(
-    "withheld",
+    "privacy",
   );
   expect(
     await t.controller.tool("run_efa", { spec: { secret: "hidden-response" } }),
@@ -242,8 +243,7 @@ it("allows same-turn assistant diagnostics before React commits, then forgets th
   const runId = await fit;
   expect(t.get().state.runs).toHaveLength(0);
   expect(
-    JSON.parse(await t.controller.tool("get_efa_diagnostics", { runId }))
-      .pattern,
+    JSON.parse(await t.controller.tool("get_efa_items", { runId })).items,
   ).toHaveLength(8);
   t.controller.cancel();
   expect(await t.controller.tool("get_efa_diagnostics", { runId })).toContain(

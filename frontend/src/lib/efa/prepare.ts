@@ -38,6 +38,7 @@ export function validateSpec(spec: EfaSpec) {
     );
   if (
     !["pairwise", "complete"].includes(spec.missing) ||
+    !["minres", "dwls", "wlsmv"].includes(spec.extraction ?? "minres") ||
     !["oblimin", "varimax", "promax"].includes(spec.rotation)
   )
     throw new EfaError("method", "Unsupported EFA method.");

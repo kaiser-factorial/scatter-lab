@@ -1,6 +1,6 @@
 # EFA extension qualification ledger
 
-User objective: commit release one, then implement and qualify ordinal MICE, resampling stability, and parallel-analysis batches against R, including non-normal data. After that gate, add DWLS/WLSMV with bounded memory. Expose pattern/structure heatmaps and complete assistant-led item analysis, selection and iterative refits. The objective remains active until all stages are verified.
+User objective: commit release one, then implement and qualify ordinal MICE, resampling stability, and parallel-analysis batches against R, including non-normal data. After that gate, add DWLS/WLSMV with bounded memory. Expose pattern/structure heatmaps and complete assistant-led item analysis, selection and iterative refits. The delivery record and final regression evidence are in `frontend/scripts/efa-reference/final-qualification.json`; the milestone chronology below preserves the earlier qualification boundaries.
 
 ## Baseline
 
@@ -18,14 +18,14 @@ User objective: commit release one, then implement and qualify ordinal MICE, res
 6. Assistant, after numerical gates: per-item pattern/structure values, primary/cross loadings, communality/uniqueness and uncertainty; explicit item selection/deselection, saved candidate specs and recompute; privacy-aware summaries, reversible edits and offline replay for successes/rejections.
 7. Full regression, browser workflow, documented qualification evidence, no private reference data or paid provider calls.
 
-## Method decisions under qualification
+## Method decisions at the first extension gate
 
 - Native TypeScript/browser workers remain the application runtime; R remains development/CI only.
 - Ordinal MICE follows the pinned R `mice.impute.polr` convention. Binary items follow `mice.impute.logreg`. Their stochastic steps differ and must be tested with saved random draws rather than assumed cross-language seed identity.
 - References: https://amices.org/mice/reference/mice.impute.polr.html and https://lavaan.ugent.be/tutorial/cat.html.
 - Pattern and structure have explicit controls and default heatmaps. The assistant-guided item workflow remains a later stage after numerical qualification.
 
-## Current work
+## MICE/stability milestone checkpoint (historical)
 
 - Native ordinal MICE conditional regressions (including seven- and eleven-point scales) and complete fixed-schedule chains pass saved-draw R references, for both rank predictors and ordered-polynomial contrasts on heavy-tailed and skewed synthetic latent responses. Ordered-polynomial contrasts are the default. Binary conditionals use coefficient draws; ordinal conditionals follow `mice.impute.polr` category draws. Each completed imputation is fitted separately and sign/permutation aligned; summaries explicitly describe between-imputation dispersion, not Rubin-pooled confidence intervals.
 - Resampling refits pass independent R comparisons on saved normal, heavy-tailed and skewed respondent samples. Whole-group resampling preserves all members and repeated groups. Failures and requested/completed denominators are retained.
@@ -54,8 +54,10 @@ User objective: commit release one, then implement and qualify ordinal MICE, res
 
 `initialization-qualification.json` records the difficult-start comparison and independent reference tolerances. `parallel-minres-null8804-smc.log` retains the superseded diagnostic trajectory; `parallel-minres-null8804-unit-start.log` records the converged alternative. `archives/parallel-attempt-3-worker.js.gz` and `archives/parallel-attempt-3-parallel.js.gz` preserve the exact old benchmark runtime. Replacing that run was an explicit numerical revision, not an inference from a wait timeout. The new batch records active replicate progress and elapsed time separately.
 
-## Next-stage implementation checks
+## Weighted and assistant delivery
 
-The preliminary weighted-method derivation and pinned-source comparison are in [EFA-WLS-DESIGN.md](EFA-WLS-DESIGN.md). It is a design note, not a passed estimator. During assistant integration, preserve a visible, persisted candidate revision; use bounded per-item result pages; derive private-mode support from originally observed responses for MICE and distinct source respondents for resamples. Completed-job cancellation must not cancel a newer running job. These paths require offline replays alongside method-specific uncertainty summaries.
+DWLS and WLSMV are implemented and independently qualified within the scope in [EFA-WLS-DESIGN.md](EFA-WLS-DESIGN.md), then integrated into the worker service, UI, persistence, batch semantics, scoring and exports. The full-size DWLS workflow completed; full-size exact WLSMV completion time remains unmeasured and its cost is exposed before fitting.
+
+Assistant collaboration uses persisted review revisions in the existing item table, bounded per-item result pages, and immutable observed/MICE refits. Private MICE access requires originally observed pair support; bootstrap memberships are not exposed. Completed-job cancellation cannot cancel a newer running job. Offline model-loop replays and live-browser bridge checks verify these behaviors without provider calls. See [the user workflow](EFA.md#assistant-item-collaboration) and the final qualification record.
 
 Ordered polynomial contrasts also match independent R references for binary treatment and 3/5/7/11-level ordered scales within `1e-10`. A declared-category guard runs before quadratic basis allocation; the existing conditional-model limit is 50 levels. No fitting tolerances or original reference cases were relaxed.

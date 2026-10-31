@@ -73,6 +73,7 @@ export function extractDwls(
       optimized.parameters.slice(i * k, (i + 1) * k),
     );
   return {
+    estimator: "dwls",
     method: DWLS_METHOD,
     loadings,
     uniquenessParameters: loadings.map(
