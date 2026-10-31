@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "runs": 5,
+  "baselineItems": 8,
+  "themes": [
+    "primary",
+    "terminal"
+  ],
+  "checks": [
+    "preview",
+    "fit",
+    "rotation comparison",
+    "item reviews/refit",
+    "scores",
+    "holdout replication/history",
+    "workspace reload",
+    "Escape dismissal",
+    "long item identifiers",
+    "keyboard focus",
+    "matrix pagination resets across views"
+  ],
+  "pageErrors": []
+}

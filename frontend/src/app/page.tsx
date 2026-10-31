@@ -44,6 +44,11 @@ import { MARK_KINDS, TEST_KINDS, formatFailures, type AnalysisPlan, type ChartPl
 import { analysisProfileOf, validatePlan } from "@/lib/validators";
 import { formatTestResult, runTestPlan, type TestResult } from "@/lib/statTests";
 import { compileChart, type CompiledChart } from "@/lib/chartCompile";
+import { EfaService, type EfaJob } from '@/lib/efa/service';
+import { EfaController } from '@/lib/efa/controller';
+import { emptyEfaState } from '@/lib/efa/state';
+import type { EfaState } from '@/lib/efa/types';
+const EfaPanel = dynamic(() => import('@/components/EfaPanel').then(m => m.EfaPanel), { ssr: false });
 
 
 const Plot = dynamic(() => import('@/components/PlotlyPlot'), { ssr: false });
@@ -307,6 +312,7 @@ type Dataset = {
     axes: Axes, labels: AxisLabels,
     axes2d: Axes2D, labels2d: Axes2D,
     pcaRuns?: PcaRun[],
+    efa?: EfaState,
     // What the assistant may see of this dataset. Chosen at upload, changeable
     // from the badge in the datasets list; 'private' is the fail-closed default
     // (asDataMode maps anything unrecognized — including its absence in an
@@ -2260,6 +2266,14 @@ export default function Home() {
   const [shapeBy, setShapeBy] = useState<string>("");
   const activeDataset = datasets.find(d => d.id === activeId) ?? null;
   const processedData = activeDataset?.table ?? null;
+  const [decomposition, setDecomposition] = useState<'pca' | 'efa'>('pca');
+  const [efaService] = useState(() => new EfaService());
+  const [efaController] = useState(() => new EfaController(efaService));
+  const [efaJob, setEfaJob] = useState<EfaJob | undefined>();
+  useEffect(() => efaService.subscribe(() => {
+      const job = efaService.listJobs().at(-1);
+      setEfaJob(job ? { ...job } : undefined);
+  }), [efaService]);
   
   // Plot state
   const [viewMode, setViewMode] = useState<"3D" | "2D">("3D");
@@ -2819,6 +2833,7 @@ export default function Home() {
   };
 
   const applyWorkspace = (name: string, ws: any, opts?: { silent?: boolean }) => {
+          efaController.cancel();
           const tables: Record<string, DataTable> = ws.tables ?? {};
           const rehydrate = (ref: any) => (typeof ref === 'string' ? tables[ref] : ref);
           // Restore muted state deliberately — suppress the reset that colorBy/activeId would trigger
@@ -2826,7 +2841,7 @@ export default function Home() {
           setIsRotating(false);
           // dataMode runs through asDataMode: workspaces saved before data
           // modes existed carry none, and must load as private (fail closed).
-          setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode) })));
+          setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode), efa: d.efa ?? emptyEfaState() })));
           setPinnedViews((ws.pinnedViews ?? []).map((v: any) => ({ ...v, data: rehydrate(v.data) })));
           // Analysis views are self-contained (compiled traces / result cards,
           // no table references) — restore verbatim, tolerate their absence.
@@ -2886,6 +2901,8 @@ export default function Home() {
   useEffect(() => { buildPayloadRef.current = buildWorkspacePayload; });
 
   const sessionReady = useRef(false);       // block autosave until the restore attempt settles
+  const applyWorkspaceRef = useRef(applyWorkspace);
+  useEffect(() => { applyWorkspaceRef.current = applyWorkspace; });
   const discardingSession = useRef(false);  // "start fresh" in flight — suppress flushes
   const sessionSaveTimer = useRef<number | null>(null);
   const [sessionNotice, setSessionNotice] = useState<'restored' | 'recovery' | null>(null);
@@ -2946,11 +2963,12 @@ export default function Home() {
               localStorage.setItem(RESTORE_GUARD, '1');
               wsStore.validateWorkspace(s);
               const savedName = (s as { workspaceName?: unknown }).workspaceName;
-              applyWorkspace(typeof savedName === 'string' ? savedName : '', s, { silent: true });
+              applyWorkspaceRef.current(typeof savedName === 'string' ? savedName : '', s, { silent: true });
               setSessionNotice('restored');
-          } catch {
+          } catch (error) {
               // Damaged session record — start blank rather than refuse to load.
               localStorage.removeItem(RESTORE_GUARD);
+              setUploadStatus(`Session restore failed: ${error instanceof Error ? error.message : String(error)}`);
           } finally {
               sessionReady.current = true;
           }
@@ -3523,7 +3541,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       if (!activeDataset || !full) return 'No active dataset to export.';
       const filtered = rows === 'visible' && !!rowMask;
       const table = filtered ? subsetTable(full, rowMask) : full;
-      const columns = selectExportColumns(table, includeDerived);
+      const columns = selectExportColumns(table, includeDerived, (activeDataset.efa?.runs ?? []).flatMap(r => r.scoreColumns));
       try {
           if (format === 'xlsx') {
               const XLSX = await import('xlsx');
@@ -3777,6 +3795,37 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset?.dataMode],
   );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
+  // Keep the controller behind the same filter/privacy gate used by PCA. Jobs
+  // own numerical snapshots; this adapter alone publishes to React state.
+  useEffect(() => {
+      efaController.attach({
+          context: () => {
+              const gate = analysisTable();
+              if (typeof gate === 'string') throw new Error(gate);
+              const datasetId = liveActiveId();
+              const dataset = datasets.find(d => d.id === datasetId);
+              if (!dataset || datasetId === null) throw new Error('No dataset loaded.');
+              return {
+                  datasetId, table: gate.full,
+                  eligibleRows: Array.from({ length: gate.full.nRows }, (_, i) => i).filter(i => !gate.mask || gate.mask[i]),
+                  state: dataset.efa ?? emptyEfaState(), privateMode: !sessionPolicy.rowAccess,
+                  filterKey: JSON.stringify(gate.filter),
+                  afterFullExploration: (dataset.efa?.runs ?? []).some(r => r.spec.sample.partition === 'all') || (dataset.pcaRuns ?? []).some(r => !r.filter?.length),
+              };
+          },
+          state: (datasetId, expectedTable, update) => setDatasets(prev => prev.map(d =>
+              d.id === datasetId && d.table === expectedTable ? { ...d, efa: update(d.efa ?? emptyEfaState()) } : d)),
+          scores: (datasetId, expectedTable, table, runId, columns) => {
+              freshTableRef.current = table;
+              setDatasets(prev => prev.map(d => d.id === datasetId && d.table === expectedTable ? {
+                  ...d, table,
+                  efa: { ...(d.efa ?? emptyEfaState()), runs: (d.efa?.runs ?? []).map(r => r.id === runId ? { ...r, scoreColumns: [...r.scoreColumns, ...columns] } : r) },
+                  provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action: `Added ordinal linear EFA score approximations: ${columns.join(', ')}` }],
+              } : d));
+          },
+      });
+  });
+  useEffect(() => () => efaController.cancel(), [efaController, activeId, processedData, rowFilterState]);
   // Private mode withholds counts under the rare-value threshold, like the
   // column profiles do — a filter that isolates two people must not say "2".
   const withheldCount = (n: number): number | string =>
@@ -3893,6 +3942,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
+          efaRuns: (activeDataset?.efa?.runs ?? []).map(r => ({ id:r.id, label:r.spec.label, revision:r.revision, rotation:r.spec.rotation, nFactors:r.spec.nFactors, kind:r.kind })),
           pcaRuns: (activeDataset?.pcaRuns ?? []).map(r => ({
               label: r.label || '(unnamed)', columns: r.columns, variables: r.variables,
               standardize: r.standardize, savedAt: r.savedAt,
@@ -3902,6 +3952,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           })),
       }),
 
+      efa: async (action, args) => {
+          setDecomposition('efa');
+          return efaController.tool(action, args);
+      },
       setPlot: (opts) => {
           const t = latestTable();
           if (!t) return 'No dataset loaded — the user can load one (or the demo) first.';
@@ -4427,6 +4481,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
       restore: (snap: any) => {
           if (!snap) return;
+          efaController.cancel();
           skipMuteReset.current = true;
           setDatasets(snap.datasets);
           setActiveId(snap.activeId);
@@ -4887,8 +4942,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
               </SidebarSection>
 
-              <SidebarSection title="PCA" step={3} hasBorder theme={theme} guide="pca" order={3}>
-                {processedData && (
+              <SidebarSection title="PCA / EFA" step={3} hasBorder theme={theme} guide="pca" order={3}>
+                <div className="flex gap-2 mb-3">{(['pca', 'efa'] as const).map(mode => <button key={mode} className="border border-[var(--border)] px-3 py-1 text-xs font-bold" aria-pressed={decomposition === mode} onClick={() => setDecomposition(mode)}>{mode.toUpperCase()}</button>)}</div>
+                {processedData && decomposition === 'efa' && <EfaPanel key={activeId} table={processedData} state={activeDataset?.efa ?? emptyEfaState()} actions={efaController} job={efaJob} />}
+                {processedData && decomposition === 'pca' && (
                   <PCASection
                     table={processedData}
                     datasetId={activeId ?? -1}
@@ -5515,7 +5572,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         renderPreview={renderExportPreview}
         nRows={processedData?.nRows ?? 0}
         filter={rowMask && rowFilter ? { description: describeConditions(rowFilter), shown: countMask(rowMask) } : null}
-        hasDerived={!!processedData?.columns.some(isDerivedColumn)}
+        hasDerived={!!processedData?.columns.some(c => isDerivedColumn(c, (activeDataset?.efa?.runs ?? []).flatMap(r => r.scoreColumns)))}
         busy={!!isExporting}
         // Close first, in the same batch as the export's own state change: the
         // GIF loop must not see a re-render mid-capture (see exportGIF).

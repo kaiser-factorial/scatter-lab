@@ -2,6 +2,7 @@
 // with embedded tables can exceed that easily). Same four operations the old
 // backend REST endpoints exposed, plus file export/import for sharing.
 
+import { validateEfaState } from './efa/persistence';
 export type WorkspaceMeta = { name: string; saved_at: string; bytes: number };
 
 const DB_NAME = 'scatter-lab';
@@ -114,7 +115,7 @@ export const exportWorkspaceFile = (name: string, payload: any) => {
 };
 
 /** The payload shape this build knows how to apply. */
-export const WORKSPACE_VERSION = 1;
+export const WORKSPACE_VERSION = 2;
 
 // `unknown` rather than `any` throughout: this is the one place in the app that
 // handles a value nobody typed, so the narrowing has to be real.
@@ -176,6 +177,7 @@ export const validateWorkspace = (parsed: unknown): void => {
       throw new Error(`Workspace file is damaged: dataset ${where} refers to a table ("${String(d.table)}") that the file does not contain.`);
     }
     if (!isTable(t)) throw new Error(`Workspace file is damaged: dataset ${where} has no usable table.`);
+    validateEfaState(d.efa, (t as { nRows: number }).nRows);
   });
 
   if (parsed.pinnedViews != null && !Array.isArray(parsed.pinnedViews)) {

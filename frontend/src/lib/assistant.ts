@@ -1,4 +1,5 @@
 import type OpenAIType from 'openai';
+import { EFA_TOOLS } from './efa/tools';
 
 // The OpenAI client is loaded on FIRST USE, not at module load (finding F1).
 //
@@ -84,6 +85,7 @@ export type AppBridge = {
       /** Row filter the run was fitted under; rows outside it have no score. */
       filter?: FilterCondition[];
     }[];
+    efaRuns?: {id:string;label:string;revision:number;rotation:string;nFactors:number;kind:string}[];
   };
   setPlot: (opts: { x?: string; y?: string; z?: string; color_by?: string; shape_by?: string; view_mode?: '2D' | '3D' }) => string;
   runClustering: (method: 'DBSCAN' | 'KMEANS', opts: { eps?: number; min_samples?: number; k?: number; standardize?: boolean }) => string;
@@ -97,6 +99,7 @@ export type AppBridge = {
   loadDemoData: (mode?: DataMode) => Promise<string>;
   // analysis (aggregates only)
   runPCA: (opts: { variables?: string[]; n_components?: number; standardize?: boolean; label?: string; missing?: 'median' | 'complete' | 'iterative' }) => string;
+  efa?: (action:string, args:Record<string,unknown>) => Promise<string>;
   correlate: (colA: string, colB: string) => string;
   compareGroups: (numericCol: string, groupCol: string) => string;
   // Both take a full plan object; the page validates it (validators.ts) and
@@ -147,7 +150,7 @@ export type AppBridge = {
 export const GUIDE_TARGETS = [
   'workspace', 'upload-dropzone', 'add-dataset', 'components-toggle',
   'datasets-list', 'data-mode', 'variables', 'pca', 'view', 'cluster',
-  'analyze', 'table-view', 'export',
+  'analyze', 'table-view', 'export', 'efa',
   // Not in the sidebar: the dock buttons in the assistant panel's own header.
   'assistant-dock',
 ] as const;
@@ -157,6 +160,7 @@ export const MUTATING_TOOLS = new Set([
   'set_plot', 'run_clustering', 'pin_view', 'load_demo_data',
   'switch_dataset', 'set_category_visibility', 'set_row_filter', 'transfer_column', 'remove_pin',
   'run_pca', 'run_test', 'plot_chart',
+  'run_efa', 'add_efa_scores', 'parallel_efa',
 ]);
 
 // Curated tutorial chunks — the single source of truth the assistant teaches
@@ -719,7 +723,7 @@ const OPEN_TOOLS: ChatCompletionTool[] = [
 ];
 
 export const toolsFor = (policy: DataPolicy): ChatCompletionTool[] =>
-  policy.rowAccess ? [...BASE_TOOLS, ...OPEN_TOOLS] : BASE_TOOLS;
+  policy.rowAccess ? [...BASE_TOOLS, ...EFA_TOOLS, ...OPEN_TOOLS] : [...BASE_TOOLS, ...EFA_TOOLS];
 
 // The conversation-level policy: open only when every loaded dataset is open.
 export const sessionPolicyOf = (state: ReturnType<AppBridge['getState']>): DataPolicy =>
@@ -928,6 +932,13 @@ export const runAssistantTurn = async (
           return await bridge.loadDemoData();
         case 'run_pca':
           return bridge.runPCA(input ?? {});
+        case 'run_efa':
+        case 'efa_job':
+        case 'get_efa_diagnostics':
+        case 'compare_efa':
+        case 'add_efa_scores':
+        case 'parallel_efa':
+          return bridge.efa ? await bridge.efa(name, input ?? {}) : 'EFA is unavailable in this session.';
         case 'correlate':
           return bridge.correlate(input.col_a, input.col_b);
         case 'compare_groups':

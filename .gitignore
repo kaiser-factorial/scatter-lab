@@ -2,6 +2,7 @@ workspaces/
 backend/venv/
 .DS_Store
 frontend/public/vendor/
+frontend/public/efa-qualification/
 node_modules/
 .next/
 __pycache__/

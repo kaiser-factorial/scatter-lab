@@ -1,0 +1,27 @@
+name: EFA independent R qualification
+on:
+  pull_request:
+    paths: ['frontend/src/lib/efa/**', 'frontend/src/lib/__tests__/efa*', 'frontend/src/lib/__tests__/fixtures/efa/**', 'frontend/scripts/efa-reference/**', '.github/workflows/efa-reference.yml']
+  workflow_dispatch:
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: docker build -t scatter-efa-reference frontend/scripts/efa-reference
+      - name: Regenerate independent fixtures (no network, repository data unavailable)
+        run: docker run --rm --network none -v "$PWD/frontend/src/lib/__tests__/fixtures/efa:/out" scatter-efa-reference
+      - run: npm ci
+        working-directory: frontend
+      - run: npx vitest run src/lib/__tests__/efa.test.ts src/lib/__tests__/efa-state.test.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: independent-r-reference
+          path: frontend/src/lib/__tests__/fixtures/efa/

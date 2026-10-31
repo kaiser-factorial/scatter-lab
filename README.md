@@ -6,7 +6,7 @@ survey and questionnaire research, useful for any table of numbers.
 
 **Live:** [scatter-lab.vercel.app](https://scatter-lab.vercel.app)
 
-**All computation runs locally in the browser.** Parsing, PCA, clustering,
+**All computation runs locally in the browser.** Parsing, PCA, EFA, clustering,
 statistics, and persistence all happen in the tab, and your dataset is never
 uploaded to a server. There is no backend; the app deploys as a static site.
 
@@ -62,6 +62,12 @@ are in
   complete-case; every run reports exactly what it filled or dropped, and in
   which variables. A precomputed components/loadings file works too, and now
   says how much of itself it actually matched
+- **Likert EFA** — two-step polychoric/tetrachoric correlations, MINRES and
+  oblimin, promax or varimax rotation in browser workers. Review category
+  orders, missingness and items; save refits, compare rotations or holdout
+  structure replication, and explicitly add approximate factor scores.
+  [Methods, qualification and reproduction](docs/EFA.md) include independent
+  pinned R references and the 500-item × 20,000-respondent browser benchmark.
 - **Clustering** — DBSCAN and K-Means (k-means++, deterministic) with live
   parameter sliders, per-cluster composition breakdowns, and diagnostics
   (silhouette-by-k, k-distance percentiles for eps). Save composition heatmaps
@@ -135,7 +141,7 @@ conventions the reported loadings follow.
 ```bash
 cd frontend
 npm install
-npm run dev        # http://localhost:3000
+dev start frontend --detach --json --yes  # prints the ready URL
 npx vitest run     # unit tests
 npx tsc --noEmit   # types
 npx next build     # production build
