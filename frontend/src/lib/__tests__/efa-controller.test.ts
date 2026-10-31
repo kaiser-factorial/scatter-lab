@@ -116,6 +116,29 @@ it("workspace restoration / undo invalidates even a same-table completion", asyn
   await expect(fit).rejects.toThrow();
   expect(t.get().state.runs).toHaveLength(0);
 });
+it("snapshots specifications and substantive review reasons before an asynchronous fit", async () => {
+  const t = setup(),
+    candidate = structuredClone(spec),
+    options = {
+      reviews: {
+        item1: {
+          status: "investigate" as const,
+          note: "Original content rationale",
+        },
+      },
+      reasons: "Original item set",
+    };
+  const pending = t.controller.run(candidate, options);
+  candidate.label = "Edited later";
+  options.reviews.item1.note = "Edited while running";
+  options.reasons = "Later reasons";
+  t.pending.resolve(result);
+  await pending;
+  const saved = t.get().state.runs[0];
+  expect(saved.spec.label).toBe(spec.label);
+  expect(saved.reviews.item1.note).toBe("Original content rationale");
+  expect(saved.reasons).toBe("Original item set");
+});
 it("saved child results retain the parent and record the chosen item reviews", async () => {
   const t = setup(),
     fit = t.controller.run(spec);

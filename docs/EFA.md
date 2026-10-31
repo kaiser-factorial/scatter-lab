@@ -1,6 +1,6 @@
 # Likert EFA in Scatter Lab
 
-The first EFA release runs entirely in browser Web Workers beside the existing PCA workflow. R generates independent development references; no R runtime, server or assistant provider is needed to fit an analysis.
+The EFA workflow runs entirely in browser Web Workers beside the existing PCA workflow. R generates independent development references; no R runtime, server or assistant provider is needed to fit an analysis.
 
 ## Workflow
 
@@ -13,7 +13,7 @@ The first EFA release runs entirely in browser Web Workers beside the existing P
 7. Compare rotations using the same unrotated extraction. Other changes require a refit. Comparisons match shared-item patterns by order and signs, preserve baseline ordering and shared color scales, and report unmatched factors and changed coverage. No further Procrustes rotation is used.
 8. **Add scores to dataset** explicitly creates owned, collision-safe columns such as `FA1_Likert_r1`, available to scatterplots, clustering and dataset exports. Incomplete/excluded respondents receive nulls. Loading CSV includes pattern, structure, communalities, uniquenesses and notes; complete JSON includes specification, results, membership, diagnostics and provenance.
 
-Values remain visible without a heatmap. Loading scales are zero-centered and expand beyond ±1 when necessary. Correlations use −1 to +1; residual comparisons share their actual range. CSV/JSON preserve full precision.
+Pattern and structure heatmaps are enabled by default, with a common coefficient scale across both matrices and compared runs. Values remain visible without a heatmap. Loading scales are zero-centered and expand beyond ±1 when necessary. Correlations use −1 to +1; residual comparisons share their actual range. CSV/JSON preserve full precision.
 
 ## Numerical conventions
 
@@ -21,7 +21,7 @@ Values remain visible without a heatmap. Loading scales are zero-centered and ex
 |---|---|
 | Preparation | 3–500 explicitly ordered items; column-major `Uint16Array` ranks and separate `Uint8Array` observation mask; source cells never reverse-keyed in place |
 | Correlations | Two-step polychoric, including tetrachoric for binary pairs; pair-specific observed margins and normal thresholds, then bivariate-normal likelihood optimization with `maxcor=.9999` |
-| Extraction | MINRES lower-triangle squared residual objective; analytic spectral gradient; projected limited-memory BFGS; optimized uniqueness bounds `[.005, 1]`; projected-gradient criterion `1e-8` |
+| Extraction | MINRES lower-triangle squared residual objective; analytic spectral gradient; projected BFGS; choose the lower initial objective from SMC and unit uniqueness when both starts admit the requested rank; iteration budget `max(500, 4 × item count)`; optimized uniqueness bounds `[.005, 1]`; projected-gradient criterion `1e-8` |
 | Rotation | Unnormalized oblimin delta/gamma 0; normalized varimax; promax power 4 using normalized varimax; deterministic seeded starts and best converged objective |
 | Outputs | Pattern Λ, structure ΛΦ, factor correlations Φ, common reproduced matrix ΛΦΛ′, communalities from its diagonal, uniquenesses `1 − h²`, off-diagonal residuals and RMSR |
 | Scores | Solve `R × W = structure`; multiply complete ordinal-rank responses standardized with fitting-sample item means/sample SDs by W |
@@ -43,9 +43,9 @@ Create a saved seeded split (initial 70/30 proportion), optionally grouping and 
 
 - `frontend/src/lib/efa/types.ts`: typed specifications, prepared data, results, runs, splits and simulations.
 - `prepare.ts`, `correlation.ts`, `extraction.ts`, `rotation.ts`, `fit.ts`, `parallel.ts`, `compare.ts`: isolated numerical functions.
-- `efa.worker.ts`, `service.ts`: asynchronous jobs, result retrieval, progress and cancellation. Up to four workers, bounded by hardware; correlation batches contain 64 pairs. Simulations use a terminable worker.
+- `efa.worker.ts`, `service.ts`: asynchronous jobs, result retrieval, progress and cancellation. Up to four workers, bounded by hardware; correlation batches contain 64 pairs. Simulation replicates run across the bounded, terminable pool.
 - `controller.ts`: common UI/assistant orchestration, generation/table/filter guards, lineage, reviews and score publication.
-- `state.ts`, `persistence.ts`: membership, score ownership, CSV and import validation. Workspace format 2 saves EFA runs, splits and simulations; format 1 imports with empty EFA state.
+- `state.ts`, `persistence.ts`: membership, score ownership, CSV and import validation. Workspace format 2 saves EFA runs, splits, simulations, separate imputation analyses and resampling results; format 1 imports with empty EFA state.
 - `frontend/src/components/EfaPanel.tsx`: setup, virtualized results and comparisons. `page.tsx` connects the existing analysis gate, undo and persistence. Existing PCA numerical code is unchanged.
 
 Jobs snapshot specifications, membership and selected columns. SHA-256 fingerprints include encoded responses, missingness, item transformations and membership. Correlation caches are scoped to immutable table revisions and exact preprocessing/sample settings. Pair reuse after removal requires unchanged actual fitting rows; rotation reuse checks the fingerprint and factor count. Cancelled, failed, superseded, restored or undone jobs cannot publish results or scores.
@@ -73,24 +73,24 @@ The analytic gradient is separately checked against finite differences. Failure 
 
 ## Browser qualification
 
-Measured on 2026-10-30 local time: Apple M1, eight logical cores, 8 GiB RAM, headless Chrome 156. The synthetic fixture uses seed 8801, 500 five-category items, 20,000 respondents and five factors. This qualifies that fixture on this machine, not every sparsity pattern, factor count or browser.
+Measured on 2026-10-31 local time with the updated MINRES engine: Apple M1, eight logical cores, 8 GiB RAM, headless Chrome 156. The synthetic fixture uses seed 8801, 500 five-category items, 20,000 respondents and five factors. This qualifies that fixture on this machine, not every sparsity pattern, factor count or browser.
 
 | Action | Elapsed |
 |---|---:|
-| Full polychoric + MINRES + oblimin fit | 17.92 s |
-| Promax comparison, extraction reused | 2.02 s |
-| Varimax comparison, extraction reused | 2.01 s |
-| Scoring 20,000 complete responses | 1.76 s |
-| Independent 6,000-row holdout refit | 14.18 s |
-| Cancellation during correlations | 0.9 ms |
+| Full polychoric + MINRES + oblimin fit | 18.97 s |
+| Promax comparison, extraction reused | 1.63 s |
+| Varimax comparison, extraction reused | 1.80 s |
+| Scoring 20,000 complete responses | 1.77 s |
+| Independent 6,000-row holdout refit | 17.09 s |
+| Cancellation during correlations | 0.4 ms |
 
-MINRES converged in five iterations: objective `2.7655124152833186`, projected gradient `7.510255625668411e-9`. The UI heartbeat advanced during correlation estimation. Peak summed browser-process RSS was 1,266,253,824 bytes (about 1.27 GB), sampled once per second; shared pages may be counted more than once. This is process memory, not an exact JS heap measurement.
+MINRES converged in eight iterations: objective `2.7655124152833572`, projected gradient `1.2566030786725853e-9`. The UI heartbeat advanced during correlation estimation. Peak summed browser-process RSS was 1,347,108,864 bytes (about 1.35 GB), sampled once per second; shared pages may be counted more than once. This is process memory, not an exact JS heap measurement.
 
 The actual full-size result was loaded into the app: 23 table rows rendered, item 500 remained reachable, the heatmap worked, and Escape dismissed the pane without page errors. Evidence is under `frontend/scripts/efa-reference/`: `browser-benchmark.json`, `large-ui-verification.json`, `ui-verification.json`, and screenshots. The workflow check covers both themes, long labels, keyboard navigation, preview/fit, rotations, notes/refits, scores, holdout history, automatic session restoration and named workspaces.
 
 ## Reproduction
 
-Final local regression checks passed: 512 tests in 38 files, TypeScript, the production build, and the lint regression gate (123 existing problems, zero in new EFA files). The separate optional Node benchmark is the single skipped test; the full browser benchmark above was executed. `git diff --check` also passed.
+Release-one commit `1f86b63` passed 512 tests in 38 files, TypeScript, the production build, and the lint regression gate (123 existing problems, zero in new EFA files). Extension checks and their current qualification status are recorded in [EFA-EXTENSIONS.md](EFA-EXTENSIONS.md). The separate optional Node benchmark is the single skipped test; the full browser benchmark above was executed. `git diff --check` also passed.
 
 From the repository root:
 
@@ -113,6 +113,16 @@ rm -rf public/efa-qualification
 
 The browser scripts use installed Chrome via Playwright's `chrome` channel and isolated contexts. The benchmark writes synthetic data to `/tmp/scatter-efa-large-fixture.json` for the large-table check. Temporary public bundles are ignored and must be removed before a distributable build. The optional `EFA_BENCHMARK=1` Node/Vitest benchmark is separate and intentionally skipped in routine tests. The existing lint ceiling remains 123 problems; new EFA files must be clean.
 
-## Follow-on milestones
+## Ordinal MICE and resampling extension
 
-Ordinal MICE and resampling stability come next, preserving separate imputations and aligned analyses. DWLS follows, then robust WLSMV with memory-bounded uncertainty. This release does not allocate the roughly 125 GB dense sampling-covariance matrix associated with 500 items. Ordinal EAP/MAP scoring, MCA and confirmatory model fitting remain outside this release.
+Choose **Ordinal MICE** in missing-data setup, review the explicit predictors for each target, and set the number of imputations, sweeps and seed. Ordered-polynomial contrasts are the default; rank predictors are an explicit alternative. The fitting population retains incomplete respondents. Binary targets use logistic coefficient draws; ordinal targets use the pinned `mice.impute.polr` conditional convention. There is no automatic predictor pruning, category merging or multinomial substitution.
+
+Each chain preserves observed cells and produces a separate completed-data EFA. The result pane offers individual pattern/structure heatmaps and descriptive between-imputation means/SDs, iteration traces, factor correlations, diagnostics, substantive notes and exports. These summaries are not Rubin-pooled confidence intervals. **Refit MICE selection** saves a child analysis, retains the original rows, remaps the explicit predictor sets and reruns the separate chains. It does not overwrite the source table. MICE-specific factor-score pooling is not implemented; **Add scores** currently applies to individual observed-data EFA runs. Working-set estimates reduce parallelism for wide predictor designs; one model can still exceed that estimate. A full-size execution check passed 500 items × 20,000 respondents with four explicit predictors per item, two imputations and one sweep (100.1 s; cancellation 0.5 ms). This is not chain-convergence or recovery evidence, and does not qualify models using all 499 other items as predictors or the default 20-by-10 batch. See `large-imputation-benchmark.json`.
+
+Saved ordinary EFA runs expose **Resampling stability**. Choose respondent or whole-group bootstrap, the number of resamples, seed, percentile level and cross-loading threshold. Every resample refits correlations, extraction and rotation. Factors are matched by signs and permutation only. Results retain the actual resampled memberships, failures, per-item pattern/structure intervals, communalities, uniquenesses, primary-factor agreement and cross-loading frequencies. The denominator is the displayed successful-refit count; any failed replicate makes summaries provisional. Boundary and improper solutions are counted and retained. This is not nested MICE/bootstrap pooling.
+
+The MICE/stability/parallel-analysis qualification gate has passed: pinned-R tests cover whole MICE chains on heavy-tailed and skewed synthetic data, saved bootstrap refits, and 300 identical null datasets. Full application workflows and the 500-item result tables pass browser checks. The complete 500 × 20,000 batch passed all 100 permutations with no failures in 55.4 minutes on the recorded M1/Chrome environment, with other local checks running concurrently; see the [qualification ledger](EFA-EXTENSIONS.md) for evidence and limitations.
+
+## Remaining milestones
+
+DWLS follows the MICE/stability/parallel-analysis qualification gate, then robust WLSMV with memory-bounded uncertainty. Assistant-led item analysis, candidate selection and saved refits follow numerical qualification. This release does not allocate the roughly 125 GB dense sampling-covariance matrix associated with 500 items. Ordinal EAP/MAP scoring, MCA and confirmatory model fitting remain outside this release.

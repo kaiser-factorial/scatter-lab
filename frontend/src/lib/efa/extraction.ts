@@ -1,5 +1,7 @@
 import { Matrix, eigen, inverse, clamp, dot } from "./math";
 import { EfaError, type EfaExtraction, type Progress } from "./types";
+export const MINRES_METHOD =
+  "MINRES compensated lower-triangle objective; analytic spectral gradient; projected BFGS; lower-objective SMC/unit-uniqueness initialization; uniqueness [.005,1]; gradient tolerance 1e-8";
 
 export function checkCorrelation(r: number[][]) {
   const p = r.length;
@@ -49,10 +51,17 @@ export function minresObjective(r: Matrix, k: number, psi: number[]) {
   for (let a = 0; a < k; a++) loadings.mulColumn(a, Math.sqrt(values[a]));
   const model = loadings.mmul(loadings.transpose()),
     d = Array.from({ length: p }, (_, i) => 1 - psi[i] - model.get(i, i));
-  let objective = 0;
+  let objective = 0,
+    compensation = 0;
   for (let i = 0; i < p; i++)
-    for (let j = 0; j < i; j++)
-      objective += (model.get(i, j) - r.get(i, j)) ** 2;
+    for (let j = 0; j < i; j++) {
+      // A 500-item null fit sums 124,750 small residuals. Compensated summation
+      // keeps roundoff from hiding the last genuine optimization steps.
+      const term = (model.get(i, j) - r.get(i, j)) ** 2 - compensation,
+        next = objective + term;
+      compensation = next - objective - term;
+      objective = next;
+    }
   const gradient = Array(p).fill(0);
   for (let a = 0; a < k; a++)
     for (let c = a; c < p; c++) {
@@ -70,7 +79,7 @@ export function extractMinres(
   correlation: number[][],
   k: number,
   progress?: Progress,
-  maxIterations = 300,
+  maxIterations = Math.max(500, 4 * correlation.length),
 ): EfaExtraction {
   const p = correlation.length;
   if (!Number.isInteger(k) || k < 1 || (p - k) ** 2 - p - k < 0)
@@ -82,8 +91,32 @@ export function extractMinres(
       clamp(1 / ri.get(i, i), 0.005, 1),
     ),
     state = minresObjective(r, k, x);
-  // Limited-memory projected BFGS: memory is O(p * history), rather than O(p²).
-  const history: { s: number[]; y: number[]; rho: number }[] = [];
+  // Nearly independent null batteries can steer the SMC start toward a
+  // coalescing retained/discarded eigenvalue pair. Evaluate a second fixed
+  // starting point before optimization, retaining the lower same-objective
+  // loss. This changes neither the estimator nor its convergence criterion.
+  const initialization: NonNullable<EfaExtraction["initialization"]> = {
+    selected: "smc",
+    smcObjective: state.objective,
+    unitUniquenessObjective: null,
+  };
+  // With uniqueness=1 the reduced eigenvalues are eigenvalues(R)-1. Skip an
+  // unavailable starting rank; do not replace the requested factor count.
+  if (eigenvalues[k - 1] > 1 + 1e-12) {
+    const unitUniqueness = Array(p).fill(1),
+      trial = minresObjective(r, k, unitUniqueness);
+    initialization.unitUniquenessObjective = trial.objective;
+    if (trial.objective < state.objective) {
+      initialization.selected = "unit-uniqueness";
+      x = unitUniqueness;
+      state = trial;
+    }
+  }
+  // At the supported maximum p=500, a dense inverse-Hessian costs 2 MB.
+  // Retaining curvature across all item directions avoids the slow convergence
+  // of short L-BFGS histories on nearly independent parallel-analysis nulls.
+  const curvature = new Float64Array(p * p);
+  for (let i = 0; i < p; i++) curvature[i * p + i] = 1;
   let converged = false,
     iteration = 0,
     pgNorm = Infinity;
@@ -104,23 +137,18 @@ export function extractMinres(
       converged = true;
       break;
     }
-    let q = pg.slice();
-    const alpha: number[] = [];
-    for (let h = history.length - 1; h >= 0; h--) {
-      const v = history[h];
-      alpha[h] = v.rho * dot(v.s, q);
-      q = q.map((z, i) => z - alpha[h] * v.y[i]);
-    }
-    const last = history.at(-1),
-      scale = last ? dot(last.s, last.y) / dot(last.y, last.y) : 1;
-    q = q.map((v) => v * scale);
-    for (let h = 0; h < history.length; h++) {
-      const v = history[h],
-        beta = v.rho * dot(v.y, q);
-      q = q.map((z, i) => z + v.s[i] * (alpha[h] - beta));
-    }
-    let direction = q.map((v) => -v);
-    direction = direction.map((v, i) => (pg[i] === 0 ? 0 : v));
+    let direction = Array.from({ length: p }, (_, i) => {
+      let value = 0;
+      for (let j = 0; j < p; j++) value -= curvature[i * p + j] * pg[j];
+      return value;
+    });
+    direction = direction.map((v, i) =>
+      pg[i] === 0 ||
+      (x[i] <= 0.005 + 1e-12 && v < 0) ||
+      (x[i] >= 1 - 1e-12 && v > 0)
+        ? 0
+        : v,
+    );
     if (dot(direction, state.gradient) >= 0) direction = pg.map((v) => -v);
     let step = 1,
       accepted = false,
@@ -129,14 +157,24 @@ export function extractMinres(
     for (let ls = 0; ls < 40; ls++) {
       nx = x.map((v, i) => clamp(v + step * direction[i], 0.005, 1));
       next = minresObjective(r, k, nx);
+      const nextNorm = Math.max(
+        ...next.gradient.map((g, i) =>
+          (nx[i] <= 0.005 + 1e-12 && g > 0) || (nx[i] >= 1 - 1e-12 && g < 0)
+            ? 0
+            : Math.abs(g),
+        ),
+      );
+      const roundoff = 64 * Number.EPSILON * Math.max(1, state.objective);
       if (
         next.objective <=
-        state.objective +
-          1e-4 *
-            dot(
-              state.gradient,
-              nx.map((v, i) => v - x[i]),
-            )
+          state.objective +
+            1e-4 *
+              dot(
+                state.gradient,
+                nx.map((v, i) => v - x[i]),
+              ) ||
+        (next.objective <= state.objective + roundoff &&
+          nextNorm < pgNorm * 0.99)
       ) {
         accepted = true;
         break;
@@ -144,15 +182,44 @@ export function extractMinres(
       step *= 0.5;
     }
     if (!accepted) break;
+    if (nx.every((v, i) => v === x[i])) break;
     const s = nx.map((v, i) => v - x[i]),
       y = next.gradient.map((v, i) => v - state.gradient[i]),
       sy = dot(s, y);
     if (sy > 1e-18) {
-      history.push({ s, y, rho: 1 / sy });
-      if (history.length > 8) history.shift();
+      if (iteration === 0) {
+        const scale = sy / dot(y, y);
+        curvature.fill(0);
+        for (let i = 0; i < p; i++) curvature[i * p + i] = scale;
+      }
+      const hy = Array.from({ length: p }, (_, i) => {
+        let value = 0;
+        for (let j = 0; j < p; j++) value += curvature[i * p + j] * y[j];
+        return value;
+      });
+      const coefficient = (sy + dot(y, hy)) / (sy * sy);
+      for (let i = 0; i < p; i++)
+        for (let j = 0; j <= i; j++) {
+          const value =
+            curvature[i * p + j] +
+            coefficient * s[i] * s[j] -
+            (hy[i] * s[j] + s[i] * hy[j]) / sy;
+          curvature[i * p + j] = value;
+          curvature[j * p + i] = value;
+        }
     }
     x = nx;
     state = next;
+  }
+  if (!converged) {
+    pgNorm = Math.max(
+      ...state.gradient.map((g, i) =>
+        (x[i] <= 0.005 + 1e-12 && g > 0) || (x[i] >= 1 - 1e-12 && g < 0)
+          ? 0
+          : Math.abs(g),
+      ),
+    );
+    converged = pgNorm < 1e-8;
   }
   if (!converged)
     throw new EfaError(
@@ -160,6 +227,8 @@ export function extractMinres(
       `MINRES did not converge after ${iteration} iterations (objective ${state.objective}, projected gradient ${pgNorm}). No alternative extractor was used.`,
     );
   return {
+    method: `${MINRES_METHOD}; selected ${initialization.selected}`,
+    initialization,
     loadings: state.loadings,
     uniquenessParameters: x,
     eigenvalues,
@@ -171,6 +240,7 @@ export function extractMinres(
       iterations: iteration,
       objective: state.objective,
       gradient: pgNorm,
+      maxIterations,
     },
   };
 }

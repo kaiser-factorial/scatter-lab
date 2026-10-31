@@ -1,4 +1,6 @@
 /** All persisted EFA values are JSON-compatible; working arrays stay in workers. */
+import type { ImputationAnalysis } from "./imputation-analysis";
+import type { StabilityResult } from "./stability";
 export type OrdinalCategory = string | number;
 export type Rotation = "oblimin" | "varimax" | "promax";
 export type ItemReview = {
@@ -87,12 +89,20 @@ export interface EfaCorrelations {
   diagnostics: EfaDiagnostic[];
 }
 export interface Convergence {
+  maxIterations?: number;
   converged: boolean;
   iterations: number;
   objective: number;
   gradient: number;
 }
+export const EFA_ENGINE = "scatter-efa/3";
 export interface EfaExtraction {
+  method?: string;
+  initialization?: {
+    selected: "smc" | "unit-uniqueness";
+    smcObjective: number;
+    unitUniquenessObjective: number | null;
+  };
   loadings: number[][];
   uniquenessParameters: number[];
   convergence: Convergence;
@@ -159,6 +169,30 @@ export interface EfaState {
     createdAt: string;
     result: ParallelResult;
   }[];
+  imputationRuns?: EfaImputationRun[];
+  stabilityRuns?: EfaStabilityRun[];
+}
+export interface EfaImputationRun {
+  id: string;
+  revision: number;
+  createdAt: string;
+  datasetRevision: string;
+  /** Preparation retains all eligible rows; each completed dataset is fitted separately. */
+  spec: EfaSpec;
+  eligibleRows: number[];
+  parentId?: string;
+  reviews: Record<string, ItemReview>;
+  reasons: string;
+  revisedAfterHoldout: boolean;
+  result: ImputationAnalysis;
+}
+export interface EfaStabilityRun {
+  id: string;
+  runId: string;
+  createdAt: string;
+  datasetRevision: string;
+  groupColumn?: string;
+  result: StabilityResult;
 }
 export interface EfaProgress {
   stage: string;
@@ -167,6 +201,16 @@ export interface EfaProgress {
 }
 export type Progress = (value: EfaProgress) => void;
 export interface ParallelResult {
+  provenance?: {
+    inputSha256?: string;
+    engine: string;
+    correlation: string;
+    extraction: string;
+    nullModel: string;
+    communalityConvention: string;
+    generator: string;
+    percentile: string;
+  };
   seed: number;
   requested: number;
   completed: number;

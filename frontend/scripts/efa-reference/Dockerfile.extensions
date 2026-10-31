@@ -1,0 +1,11 @@
+# Build the base first using Dockerfile in this directory.
+FROM scatter-lab-efa-reference:4.5.1
+# Pin the actual mice conditional-imputation reference source. This development
+# image sources its unmodified methods; it does not ship or vendor them in JS.
+RUN Rscript -e 'download.file("https://cran.r-project.org/src/contrib/Archive/mice/mice_3.18.0.tar.gz", "/tmp/mice.tar.gz")' \
+ && echo 'c0ce097a7f68edd2f4d6a3e6bfb133886e709513299dafdac79ec549c93edfa2  /tmp/mice.tar.gz' | sha256sum -c - \
+ && mkdir /opt/mice \
+ && tar -xzf /tmp/mice.tar.gz --strip-components=1 -C /opt/mice \
+ && rm /tmp/mice.tar.gz
+COPY generate-conditional.R /opt/efa/generate-conditional.R
+ENTRYPOINT ["Rscript", "/opt/efa/generate-conditional.R"]

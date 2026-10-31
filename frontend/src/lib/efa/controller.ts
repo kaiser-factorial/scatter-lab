@@ -7,6 +7,8 @@ import {
   existingSampleSplit,
 } from "./state";
 import { compareEfaRuns } from "./compare";
+import type { MiceOptions } from "./mice";
+import type { StabilityOptions } from "./stability";
 import {
   EfaError,
   type EfaSpec,
@@ -119,6 +121,8 @@ export class EfaController {
       assistant?: boolean;
     } = {},
   ) {
+    spec = structuredClone(spec);
+    options = structuredClone(options);
     const { context, rows } = this.input(spec, options.assistant),
       generation = ++this.generation;
     const parent = this.findRun(context, options.parentId),
@@ -267,6 +271,7 @@ export class EfaController {
     return this.service.preview(context.table, spec, rows).promise;
   };
   private startParallel(spec: EfaSpec, replicates: number, assistant = false) {
+    spec = structuredClone(spec);
     const { context, rows } = this.input(spec, assistant),
       generation = ++this.generation,
       job = this.service.parallel(
@@ -302,6 +307,121 @@ export class EfaController {
     const { job, completion } = this.startParallel(spec, replicates);
     await completion;
     return job.result!;
+  };
+  impute = async (
+    spec: EfaSpec,
+    options: MiceOptions,
+    changes: {
+      parentId?: string;
+      reviews?: Record<string, ItemReview>;
+      reasons?: string;
+    } = {},
+  ) => {
+    const snapshot = structuredClone(spec),
+      settings = structuredClone(options),
+      notes = structuredClone(changes);
+    const { context, rows } = this.input(snapshot),
+      generation = ++this.generation;
+    if (
+      notes.parentId &&
+      !context.state.imputationRuns?.some((r) => r.id === notes.parentId)
+    )
+      throw new EfaError(
+        "parent",
+        "Parent imputation analysis does not exist.",
+      );
+    const job = this.service.impute(context.table, snapshot, rows, settings);
+    const completion = job.promise.then((result) => {
+      this.assertCurrent(context, generation);
+      const id = crypto.randomUUID();
+      this.adapter().state(context.datasetId, context.table, (state) => ({
+        ...state,
+        imputationRuns: [
+          ...(state.imputationRuns ?? []),
+          {
+            id,
+            revision:
+              Math.max(
+                0,
+                ...(state.imputationRuns ?? []).map((r) => r.revision),
+              ) + 1,
+            createdAt: new Date().toISOString(),
+            datasetRevision: this.service.revision(context.table),
+            spec: snapshot,
+            eligibleRows: rows,
+            parentId: notes.parentId,
+            reviews: notes.reviews ?? {},
+            reasons: notes.reasons ?? "",
+            revisedAfterHoldout: state.splits.some((s) => !!s.holdoutOpenedAt),
+            result,
+          },
+        ],
+      }));
+      return id;
+    });
+    this.simulations.set(job.id, completion);
+    void completion.catch(() => {});
+    return completion;
+  };
+  stability = async (
+    runId: string,
+    options: Omit<StabilityOptions, "groups">,
+    groupColumn?: string,
+  ) => {
+    const context = this.current(),
+      run = this.findRun(context, runId);
+    if (!run) throw new EfaError("run", "EFA run not found.");
+    const allowed = new Set(context.eligibleRows);
+    if (run.result.fittingRows.some((r) => !allowed.has(r)))
+      throw new EfaError(
+        "filter",
+        "The active filter excludes fitting respondents. Restore the fitting population or refit before resampling.",
+      );
+    const groups = groupColumn
+      ? run.result.fittingRows.map((row) => {
+          const value = context.table.data[groupColumn]?.[row];
+          if (value === null || value === undefined || value === "")
+            throw new EfaError(
+              "resampling-groups",
+              "Every fitting respondent needs a group identifier.",
+            );
+          return `${typeof value}:${String(value)}`;
+        })
+      : undefined;
+    const settings = structuredClone({ ...options, groups }),
+      generation = ++this.generation,
+      job = this.service.stability(context.table, run, settings);
+    const completion = job.promise.then((result) => {
+      this.assertCurrent(context, generation);
+      const id = crypto.randomUUID();
+      this.adapter().state(context.datasetId, context.table, (state) => ({
+        ...state,
+        stabilityRuns: [
+          ...(state.stabilityRuns ?? []),
+          {
+            id,
+            runId,
+            createdAt: new Date().toISOString(),
+            datasetRevision: this.service.revision(context.table),
+            groupColumn,
+            result,
+          },
+        ],
+      }));
+      return id;
+    });
+    this.simulations.set(job.id, completion);
+    void completion.catch(() => {});
+    return completion;
+  };
+  imputationReviews = (id: string, reviews: Record<string, ItemReview>) => {
+    const c = this.current();
+    this.adapter().state(c.datasetId, c.table, (state) => ({
+      ...state,
+      imputationRuns: state.imputationRuns?.map((r) =>
+        r.id === id ? { ...r, reviews: structuredClone(reviews) } : r,
+      ),
+    }));
   };
   split = (options: {
     seed: number;
@@ -343,7 +463,8 @@ export class EfaController {
   };
   openHoldout = (id: string) => {
     const c = this.current(),
-      run = this.findRun(c, id);
+      run =
+        this.findRun(c, id) ?? c.state.imputationRuns?.find((r) => r.id === id);
     if (run?.spec.sample.partition === "holdout")
       this.adapter().state(c.datasetId, c.table, (state) => ({
         ...state,

@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T08:49:23.270Z",
+  "checks": [
+    "explicit MICE settings and predictor review",
+    "per-imputation pattern/structure heatmaps",
+    "iteration traces",
+    "two themes",
+    "per-imputation CSV",
+    "immutable item refit and predictor remapping",
+    "source preservation",
+    "resampling intervals",
+    "session and workspace restoration",
+    "keyboard dismissal"
+  ],
+  "pageErrors": []
+}

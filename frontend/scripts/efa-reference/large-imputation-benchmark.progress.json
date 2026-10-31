@@ -1,0 +1,13 @@
+{
+  "recordedAt": "2026-10-31T08:55:06.035Z",
+  "stage": {
+    "id": "1cceb442-3b61-4adb-8dc3-a1c7b3bda387",
+    "status": "running",
+    "stage": "MICE imputation 2: MINRES · projected gradient 2.102e-4 (1/2000)",
+    "completed": 0,
+    "total": 2
+  },
+  "workerSha256": "8047b26b3156e73d4b95a19ab0863864c14aa3dbb12bc7f761623d64a9f540cb",
+  "peakRssBytes": 559808512,
+  "cancelMs": 0.5
+}

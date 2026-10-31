@@ -4,7 +4,7 @@ import type { EfaRun } from "../../src/lib/efa/types";
 const output = document.querySelector("#output")!,
   stage = document.querySelector("#stage")!;
 const service = new EfaService(
-  () => new Worker("/efa-qualification/worker.js"),
+  () => new Worker(new URL("worker.js", import.meta.url)),
 );
 const stageTimings: { jobId: string; stage: string; milliseconds: number }[] =
   [];

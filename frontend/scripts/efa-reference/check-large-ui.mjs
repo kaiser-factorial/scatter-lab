@@ -64,9 +64,41 @@ try {
     table.getByRole("button", { name: "Q500", exact: true }),
   ).toBeVisible();
   await page.getByRole("checkbox", { name: "Loading heatmap" }).check();
-  await page.screenshot({
-    path: "scripts/efa-reference/screenshots/efa-500-items.png",
-  });
+  const dialog = page.getByRole("dialog", { name: /EFA ·/ });
+  for (const theme of ["primary", "terminal"]) {
+    await page.evaluate((theme) => {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.classList.remove(
+        "primary",
+        "terminal",
+        "light",
+        "dark",
+      );
+      document.documentElement.classList.add(theme);
+    }, theme);
+    for (const view of ["Pattern", "Structure"]) {
+      await dialog.getByRole("button", { name: view, exact: true }).click();
+      await expect(
+        dialog.getByRole("table", {
+          name: `${view.toLowerCase()} heatmap`,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        table.getByRole("button", { name: "Q500", exact: true }),
+      ).toBeVisible();
+      const lastRow = table
+        .getByRole("row")
+        .filter({
+          has: page.getByRole("button", { name: "Q500", exact: true }),
+        });
+      await lastRow.scrollIntoViewIfNeeded();
+      await expect(lastRow).toBeInViewport({ ratio: 1 });
+      await page.screenshot({
+        path: `scripts/efa-reference/screenshots/efa-500-${theme}-${view.toLowerCase()}.png`,
+      });
+    }
+  }
   await page.keyboard.press("Escape");
   if (errors.length) throw new Error(errors.join("\n"));
   const report = {
@@ -79,7 +111,7 @@ try {
       "virtualized table",
       "keyboard dismissal",
       "last item reachable",
-      "loading heatmap",
+      "pattern and structure heatmaps in both themes",
     ],
     pageErrors: errors,
   };

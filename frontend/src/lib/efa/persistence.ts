@@ -1,5 +1,7 @@
 import type { EfaState } from "./types";
 import { validateSpec } from "./prepare";
+import { validateMiceOptions } from "./mice";
+import { validateStability } from "./stability";
 const record = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 export function validateEfaState(value: unknown, nRows: number) {
@@ -181,5 +183,292 @@ export function validateEfaState(value: unknown, nRows: number) {
     )
       return fail();
     ids.add(run.id);
+  }
+  const finite = (x: unknown) => typeof x === "number" && Number.isFinite(x);
+  const nullable = (x: unknown) => x === null || finite(x);
+  const replicaDiagnostics = (x: unknown, p: number) =>
+    x === undefined ||
+    (record(x) &&
+      typeof x.improper === "boolean" &&
+      finite(x.conditionNumber) &&
+      Array.isArray(x.boundaryItems) &&
+      x.boundaryItems.every((i) => Number.isInteger(i) && i >= 0 && i < p));
+  const distribution = (x: unknown, keys: string[]) =>
+    record(x) && keys.every((key) => nullable(x[key]));
+  const distributionMatrix = (
+    x: unknown,
+    p: number,
+    k: number,
+    keys: string[],
+  ) =>
+    Array.isArray(x) &&
+    x.length === p &&
+    x.every(
+      (row) =>
+        Array.isArray(row) &&
+        row.length === k &&
+        row.every((v) => distribution(v, keys)),
+    );
+  const reviewMap = (x: unknown) =>
+    record(x) &&
+    Object.values(x).every(
+      (v) =>
+        record(v) &&
+        ["retain", "investigate", "exclude"].includes(String(v.status)) &&
+        typeof v.note === "string",
+    );
+  if (value.imputationRuns !== undefined) {
+    if (!Array.isArray(value.imputationRuns)) return fail();
+    for (const raw of value.imputationRuns) {
+      if (
+        !record(raw) ||
+        typeof raw.id !== "string" ||
+        ids.has(raw.id) ||
+        !record(raw.result) ||
+        !record(raw.spec) ||
+        !rows(raw.eligibleRows) ||
+        !reviewMap(raw.reviews)
+      )
+        return fail();
+      const run = raw as unknown as NonNullable<
+          EfaState["imputationRuns"]
+        >[number],
+        r = run.result,
+        p = run.spec.items?.length;
+      try {
+        validateSpec(run.spec);
+        validateMiceOptions(r.options, p);
+      } catch {
+        return fail();
+      }
+      if (
+        run.spec.missing !== "pairwise" ||
+        !Number.isInteger(run.revision) ||
+        run.revision < 1 ||
+        typeof run.createdAt !== "string" ||
+        typeof run.datasetRevision !== "string" ||
+        !rows(r.fittingRows) ||
+        r.originalRowCount !== nRows ||
+        !Array.isArray(r.fits) ||
+        !Array.isArray(r.failures) ||
+        !Array.isArray(r.aligned) ||
+        !Array.isArray(r.trace) ||
+        r.requested !== r.options.imputations ||
+        r.completed !== r.fits.length ||
+        r.completed + r.failures.length !== r.requested ||
+        r.aligned.length !== r.completed ||
+        r.provisional !== r.failures.length > 0 ||
+        !record(r.provenance)
+      )
+        return fail();
+      const n = r.fittingRows.length,
+        k = r.completed ? run.spec.nFactors : 0,
+        keys = ["mean", "sd", "min", "max"],
+        eligible = new Set(run.eligibleRows);
+      if (
+        !Array.isArray(r.missingPositions) ||
+        new Set(r.missingPositions).size !== r.missingPositions.length ||
+        r.missingPositions.some(
+          (i) => !Number.isInteger(i) || i < 0 || i >= n * p,
+        ) ||
+        r.fittingRows.some((i) => !eligible.has(i))
+      )
+        return fail();
+      const chainIds = [
+        ...r.fits.map((f) => f?.imputation),
+        ...r.failures.map((f) => f?.imputation),
+      ];
+      if (
+        new Set(chainIds).size !== r.requested ||
+        chainIds.some(
+          (i) => !Number.isInteger(i) || i < 0 || i >= r.requested,
+        ) ||
+        r.failures.some(
+          (f) =>
+            !f ||
+            !["fit", "imputation"].includes(f.stage) ||
+            typeof f.error !== "string",
+        )
+      )
+        return fail();
+      for (const fit of r.fits) {
+        if (
+          !fit ||
+          !record(fit.result) ||
+          !Array.isArray(fit.replacements) ||
+          fit.replacements.length !== r.missingPositions.length ||
+          fit.replacements.some(
+            (v, j) =>
+              !Number.isInteger(v) ||
+              v < 0 ||
+              v >=
+                run.spec.items[Math.floor(r.missingPositions[j] / n)].categories
+                  .length,
+          )
+        )
+          return fail();
+        validateEfaState(
+          {
+            runs: [
+              { ...run, kind: "fit", scoreColumns: [], result: fit.result },
+            ],
+            splits: [],
+          },
+          nRows,
+        );
+        if (
+          JSON.stringify(fit.result.fittingRows) !==
+          JSON.stringify(r.fittingRows)
+        )
+          return fail();
+      }
+      if (
+        !distributionMatrix(r.pattern, p, k, keys) ||
+        !distributionMatrix(r.structure, p, k, keys) ||
+        !distributionMatrix(r.phi, k, k, keys) ||
+        !Array.isArray(r.communalities) ||
+        r.communalities.length !== p ||
+        !r.communalities.every((v) => distribution(v, keys)) ||
+        !Array.isArray(r.uniquenesses) ||
+        r.uniquenesses.length !== p ||
+        !r.uniquenesses.every((v) => distribution(v, keys))
+      )
+        return fail();
+      if (
+        r.aligned.some(
+          (a) =>
+            !a ||
+            !matrix(a.pattern, p, k) ||
+            !matrix(a.structure, p, k) ||
+            !matrix(a.phi, k, k) ||
+            !numeric(a.communalities, p) ||
+            !numeric(a.uniquenesses, p) ||
+            !finite(a.rmsr) ||
+            !replicaDiagnostics(a.diagnostics, p),
+        ) ||
+        r.trace.some(
+          (t) =>
+            !t ||
+            !Number.isInteger(t.imputation) ||
+            t.imputation < 0 ||
+            t.imputation >= r.requested ||
+            !Number.isInteger(t.item) ||
+            t.item < 0 ||
+            t.item >= p ||
+            !Number.isInteger(t.iteration) ||
+            t.iteration < 1 ||
+            t.iteration > r.options.iterations ||
+            !finite(t.mean) ||
+            !finite(t.sd) ||
+            !finite(t.gradient) ||
+            !numeric(t.counts, run.spec.items[t.item].categories.length),
+        )
+      )
+        return fail();
+      ids.add(run.id);
+    }
+  }
+  if (value.stabilityRuns !== undefined) {
+    if (!Array.isArray(value.stabilityRuns)) return fail();
+    for (const raw of value.stabilityRuns) {
+      if (
+        !record(raw) ||
+        typeof raw.id !== "string" ||
+        ids.has(raw.id) ||
+        !record(raw.result)
+      )
+        return fail();
+      const run = raw as unknown as NonNullable<
+          EfaState["stabilityRuns"]
+        >[number],
+        r = run.result,
+        parent = (value as unknown as EfaState).runs.find(
+          (v) => v.id === run.runId,
+        );
+      if (
+        !parent ||
+        typeof run.createdAt !== "string" ||
+        typeof run.datasetRevision !== "string"
+      )
+        return fail();
+      try {
+        validateStability(r.options);
+      } catch {
+        return fail();
+      }
+      const p = parent.spec.items.length,
+        k = parent.spec.nFactors,
+        n = parent.result.fittingRows.length,
+        keys = ["mean", "sd", "lower", "upper"];
+      if (
+        r.requested !== r.options.replicates ||
+        !Array.isArray(r.replicas) ||
+        !Array.isArray(r.failures) ||
+        !Array.isArray(r.samples) ||
+        r.completed !== r.replicas.length ||
+        r.completed + r.failures.length !== r.requested ||
+        r.samples.length !== r.requested ||
+        r.provisional !== r.failures.length > 0 ||
+        r.samples.some(
+          (sample) =>
+            !Array.isArray(sample) ||
+            sample.some((i) => !Number.isInteger(i) || i < 0 || i >= n),
+        )
+      )
+        return fail();
+      const replicaIds = [
+        ...r.replicas.map((a) => a?.replicate),
+        ...r.failures.map((f) => f?.replicate),
+      ];
+      if (
+        new Set(replicaIds).size !== r.requested ||
+        replicaIds.some(
+          (i) => !Number.isInteger(i) || i < 0 || i >= r.requested,
+        ) ||
+        r.failures.some((f) => !f || typeof f.error !== "string")
+      )
+        return fail();
+      if (
+        r.options.groups &&
+        (!Array.isArray(r.options.groups) ||
+          r.options.groups.length !== n ||
+          r.options.groups.some((g) => typeof g !== "string" || !g))
+      )
+        return fail();
+      if (
+        !distributionMatrix(r.pattern, p, k, keys) ||
+        !distributionMatrix(r.structure, p, k, keys) ||
+        !distributionMatrix(r.phi, k, k, keys) ||
+        !Array.isArray(r.communalities) ||
+        r.communalities.length !== p ||
+        !r.communalities.every((v) => distribution(v, keys)) ||
+        !Array.isArray(r.uniquenesses) ||
+        r.uniquenesses.length !== p ||
+        !r.uniquenesses.every((v) => distribution(v, keys))
+      )
+        return fail();
+      if (
+        r.replicas.some(
+          (a) =>
+            !a ||
+            !matrix(a.pattern, p, k) ||
+            !matrix(a.structure, p, k) ||
+            !matrix(a.phi, k, k) ||
+            !numeric(a.communalities, p) ||
+            !numeric(a.uniquenesses, p) ||
+            !finite(a.rmsr) ||
+            !replicaDiagnostics(a.diagnostics, p),
+        )
+      )
+        return fail();
+      for (const rates of [r.primaryAgreement, r.crossLoadingFrequency])
+        if (
+          !Array.isArray(rates) ||
+          rates.length !== p ||
+          rates.some((v) => v !== null && (!finite(v) || v < 0 || v > 1))
+        )
+          return fail();
+      ids.add(run.id);
+    }
   }
 }

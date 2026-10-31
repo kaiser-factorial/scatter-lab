@@ -6,6 +6,9 @@ import { proposedCategories } from "@/lib/efa/prepare";
 import { compareEfaRuns } from "@/lib/efa/compare";
 import { serializeEfaCsv } from "@/lib/efa/state";
 import type { EfaJob } from "@/lib/efa/service";
+import type { MiceOptions } from "@/lib/efa/mice";
+import type { StabilityOptions } from "@/lib/efa/stability";
+import { ImputationResults, StabilityPanel } from "./EfaBatchResults";
 import type {
   EfaSpec,
   EfaState,
@@ -18,6 +21,21 @@ import type {
 } from "@/lib/efa/types";
 
 export interface EfaActions {
+  impute: (
+    spec: EfaSpec,
+    options: MiceOptions,
+    changes?: {
+      parentId?: string;
+      reviews?: Record<string, ItemReview>;
+      reasons?: string;
+    },
+  ) => Promise<string>;
+  imputationReviews: (id: string, reviews: Record<string, ItemReview>) => void;
+  stability: (
+    runId: string,
+    options: Omit<StabilityOptions, "groups">,
+    groupColumn?: string,
+  ) => Promise<string>;
   run: (
     spec: EfaSpec,
     options?: {
@@ -176,12 +194,16 @@ function Results({
   onSelect,
   actions,
   onClose,
+  table,
+  job,
 }: {
   state: EfaState;
   activeId: string;
   onSelect: (id: string) => void;
   actions: EfaActions;
   onClose: () => void;
+  table: DataTable;
+  job?: EfaJob;
 }) {
   const run = state.runs.find((r) => r.id === activeId) ?? state.runs.at(-1)!;
   const [view, setView] = useState<
@@ -192,8 +214,9 @@ function Results({
     | "correlation"
     | "counts"
     | "diagnostics"
+    | "stability"
   >("pattern");
-  const [heat, setHeat] = useState(false),
+  const [heat, setHeat] = useState(true),
     [compareId, setCompareId] = useState(""),
     [scroll, setScroll] = useState(0),
     [query, setQuery] = useState(""),
@@ -231,11 +254,11 @@ function Results({
     visible = indices.slice(first, first + 22);
   const limit = [run, ...(comparison ? [comparison] : [])].reduce(
     (max, r) =>
-      r.result.rotation.pattern.reduce(
+      [...r.result.rotation.pattern, ...r.result.structure].reduce(
         (m, row) => row.reduce((v, x) => Math.max(v, Math.abs(x)), m),
         max,
       ),
-    1,
+    0.001,
   );
   const execute = async (task: () => Promise<unknown>) => {
     try {
@@ -465,6 +488,7 @@ function Results({
             "correlation",
             "counts",
             "diagnostics",
+            "stability",
           ] as const
         ).map((v) => (
           <button
@@ -477,14 +501,32 @@ function Results({
               ? "Factor correlations"
               : v === "counts"
                 ? "Pair sample sizes"
-                : v}
+                : v === "pattern"
+                  ? "Pattern"
+                  : v === "structure"
+                    ? "Structure"
+                    : v === "stability"
+                      ? "Resampling stability"
+                      : v}
           </button>
         ))}
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {view === "pattern" || view === "structure" ? (
           <>
-            <div className="flex gap-4 items-center mb-2">
+            <div className="mb-3 text-xs space-y-1">
+              <p className="font-bold">
+                {view === "pattern" ? "Pattern" : "Structure"}{" "}
+                {heat ? "heatmap" : "coefficients"}
+              </p>
+              <p>
+                {view === "pattern"
+                  ? "Pattern coefficients describe each factor’s contribution while accounting for the other factors."
+                  : "Structure coefficients describe item–factor correlations, including the relationships among factors."}{" "}
+                Review flags always use the pattern coefficients.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4 items-center mb-2">
               <label className="text-xs">
                 Find item{" "}
                 <input
@@ -509,6 +551,23 @@ function Results({
                   ? `Shared scale −${limit.toFixed(2)} to +${limit.toFixed(2)}`
                   : "Coefficients shown to 3 decimals; CSV and JSON retain full precision."}
               </span>
+              {heat && (
+                <div
+                  className="flex text-xs tabular-nums"
+                  aria-label="Loading color legend"
+                >
+                  {[-limit, 0, limit].map((value) => (
+                    <span
+                      key={value}
+                      className="px-3 py-1 border border-[var(--border)]"
+                      style={color(value, limit)}
+                    >
+                      {value > 0 ? "+" : ""}
+                      {value.toFixed(2)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 text-xs mb-2">
               <label>
@@ -550,12 +609,14 @@ function Results({
               </p>
             </div>
             <div
+              key={`${run.id}-${query}`}
               className="overflow-auto border border-[var(--border)] max-h-[60vh]"
               onScroll={(e) => setScroll(e.currentTarget.scrollTop)}
             >
               <table
                 className="w-full text-xs border-collapse"
                 aria-rowcount={indices.length + 1}
+                aria-label={`${view} ${heat ? "heatmap" : "loading table"}`}
               >
                 <thead className="sticky top-0 bg-[var(--background)] z-20">
                   <tr>
@@ -570,6 +631,7 @@ function Results({
                     ))}
                     <th>Primary / next / gap</th>
                     <th>h²</th>
+                    <th>u²</th>
                     <th>Related item · r</th>
                     <th>Review</th>
                     <th>Substantive note</th>
@@ -579,7 +641,7 @@ function Results({
                   {first > 0 && (
                     <tr aria-hidden="true">
                       <td
-                        colSpan={factors.length + 6}
+                        colSpan={factors.length + 7}
                         style={{ height: first * 42 }}
                       />
                     </tr>
@@ -631,11 +693,33 @@ function Results({
                         {values.map((v, f) => (
                           <td
                             className="p-2 text-right tabular-nums whitespace-nowrap"
-                            style={heat ? color(v, limit) : {}}
+                            style={heat && !comparison ? color(v, limit) : {}}
                             key={f}
                           >
-                            {number(v)}
-                            {comparison && ` / ${number(other?.[f])}`}
+                            {comparison ? (
+                              <div className="grid grid-cols-2 gap-px">
+                                <span
+                                  className="px-2 py-1"
+                                  aria-label={`Baseline ${factors[f]}: ${number(v)}`}
+                                  style={heat ? color(v, limit) : {}}
+                                >
+                                  {number(v)}
+                                </span>
+                                <span
+                                  className="px-2 py-1"
+                                  aria-label={`Comparison ${factors[f]}: ${number(other?.[f])}`}
+                                  style={
+                                    heat && other?.[f] != null
+                                      ? color(other[f]!, limit)
+                                      : {}
+                                  }
+                                >
+                                  {number(other?.[f])}
+                                </span>
+                              </div>
+                            ) : (
+                              number(v)
+                            )}
                           </td>
                         ))}
                         <td className="p-2 whitespace-nowrap">
@@ -657,6 +741,11 @@ function Results({
                           {number(run.result.communalities[i])}
                           {comparison &&
                             ` / ${number(sharedIndex < 0 ? null : comparison.result.communalities[alignment!.bi[sharedIndex]])}`}
+                        </td>
+                        <td className="p-2">
+                          {number(run.result.uniquenesses[i])}
+                          {comparison &&
+                            ` / ${number(sharedIndex < 0 ? null : comparison.result.uniquenesses[alignment!.bi[sharedIndex]])}`}
                         </td>
                         <td
                           className="p-2 max-w-36 truncate"
@@ -696,7 +785,7 @@ function Results({
                   {first + visible.length < indices.length && (
                     <tr aria-hidden="true">
                       <td
-                        colSpan={factors.length + 6}
+                        colSpan={factors.length + 7}
                         style={{
                           height:
                             (indices.length - first - visible.length) * 42,
@@ -713,6 +802,15 @@ function Results({
               membership or removes items automatically.
             </p>
           </>
+        ) : view === "stability" ? (
+          <StabilityPanel
+            key={run.id}
+            run={run}
+            state={state}
+            table={table}
+            actions={actions}
+            job={job}
+          />
         ) : view === "diagnostics" ? (
           <div className="space-y-2 text-xs">
             <p>
@@ -980,7 +1078,9 @@ export function EfaPanel({
     [reverse, setReverse] = useState<Record<string, boolean>>({});
   const [factors, setFactors] = useState(2),
     [rotation, setRotation] = useState<Rotation>("oblimin"),
-    [missing, setMissing] = useState<"pairwise" | "complete">("pairwise"),
+    [missing, setMissing] = useState<"pairwise" | "complete" | "mice">(
+      "pairwise",
+    ),
     [label, setLabel] = useState("Likert"),
     [seed, setSeed] = useState(73021),
     [splitId, setSplitId] = useState(""),
@@ -1005,6 +1105,18 @@ export function EfaPanel({
     } | null>(null),
     [parallel, setParallel] = useState<ParallelResult | null>(null),
     [replicates, setReplicates] = useState(100);
+  const [imputations, setImputations] = useState(20),
+    [sweeps, setSweeps] = useState(10),
+    [predictorEncoding, setPredictorEncoding] = useState<
+      "ordered-polynomial" | "rank"
+    >("ordered-polynomial"),
+    [predictors, setPredictors] = useState<Record<string, string[]>>({}),
+    [target, setTarget] = useState(""),
+    [miceResults, setMiceResults] = useState("");
+  const predictorTarget = selected.includes(target) ? target : selected[0],
+    targetPredictors =
+      predictors[predictorTarget] ??
+      selected.filter((c) => c !== predictorTarget);
   const busy = job?.status === "running";
   const setupKey = JSON.stringify({
     selected,
@@ -1036,10 +1148,24 @@ export function EfaPanel({
     }),
     nFactors: factors,
     rotation,
-    missing,
+    missing: missing === "mice" ? "pairwise" : missing,
     seed,
     label,
     sample: splitId ? { splitId, partition } : { partition: "all" },
+  });
+  const makeMiceOptions = (): MiceOptions => ({
+    imputations,
+    iterations: sweeps,
+    seed,
+    predictorEncoding,
+    predictors: selected.map((column, i) =>
+      (predictors[column] ?? selected.filter((_, j) => i !== j)).flatMap(
+        (name) => {
+          const j = selected.indexOf(name);
+          return j >= 0 && j !== i ? [j] : [];
+        },
+      ),
+    ),
   });
   const act = async (fn: () => Promise<unknown>) => {
     try {
@@ -1183,12 +1309,16 @@ export function EfaPanel({
           <select
             className={control}
             value={missing}
+            aria-label="Missing values"
             onChange={(e) =>
-              setMissing(e.target.value as "pairwise" | "complete")
+              setMissing(e.target.value as "pairwise" | "complete" | "mice")
             }
           >
             <option value="pairwise">Pairwise deletion</option>
             <option value="complete">Complete cases</option>
+            <option value="mice">
+              Ordinal MICE · separate fitted imputations
+            </option>
           </select>
         </label>
         <label>
@@ -1200,6 +1330,136 @@ export function EfaPanel({
           />
         </label>
       </div>
+      {missing === "mice" && (
+        <details open>
+          <summary>Ordinal MICE settings</summary>
+          <p className="my-2">
+            Observed cells stay unchanged. Each completed imputation receives
+            its own EFA; the summary describes between-imputation variation.
+            Select predictors explicitly and inspect iteration traces after
+            fitting.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <label>
+              Imputations
+              <input
+                className={control}
+                type="number"
+                min={2}
+                max={100}
+                value={imputations}
+                onChange={(e) => setImputations(+e.target.value)}
+              />
+            </label>
+            <label>
+              Sweeps per imputation
+              <input
+                className={control}
+                type="number"
+                min={1}
+                max={100}
+                value={sweeps}
+                onChange={(e) => setSweeps(+e.target.value)}
+              />
+            </label>
+            <label>
+              Predictor coding
+              <select
+                className={control}
+                value={predictorEncoding}
+                aria-label="Predictor coding"
+                onChange={(e) =>
+                  setPredictorEncoding(
+                    e.target.value as "ordered-polynomial" | "rank",
+                  )
+                }
+              >
+                <option value="ordered-polynomial">
+                  Ordered-factor contrasts
+                </option>
+                <option value="rank">
+                  Ordinal ranks · linear predictor effect
+                </option>
+              </select>
+            </label>
+            <label>
+              Imputation seed
+              <input
+                className={control}
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(+e.target.value)}
+              />
+            </label>
+          </div>
+          <p className="my-2">
+            Ordered-factor contrasts use one column per category minus one.
+            Large predictor sets can require substantial time and memory;
+            predictors are never removed automatically.
+          </p>
+          {predictorTarget && (
+            <>
+              <label>
+                Predictors for
+                <select
+                  className={control}
+                  value={predictorTarget}
+                  aria-label="Predictors for"
+                  onChange={(e) => setTarget(e.target.value)}
+                >
+                  {selected.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex gap-2 my-2">
+                <button
+                  className={button}
+                  onClick={() =>
+                    setPredictors({
+                      ...predictors,
+                      [predictorTarget]: selected.filter(
+                        (c) => c !== predictorTarget,
+                      ),
+                    })
+                  }
+                >
+                  All other selected items
+                </button>
+                <button
+                  className={button}
+                  onClick={() =>
+                    setPredictors({ ...predictors, [predictorTarget]: [] })
+                  }
+                >
+                  Intercept only
+                </button>
+              </div>
+              <div className="max-h-32 overflow-auto border border-[var(--border)] p-2">
+                {selected
+                  .filter((c) => c !== predictorTarget)
+                  .map((c) => (
+                    <label className="block break-words" key={c}>
+                      <input
+                        type="checkbox"
+                        checked={targetPredictors.includes(c)}
+                        onChange={(e) =>
+                          setPredictors({
+                            ...predictors,
+                            [predictorTarget]: e.target.checked
+                              ? [...targetPredictors, c]
+                              : targetPredictors.filter((x) => x !== c),
+                          })
+                        }
+                      />{" "}
+                      {c}
+                    </label>
+                  ))}
+              </div>
+            </>
+          )}
+        </details>
+      )}
       <label className="block">
         Sample
         <select
@@ -1344,12 +1604,15 @@ export function EfaPanel({
           disabled={busy || selected.length < 3 || !previewCurrent}
           onClick={() =>
             void act(async () => {
-              const id = await actions.run(makeSpec());
-              setResults(id);
+              if (missing === "mice")
+                setMiceResults(
+                  await actions.impute(makeSpec(), makeMiceOptions()),
+                );
+              else setResults(await actions.run(makeSpec()));
             })
           }
         >
-          Run EFA
+          {missing === "mice" ? "Run MICE + EFA" : "Run EFA"}
         </button>
         {busy && (
           <button className={button} onClick={actions.cancel}>
@@ -1385,6 +1648,12 @@ export function EfaPanel({
       </p>
       <details>
         <summary>Factor parallel analysis</summary>
+        {missing === "mice" && (
+          <p>
+            Parallel analysis uses the observed responses with pairwise
+            deletion. It does not combine null distributions across imputations.
+          </p>
+        )}
         <p>
           Explicit permutation batch; preserves each item’s missingness mask.
           The same one-factor MINRES communality convention is used for observed
@@ -1453,6 +1722,24 @@ export function EfaPanel({
           Open EFA results · {state.runs.length} saved runs
         </button>
       )}
+      {!!state.imputationRuns?.length && (
+        <button
+          className={`${button} w-full`}
+          onClick={() => setMiceResults(state.imputationRuns!.at(-1)!.id)}
+        >
+          Open MICE results · {state.imputationRuns!.length} saved analyses
+        </button>
+      )}
+      {miceResults && !!state.imputationRuns?.length && (
+        <ImputationResults
+          state={state}
+          activeId={miceResults}
+          onSelect={setMiceResults}
+          onClose={() => setMiceResults("")}
+          actions={actions}
+          job={job}
+        />
+      )}
       {results && state.runs.length > 0 && (
         <Results
           state={state}
@@ -1462,6 +1749,8 @@ export function EfaPanel({
             actions.openHoldout(id);
           }}
           actions={actions}
+          table={table}
+          job={job}
           onClose={() => setResults("")}
         />
       )}

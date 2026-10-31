@@ -66,7 +66,33 @@ try {
   const dialog = page.getByRole("dialog", { name: /EFA · Likert/ });
   await expect(dialog).toBeVisible({ timeout: 30000 });
   await expect(dialog.getByTitle(longItem, { exact: true })).toBeVisible();
-  await page.keyboard.press("Tab");
+  await expect(
+    dialog.getByRole("table", { name: "pattern heatmap", exact: true }),
+  ).toBeVisible();
+  const patternValue = await dialog
+    .getByRole("table", { name: "pattern heatmap", exact: true })
+    .locator("tbody tr")
+    .first()
+    .locator("td")
+    .first()
+    .innerText();
+  await dialog.getByRole("button", { name: "Structure", exact: true }).click();
+  await expect(
+    dialog.getByRole("table", { name: "structure heatmap", exact: true }),
+  ).toBeVisible();
+  const structureValue = await dialog
+    .getByRole("table", { name: "structure heatmap", exact: true })
+    .locator("tbody tr")
+    .first()
+    .locator("td")
+    .first()
+    .innerText();
+  if (patternValue === structureValue)
+    throw new Error(
+      "Expected distinct oblique pattern and structure values in this fixture.",
+    );
+  await dialog.getByRole("button", { name: "Pattern", exact: true }).click();
+  await dialog.getByLabel("Saved run", { exact: true }).focus();
   await expect(dialog.getByLabel("Saved run", { exact: true })).toBeFocused();
   await mkdir("scripts/efa-reference/screenshots", { recursive: true });
   await page.screenshot({
@@ -78,6 +104,9 @@ try {
   await expect(dialog.getByText(/Aligned comparison/)).toBeVisible({
     timeout: 30000,
   });
+  await expect(dialog.getByLabel("Loading color legend")).toBeVisible();
+  if ((await dialog.locator('[aria-label^="Comparison F1:"]').count()) !== 8)
+    throw new Error("Expected separately colored comparison loading cells.");
   await page
     .getByLabel("Note item1", { exact: true })
     .fill("Keep content coverage under review.");
@@ -237,6 +266,8 @@ try {
         baselineItems: baseline.spec.items.length,
         themes: ["primary", "terminal"],
         checks: [
+          "pattern and structure heatmaps with distinct values",
+          "separate comparison heatmap cells and shared scale",
           "preview",
           "fit",
           "rotation comparison",

@@ -2,7 +2,19 @@ import type { DataTable } from "../table";
 import { prepareEfa } from "./prepare";
 import { polychoric } from "./correlation";
 import { fitEfa, scoreEfa } from "./fit";
-import { parallelAnalysis } from "./parallel";
+import {
+  parallelAnalysis,
+  parallelObserved,
+  parallelReplicate,
+} from "./parallel";
+import { fitImputationChain } from "./imputation-analysis";
+import { fingerprintPrepared } from "./fingerprint";
+import type { MiceOptions } from "./mice";
+import {
+  stabilityReplicate,
+  type StabilityOptions,
+  type FactorReference,
+} from "./stability";
 import {
   EfaError,
   type EfaPreparedData,
@@ -13,6 +25,23 @@ import {
 } from "./types";
 
 export type WorkerRequest =
+  | {
+      id: number;
+      op: "imputation";
+      spec: EfaSpec;
+      options: MiceOptions;
+      index: number;
+    }
+  | {
+      id: number;
+      op: "stability";
+      spec: EfaSpec;
+      reference: FactorReference;
+      options: StabilityOptions;
+      index: number;
+    }
+  | { id: number; op: "parallel-observed"; minimumPairN: number }
+  | { id: number; op: "parallel-replicate"; seed: number }
   | {
       id: number;
       op: "prepare";
@@ -47,25 +76,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     let value: unknown;
     if (request.op === "prepare") {
       prepared = prepareEfa(request.table, request.spec, request.rows);
-      const meta = new TextEncoder().encode(
-        JSON.stringify({
-          items: prepared.items,
-          rows: prepared.rows,
-          originalRowCount: prepared.originalRowCount,
-        }),
-      );
-      const bytes = new Uint8Array(
-        meta.byteLength +
-          prepared.codes.byteLength +
-          prepared.observed.byteLength,
-      );
-      bytes.set(meta);
-      bytes.set(new Uint8Array(prepared.codes.buffer), meta.byteLength);
-      bytes.set(prepared.observed, meta.byteLength + prepared.codes.byteLength);
-      prepared.fingerprint = Array.from(
-        new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
-        (b) => b.toString(16).padStart(2, "0"),
-      ).join("");
+      prepared.fingerprint = await fingerprintPrepared(prepared);
       value = prepared;
     } else if (request.op === "initialize") {
       prepared = request.data;
@@ -74,6 +85,48 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       if (!prepared)
         throw new EfaError("worker", "Worker has not been prepared.");
       switch (request.op) {
+        case "imputation": {
+          const chain = fitImputationChain(
+            prepared,
+            request.spec,
+            request.options,
+            request.index,
+            progress,
+          );
+          if (chain.fit) {
+            const codes = prepared.codes.slice();
+            let position = 0;
+            for (let i = 0; i < codes.length; i++)
+              if (!prepared.observed[i])
+                codes[i] = chain.fit.replacements[position++];
+            chain.fit.result.provenance.inputSha256 = await fingerprintPrepared(
+              {
+                ...prepared,
+                codes,
+                observed: new Uint8Array(codes.length).fill(1),
+              },
+            );
+          }
+          value = chain;
+          break;
+        }
+        case "stability":
+          value = stabilityReplicate(
+            prepared,
+            request.spec,
+            request.reference,
+            request.options,
+            request.index,
+            undefined,
+            progress,
+          );
+          break;
+        case "parallel-observed":
+          value = parallelObserved(prepared, request.minimumPairN, progress);
+          break;
+        case "parallel-replicate":
+          value = parallelReplicate(prepared, request.seed, progress);
+          break;
         case "pairs":
           value = request.pairs.map(([i, j]) => polychoric(prepared!, i, j));
           break;

@@ -1,6 +1,7 @@
 import { Matrix, solve } from "./math";
 import { checkCorrelation, extractMinres } from "./extraction";
 import { rotate } from "./rotation";
+import { EFA_ENGINE } from "./types";
 import type {
   EfaPreparedData,
   EfaCorrelations,
@@ -90,12 +91,13 @@ export function fitEfa(
     ],
     provenance: {
       inputSha256: data.fingerprint,
-      engine: "scatter-efa/1",
+      engine: EFA_ENGINE,
       matrix: "ml-matrix/6.12.1",
       correlation:
         "two-step polychoric; pair margins; maxcor=.9999; no smoothing",
       extraction:
-        "MINRES lower-triangle objective; analytic spectral gradient; projected L-BFGS; uniqueness [.005,1]",
+        unrotated.method ??
+        "Reused saved MINRES extraction; see the originating run for optimizer provenance",
       rotation: `${spec.rotation}; oblimin delta=0 unnormalized; varimax normalized; promax power=4`,
       scoring:
         "linear regression approximation: ordinal ranks standardized on fitting sample; R^-1 × structure; complete rows only",

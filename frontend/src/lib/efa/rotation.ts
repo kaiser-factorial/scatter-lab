@@ -17,7 +17,8 @@ function normalizeColumns(a: Matrix) {
 }
 function quartimin(l: Matrix) {
   const g = l.clone();
-  let objective = 0;
+  let objective = 0,
+    compensation = 0;
   for (let i = 0; i < l.rows; i++) {
     let sum = 0;
     for (let j = 0; j < l.columns; j++) sum += l.get(i, j) ** 2;
@@ -25,10 +26,29 @@ function quartimin(l: Matrix) {
       const v = l.get(i, j),
         other = sum - v * v;
       g.set(i, j, v * other);
-      objective += (v * v * other) / 4;
+      const term = (v * v * other) / 4 - compensation,
+        next = objective + term;
+      compensation = next - objective - term;
+      objective = next;
     }
   }
   return { objective, g };
+}
+function projectedRotationGradient(
+  t: Matrix,
+  inv: Matrix,
+  l: Matrix,
+  gradient: Matrix,
+) {
+  const g = l.transpose().mmul(gradient).mmul(inv).transpose().neg(),
+    pg = g.clone();
+  for (let j = 0; j < t.columns; j++) {
+    let projection = 0;
+    for (let i = 0; i < t.rows; i++) projection += t.get(i, j) * g.get(i, j);
+    for (let i = 0; i < t.rows; i++)
+      pg.set(i, j, g.get(i, j) - t.get(i, j) * projection);
+  }
+  return pg;
 }
 function oblimin(a: Matrix, start: Matrix): EfaRotation {
   let t = start,
@@ -39,14 +59,7 @@ function oblimin(a: Matrix, start: Matrix): EfaRotation {
     gn = Infinity,
     iteration = 0;
   for (; iteration < 4000; iteration++) {
-    const g = l.transpose().mmul(state.g).mmul(inv).transpose().neg();
-    const pg = g.clone();
-    for (let j = 0; j < t.columns; j++) {
-      let projection = 0;
-      for (let i = 0; i < t.rows; i++) projection += t.get(i, j) * g.get(i, j);
-      for (let i = 0; i < t.rows; i++)
-        pg.set(i, j, g.get(i, j) - t.get(i, j) * projection);
-    }
+    const pg = projectedRotationGradient(t, inv, l, state.g);
     gn = pg.norm();
     if (gn < 1e-8) break;
     step = Math.min(step * 2, 100);
@@ -57,7 +70,13 @@ function oblimin(a: Matrix, start: Matrix): EfaRotation {
           ni = inverse(nt),
           nl = a.mmul(ni.transpose()),
           ns = quartimin(nl);
-        if (ns.objective <= state.objective - 0.5 * step * gn * gn) {
+        if (
+          ns.objective <= state.objective - 0.5 * step * gn * gn ||
+          (ns.objective <=
+            state.objective +
+              64 * Number.EPSILON * Math.max(1, Math.abs(state.objective)) &&
+            projectedRotationGradient(nt, ni, nl, ns.g).norm() < gn * 0.99)
+        ) {
           t = nt;
           inv = ni;
           l = nl;
@@ -72,6 +91,7 @@ function oblimin(a: Matrix, start: Matrix): EfaRotation {
     }
     if (!accepted) break;
   }
+  gn = projectedRotationGradient(t, inv, l, state.g).norm();
   return {
     pattern: l.to2DArray(),
     phi: t.transpose().mmul(t).to2DArray(),
@@ -81,6 +101,7 @@ function oblimin(a: Matrix, start: Matrix): EfaRotation {
       iterations: iteration,
       objective: state.objective,
       gradient: gn,
+      maxIterations: 4000,
     },
   };
 }
@@ -181,6 +202,7 @@ export function rotate(
   }
   const random = mulberry32(seed);
   let best: EfaRotation | undefined;
+  const attempts: EfaRotation["convergence"][] = [];
   for (let s = 0; s < starts; s++) {
     const initial =
       s === 0
@@ -194,6 +216,7 @@ export function rotate(
           );
     const candidate =
       method === "oblimin" ? oblimin(a, initial) : varimax(a, initial);
+    attempts.push(candidate.convergence);
     if (
       candidate.convergence.converged &&
       (!best || candidate.convergence.objective < best.convergence.objective)
@@ -204,6 +227,10 @@ export function rotate(
     throw new EfaError(
       "rotation-nonconvergence",
       `${method} did not converge in ${starts} deterministic starts.`,
+      attempts.map((attempt, i) => ({
+        code: "rotation-start",
+        message: `Start ${i + 1}: ${attempt.iterations} iterations, objective ${attempt.objective}, gradient ${attempt.gradient}.`,
+      })),
     );
   return {
     pattern: best.pattern,

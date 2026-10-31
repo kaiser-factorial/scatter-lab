@@ -68,7 +68,7 @@ const tool = (
 export const EFA_TOOLS: ChatCompletionTool[] = [
   tool(
     "run_efa",
-    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES, oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. MICE and DWLS/WLSMV are not implemented.",
+    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES, oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel; this tool currently runs observed-data fits. DWLS/WLSMV are not yet available.",
     {
       spec,
       parentId: { type: "string" },

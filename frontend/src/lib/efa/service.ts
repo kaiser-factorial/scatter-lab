@@ -1,5 +1,6 @@
 import type { DataTable } from "../table";
 import { assembleCorrelations } from "./correlation";
+import { summarizeParallel, validateReplicates } from "./parallel";
 import {
   EfaError,
   type EfaSpec,
@@ -13,6 +14,20 @@ import {
   type EfaExtraction,
 } from "./types";
 import type { WorkerRequest } from "./efa.worker";
+import { validateMiceOptions, type MiceOptions } from "./mice";
+import {
+  summarizeImputations,
+  imputationWorkingSet,
+  type ImputationAnalysis,
+  type ImputationChainResult,
+} from "./imputation-analysis";
+import {
+  summarizeStability,
+  validateStability,
+  type StabilityOptions,
+  type StabilityResult,
+  type StabilityReplicate,
+} from "./stability";
 
 type Request = WorkerRequest extends infer T
   ? T extends WorkerRequest
@@ -107,7 +122,18 @@ export class EfaService {
           : navigator.hardwareConcurrency || 1,
       ),
     ),
-  ) {}
+  ) {
+    this.concurrency = Math.max(
+      1,
+      Math.min(
+        4,
+        typeof navigator === "undefined"
+          ? 4
+          : navigator.hardwareConcurrency || 1,
+        Math.floor(concurrency) || 1,
+      ),
+    );
+  }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
@@ -197,6 +223,166 @@ export class EfaService {
     const client = new WorkerClient(this.workerFactory);
     workers.push(client);
     return client;
+  }
+  private async batches<T>(
+    workers: WorkerClient[],
+    first: WorkerClient,
+    data: EfaPreparedData,
+    count: number,
+    request: (index: number) => Request,
+    label: string,
+    progress: (p: EfaProgress) => void,
+    live: () => boolean,
+    workerLimit = this.concurrency,
+  ): Promise<T[]> {
+    const clients = [first],
+      results: T[] = Array(count);
+    for (let i = 1; i < Math.min(workerLimit, count); i++) {
+      if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+      const client = this.client(workers);
+      await client.request({ op: "initialize", data });
+      clients.push(client);
+    }
+    let next = 0,
+      completed = 0;
+    await Promise.all(
+      clients.map(async (client) => {
+        while (next < count && live()) {
+          const index = next++;
+          let reported = 0;
+          results[index] = await client.request<T>(request(index), (p) => {
+            const now = performance.now();
+            if (now - reported > 250 || p.completed === p.total) {
+              reported = now;
+              progress({
+                stage: `${label} ${index + 1}: ${p.stage} (${p.completed}/${p.total})`,
+                completed,
+                total: count,
+              });
+            }
+          });
+          progress({ stage: label, completed: ++completed, total: count });
+        }
+      }),
+    );
+    if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+    return results;
+  }
+  impute(
+    table: DataTable,
+    spec: EfaSpec,
+    rows: number[],
+    options: MiceOptions,
+  ): EfaJob<ImputationAnalysis> {
+    const snapshot = structuredClone(spec),
+      membership = rows.slice(),
+      settings = structuredClone(options);
+    validateMiceOptions(settings, snapshot.items.length);
+    if (snapshot.missing !== "pairwise")
+      throw new EfaError(
+        "mice-population",
+        "MICE keeps incomplete respondents. Choose the pairwise/eligible population before starting imputation; complete-case deletion would remove its targets.",
+      );
+    return this.launch(async (workers, progress, live) => {
+      const first = this.client(workers),
+        data = await first.request<EfaPreparedData>({
+          op: "prepare",
+          table: {
+            columns: snapshot.items.map((x) => x.column),
+            data: Object.fromEntries(
+              snapshot.items.map((x) => [x.column, table.data[x.column]]),
+            ),
+            nRows: table.nRows,
+          },
+          spec: snapshot,
+          rows: membership,
+        });
+      const estimatedBytes = imputationWorkingSet(data, settings),
+        workerLimit = Math.min(
+          this.concurrency,
+          settings.imputations,
+          Math.max(1, Math.floor(1024 ** 3 / Math.max(1, estimatedBytes))),
+        );
+      const results = await this.batches<ImputationChainResult>(
+        workers,
+        first,
+        data,
+        settings.imputations,
+        (index) => ({
+          op: "imputation",
+          spec: snapshot,
+          options: settings,
+          index,
+        }),
+        "MICE imputation",
+        progress,
+        live,
+        workerLimit,
+      );
+      const analysis = summarizeImputations(data, settings, results);
+      analysis.provenance.execution = {
+        workers: workerLimit,
+        estimatedWorkingSetBytesPerWorker: estimatedBytes,
+        note: "Concurrency reduced for expanded predictor designs using an approximate 1 GiB combined working-set budget, with at least one worker. This is a scheduling estimate, not measured peak memory or a cap on a single model.",
+      };
+      return analysis;
+    });
+  }
+  stability(
+    table: DataTable,
+    run: EfaRun,
+    options: StabilityOptions,
+  ): EfaJob<StabilityResult> {
+    const spec = structuredClone(run.spec),
+      membership = run.result.fittingRows.slice(),
+      reference = structuredClone({ rotation: run.result.rotation }),
+      settings = structuredClone(options),
+      fingerprint = run.result.provenance.inputSha256;
+    validateStability(settings);
+    return this.launch(async (workers, progress, live) => {
+      const first = this.client(workers),
+        data = await first.request<EfaPreparedData>({
+          op: "prepare",
+          table: {
+            columns: spec.items.map((x) => x.column),
+            data: Object.fromEntries(
+              spec.items.map((x) => [x.column, table.data[x.column]]),
+            ),
+            nRows: table.nRows,
+          },
+          spec,
+          rows: membership,
+        });
+      if (!fingerprint || fingerprint !== data.fingerprint)
+        throw new EfaError(
+          "changed-data",
+          "The fitted responses changed. Refit before evaluating resampling stability.",
+        );
+      const results = await this.batches<StabilityReplicate>(
+        workers,
+        first,
+        data,
+        settings.replicates,
+        (index) => ({
+          op: "stability",
+          spec,
+          reference,
+          options: settings,
+          index,
+        }),
+        "Stability replicate",
+        progress,
+        live,
+      );
+      return summarizeStability(
+        reference,
+        results.flatMap((r) => (r.replica ? [r.replica] : [])),
+        results.flatMap((r) => (r.failure ? [r.failure] : [])),
+        results.map((r) => r.indices),
+        settings,
+        data.fingerprint,
+      );
+    });
   }
   preview(
     table: DataTable,
@@ -421,11 +607,12 @@ export class EfaService {
     replicates = 100,
     minimumPairN = 0,
   ): EfaJob<ParallelResult> {
+    validateReplicates(replicates, spec.seed);
     const snapshot = structuredClone(spec),
       membership = rows.slice();
-    return this.launch(async (workers, progress) => {
+    return this.launch(async (workers, progress, live) => {
       const worker = this.client(workers);
-      await worker.request({
+      const data = await worker.request<EfaPreparedData>({
         op: "prepare",
         table: {
           columns: snapshot.items.map((x) => x.column),
@@ -437,9 +624,64 @@ export class EfaService {
         spec: snapshot,
         rows: membership,
       });
-      return worker.request(
-        { op: "parallel", seed: snapshot.seed, replicates, minimumPairN },
+      const observed = await worker.request<number[]>(
+        { op: "parallel-observed", minimumPairN },
         progress,
+      );
+      const clients = [worker];
+      for (let i = 1; i < Math.min(this.concurrency, replicates); i++) {
+        const next = this.client(workers);
+        await next.request({ op: "initialize", data });
+        clients.push(next);
+      }
+      let next = 0,
+        completed = 0;
+      const results: (number[] | undefined)[] = Array(replicates);
+      const failures: ParallelResult["failures"] = [];
+      progress({ stage: "Parallel analysis", completed: 0, total: replicates });
+      await Promise.all(
+        clients.map(async (client) => {
+          while (next < replicates && live()) {
+            const index = next++;
+            let reported = 0;
+            try {
+              results[index] = await client.request<number[]>(
+                { op: "parallel-replicate", seed: snapshot.seed + index },
+                (p) => {
+                  const now = performance.now();
+                  if (now - reported > 250 || p.completed === p.total) {
+                    reported = now;
+                    progress({
+                      stage: `Parallel analysis · replicate ${index + 1}: ${p.stage} (${p.completed}/${p.total}) · ${failures.length} failed`,
+                      completed,
+                      total: replicates,
+                    });
+                  }
+                },
+              );
+            } catch (error) {
+              if (!live()) throw error;
+              failures.push({
+                replicate: index,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+            progress({
+              stage: `Parallel analysis · ${failures.length} failed`,
+              completed: ++completed,
+              total: replicates,
+            });
+          }
+        }),
+      );
+      if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+      return summarizeParallel(
+        observed,
+        results.filter((x): x is number[] => !!x),
+        failures.sort((a, b) => a.replicate - b.replicate),
+        snapshot.seed,
+        replicates,
+        data.fingerprint,
       );
     });
   }

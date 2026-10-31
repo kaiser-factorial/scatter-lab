@@ -7,6 +7,8 @@
     "terminal"
   ],
   "checks": [
+    "pattern and structure heatmaps with distinct values",
+    "separate comparison heatmap cells and shared scale",
     "preview",
     "fit",
     "rotation comparison",

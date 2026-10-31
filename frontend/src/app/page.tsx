@@ -3810,7 +3810,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   eligibleRows: Array.from({ length: gate.full.nRows }, (_, i) => i).filter(i => !gate.mask || gate.mask[i]),
                   state: dataset.efa ?? emptyEfaState(), privateMode: !sessionPolicy.rowAccess,
                   filterKey: JSON.stringify(gate.filter),
-                  afterFullExploration: (dataset.efa?.runs ?? []).some(r => r.spec.sample.partition === 'all') || (dataset.pcaRuns ?? []).some(r => !r.filter?.length),
+                  afterFullExploration: [...(dataset.efa?.runs ?? []), ...(dataset.efa?.imputationRuns ?? [])].some(r => r.spec.sample.partition === 'all') || (dataset.pcaRuns ?? []).some(r => !r.filter?.length),
               };
           },
           state: (datasetId, expectedTable, update) => setDatasets(prev => prev.map(d =>

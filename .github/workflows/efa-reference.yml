@@ -1,7 +1,7 @@
 name: EFA independent R qualification
 on:
   pull_request:
-    paths: ['frontend/src/lib/efa/**', 'frontend/src/lib/__tests__/efa*', 'frontend/src/lib/__tests__/fixtures/efa/**', 'frontend/scripts/efa-reference/**', '.github/workflows/efa-reference.yml']
+    paths: ['frontend/src/lib/efa/**', 'frontend/src/lib/__tests__/efa*', 'frontend/src/lib/__tests__/fixtures/efa/**', 'frontend/src/lib/__tests__/fixtures/efa-extensions/**', 'frontend/scripts/efa-reference/**', '.github/workflows/efa-reference.yml']
   workflow_dispatch:
 jobs:
   reference:
@@ -13,15 +13,35 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: docker build -t scatter-efa-reference frontend/scripts/efa-reference
+      - run: docker build -t scatter-lab-efa-reference:4.5.1 frontend/scripts/efa-reference
       - name: Regenerate independent fixtures (no network, repository data unavailable)
-        run: docker run --rm --network none -v "$PWD/frontend/src/lib/__tests__/fixtures/efa:/out" scatter-efa-reference
+        run: docker run --rm --network none -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/src/lib/__tests__/fixtures/efa:/out" scatter-lab-efa-reference:4.5.1
+      - run: docker build -f frontend/scripts/efa-reference/Dockerfile.extensions -t scatter-lab-efa-extensions:4.5.1 frontend/scripts/efa-reference
+      - name: Regenerate ordinal chained-imputation references
+        run: docker run --rm --network none -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-extensions:/out" scatter-lab-efa-extensions:4.5.1
+      - name: Regenerate saved resamples and 300 parallel-analysis permutations
+        run: docker run --rm --network none --entrypoint Rscript -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/scripts/efa-reference/generate-stability.R:/generate.R:ro" -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-extensions:/out" scatter-lab-efa-reference:4.5.1 /generate.R
+      - name: Regenerate large-null extraction reference
+        run: docker run --rm --network none --entrypoint Rscript -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/scripts/efa-reference/generate-large-null.R:/generate.R:ro" -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-extensions:/out" scatter-lab-efa-reference:4.5.1 /generate.R
+      - name: Regenerate second large-null extraction reference
+        run: docker run --rm --network none --entrypoint Rscript -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/scripts/efa-reference/generate-large-null.R:/generate.R:ro" -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-extensions:/out" scatter-lab-efa-reference:4.5.1 /generate.R /out/parallel-large-8802-correlation.json /out/parallel-large-8802-r.reference.json 8802
+      - name: Regenerate difficult-start large-null extraction reference
+        run: docker run --rm --network none --entrypoint Rscript -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/scripts/efa-reference/generate-large-null.R:/generate.R:ro" -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-extensions:/out" scatter-lab-efa-reference:4.5.1 /generate.R /out/parallel-large-8804-correlation.json /out/parallel-large-8804-r.reference.json 8804
+      - run: node scripts/efa-reference/record-extension-provenance.mjs
+        working-directory: frontend
       - run: npm ci
         working-directory: frontend
-      - run: npx vitest run src/lib/__tests__/efa.test.ts src/lib/__tests__/efa-state.test.ts
+      - run: npx vitest run src/lib/__tests__/efa.test.ts src/lib/__tests__/efa-state.test.ts src/lib/__tests__/efa-conditional.test.ts src/lib/__tests__/efa-contrasts.test.ts src/lib/__tests__/efa-mice.test.ts src/lib/__tests__/efa-stability.test.ts src/lib/__tests__/efa-parallel-batches.test.ts src/lib/__tests__/efa-service.test.ts src/lib/__tests__/efa-extensions-state.test.ts src/lib/__tests__/efa-seeds.test.ts
         working-directory: frontend
+      - name: Qualify the three saved 500-item null extractions
+        run: npx vitest run src/lib/__tests__/efa-large-reference.test.ts --maxWorkers=1
+        working-directory: frontend
+        env:
+          EFA_LARGE_PARITY: '1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: independent-r-reference
-          path: frontend/src/lib/__tests__/fixtures/efa/
+          path: |
+            frontend/src/lib/__tests__/fixtures/efa/
+            frontend/src/lib/__tests__/fixtures/efa-extensions/
