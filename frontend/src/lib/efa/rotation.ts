@@ -157,6 +157,7 @@ export function rotate(
   method: Rotation,
   seed = 73021,
   starts = 4,
+  derivativePrecision = false,
 ): EfaRotation {
   const a = new Matrix(loadings),
     k = a.columns;
@@ -174,7 +175,7 @@ export function rotate(
     };
   if (method === "promax") {
     // stats::promax uses normalized varimax's default eps=1e-5.
-    const v = varimax(a, Matrix.eye(k), 1e-5);
+    const v = varimax(a, Matrix.eye(k), derivativePrecision ? 1e-14 : 1e-5);
     if (!v.convergence.converged)
       throw new EfaError(
         "rotation-nonconvergence",
@@ -215,7 +216,9 @@ export function rotate(
             ),
           );
     const candidate =
-      method === "oblimin" ? oblimin(a, initial) : varimax(a, initial);
+      method === "oblimin"
+        ? oblimin(a, initial)
+        : varimax(a, initial, derivativePrecision ? 1e-14 : 1e-9);
     attempts.push(candidate.convergence);
     if (
       candidate.convergence.converged &&

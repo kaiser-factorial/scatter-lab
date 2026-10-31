@@ -1,9 +1,11 @@
 import { dot } from "./math";
-import { EfaError } from "./types";
+import { EfaError, type Progress } from "./types";
 export type Objective = (parameters: number[]) => {
   value: number;
   gradient: number[];
 };
+const infinityNorm = (values: number[]) =>
+  values.reduce((norm, value) => Math.max(norm, Math.abs(value)), 0);
 
 /** Unconstrained analytic-gradient L-BFGS with Armijo backtracking. */
 export function minimize(
@@ -11,13 +13,19 @@ export function minimize(
   initial: number[],
   maxIterations = 500,
   tolerance = 1e-8,
+  context?: { code: string; label: string; progress?: Progress },
 ) {
   let parameters = initial.slice(),
     state = objective(parameters),
     iteration = 0;
   const history: { s: number[]; y: number[]; rho: number }[] = [];
   for (; iteration < maxIterations; iteration++) {
-    const norm = Math.max(...state.gradient.map(Math.abs));
+    const norm = infinityNorm(state.gradient);
+    context?.progress?.({
+      stage: `${context.label} · gradient ${norm.toExponential(3)}`,
+      completed: iteration,
+      total: maxIterations,
+    });
     if (Number.isFinite(state.value) && norm < tolerance)
       return {
         parameters,
@@ -51,7 +59,7 @@ export function minimize(
     for (let line = 0; line < 45; line++) {
       candidate = parameters.map((x, i) => x + step * direction[i]);
       next = objective(candidate);
-      const nextNorm = Math.max(...next.gradient.map(Math.abs));
+      const nextNorm = infinityNorm(next.gradient);
       if (
         Number.isFinite(next.value) &&
         (next.value <= state.value + 1e-4 * step * slope ||
@@ -77,7 +85,7 @@ export function minimize(
     parameters = candidate;
     state = next;
   }
-  const finalNorm = Math.max(...state.gradient.map(Math.abs));
+  const finalNorm = infinityNorm(state.gradient);
   if (Number.isFinite(state.value) && finalNorm < tolerance)
     return {
       parameters,
@@ -86,7 +94,7 @@ export function minimize(
       gradientNorm: finalNorm,
     };
   throw new EfaError(
-    "regression-nonconvergence",
-    `Conditional regression did not converge after ${iteration} iterations (gradient ${Math.max(...state.gradient.map(Math.abs))}). No alternative model was substituted.`,
+    context?.code ?? "regression-nonconvergence",
+    `${context?.label ?? "Conditional regression"} did not converge after ${iteration} iterations (gradient ${finalNorm}). No alternative model was substituted.`,
   );
 }

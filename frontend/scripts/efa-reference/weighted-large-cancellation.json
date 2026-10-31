@@ -1,0 +1,21 @@
+{
+  "status": "cancelled-as-requested",
+  "scope": "Large exact-inference allocation, continued browser interaction, and worker termination only; no completed robust statistic or SE claim",
+  "recordedAt": "2026-10-31T10:04:57.365Z",
+  "cancelMs": 0.3999999761581421,
+  "cancellationStage": "Robust case projections",
+  "progressAtCancellation": "{\"stage\":\"Robust case projections\",\"completed\":192,\"total\":124750}",
+  "heartbeats": 626,
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 1213448192,
+    "method": "1-second summed RSS samples; shared pages may be counted more than once"
+  },
+  "workerSha256": "77166c380e78416c0b8c5f3438d4052709f56868e8dfd64b8f8970ec5e32b326",
+  "url": "http://localhost:3000/efa-qualification/weighted/index.html?robust=true&cancelOnly=true&space=cases&cancelStage=Robust%20case%20projections"
+}

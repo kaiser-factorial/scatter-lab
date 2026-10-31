@@ -1,0 +1,396 @@
+import { CholeskyDecomposition } from "ml-matrix";
+import { Matrix } from "./math";
+import { EfaError, type EfaPreparedData, type Progress } from "./types";
+import { influenceAt, type WeightedMoments } from "./weighted-moments";
+import { chiSquareSf } from "../statTests";
+
+export interface IdentifiedLoadings {
+  loadings: number[][];
+  anchors: number[];
+  free: [number, number][];
+  index: number[][];
+}
+export interface WeightedTest {
+  rawStatistic: number;
+  df: number;
+  trace: number;
+  traceSquared: number;
+  scalingFactor: number | null;
+  shift: number | null;
+  statistic: number | null;
+  denominator: number;
+  pValue: number | null;
+}
+export interface InferencePlan {
+  space: "moments" | "cases";
+  parameters: number;
+  pairs: number;
+  rows: number;
+  blockSize: number;
+  estimatedBytes: number;
+  budgetBytes: number;
+  approximateMultiplyAdds: number;
+}
+
+/** Choose anchor rows by residual norm. Their triangular orientation removes
+ * only the k(k-1)/2 orthogonal indeterminacies, not substantive cross-loadings. */
+export function identifyLoadings(loadings: number[][]): IdentifiedLoadings {
+  const p = loadings.length,
+    k = loadings[0].length,
+    residual = loadings.map((row) => row.slice()),
+    basis: number[][] = [],
+    anchors: number[] = [];
+  for (let f = 0; f < k; f++) {
+    let best = -1,
+      norm = 0;
+    for (let i = 0; i < p; i++) {
+      const s = residual[i].reduce((sum, v) => sum + v * v, 0);
+      if (s > norm) {
+        best = i;
+        norm = s;
+      }
+    }
+    if (best < 0 || norm < 1e-12)
+      throw new EfaError(
+        "weighted-rank",
+        "The fitted loadings do not have enough independent directions for uncertainty estimation.",
+      );
+    const v = residual[best].map((x) => x / Math.sqrt(norm));
+    basis.push(v);
+    anchors.push(best);
+    for (let i = 0; i < p; i++) {
+      const projection = residual[i].reduce((sum, x, j) => sum + x * v[j], 0);
+      for (let j = 0; j < k; j++) residual[i][j] -= projection * v[j];
+    }
+  }
+  const canonical = loadings.map((row) =>
+      basis.map((v) => row.reduce((sum, x, j) => sum + x * v[j], 0)),
+    ),
+    index = Array.from({ length: p }, () => Array(k).fill(-1)),
+    free: [number, number][] = [];
+  for (let i = 0; i < p; i++)
+    for (let f = 0; f < k; f++) {
+      const anchor = anchors.indexOf(i);
+      if (anchor >= 0 && f > anchor) {
+        canonical[i][f] = 0;
+        continue;
+      }
+      index[i][f] = free.length;
+      free.push([i, f]);
+    }
+  return { loadings: canonical, anchors, free, index };
+}
+
+/** Every dense allocation is bounded before work starts. Small problems use
+ * moment space; large batteries use symmetric case blocks, never dense Gamma. */
+export function planWeightedInference(
+  p: number,
+  k: number,
+  n: number,
+  lookupCells = (25 * p * (p - 1)) / 2,
+  options: {
+    space?: "moments" | "cases";
+    budgetBytes?: number;
+    blockSize?: number;
+  } = {},
+): InferencePlan {
+  const m = (p * (p - 1)) / 2,
+    q = p * k - (k * (k - 1)) / 2,
+    blockSize = options.blockSize ?? 32,
+    budgetBytes = options.budgetBytes ?? 1024 ** 3;
+  if (
+    !Number.isInteger(p) ||
+    p < 3 ||
+    !Number.isInteger(k) ||
+    k < 1 ||
+    q > m ||
+    !Number.isInteger(n) ||
+    n < 3 ||
+    !Number.isInteger(blockSize) ||
+    blockSize < 1 ||
+    blockSize > 128 ||
+    !Number.isFinite(budgetBytes) ||
+    budgetBytes <= 0
+  )
+    throw new EfaError(
+      "weighted-budget",
+      "Invalid dimensions or memory budget for weighted uncertainty.",
+    );
+  const common =
+    6 * q * q * 8 +
+    3 * p * n +
+    8 * lookupCells +
+    16 * p * k +
+    16 * blockSize * m;
+  const momentBytes = 1.2 * (common + 8 * (5 * m * m + 4 * m * q)),
+    caseBytes = 1.2 * (common + 8 * n * q);
+  const space =
+      options.space ??
+      (m < n && momentBytes <= budgetBytes ? "moments" : "cases"),
+    estimatedBytes = space === "moments" ? momentBytes : caseBytes;
+  if (estimatedBytes > budgetBytes)
+    throw new EfaError(
+      "weighted-budget",
+      `Exact WLSMV uncertainty needs an estimated ${Math.ceil(estimatedBytes / 1024 ** 2)} MiB, above the ${Math.floor(budgetBytes / 1024 ** 2)} MiB worker budget. Reduce the item/factor set or run DWLS point fitting explicitly. No method was substituted.`,
+    );
+  return {
+    space,
+    parameters: q,
+    pairs: m,
+    rows: n,
+    blockSize,
+    estimatedBytes,
+    budgetBytes,
+    approximateMultiplyAdds:
+      space === "moments"
+        ? (n * m * m) / 2 + 2 * m * m * q + 2 * q * q * m
+        : (n * n * (m + q)) / 2 + n * q * q + 2 * q * q * q,
+  };
+}
+
+function jacobian(identified: IdentifiedLoadings, i: number, j: number) {
+  const entries: [number, number][] = [];
+  for (let f = 0; f < identified.loadings[0].length; f++) {
+    if (identified.index[i][f] >= 0)
+      entries.push([identified.index[i][f], identified.loadings[j][f]]);
+    if (identified.index[j][f] >= 0)
+      entries.push([identified.index[j][f], identified.loadings[i][f]]);
+  }
+  return entries;
+}
+
+function testResult(
+  objective: number,
+  n: number,
+  df: number,
+  trace: number,
+  traceSquared: number,
+): WeightedTest {
+  if (
+    !Number.isFinite(trace) ||
+    !Number.isFinite(traceSquared) ||
+    trace < -1e-8 ||
+    traceSquared < -1e-8 ||
+    (df > 0 && !(traceSquared > 0))
+  )
+    throw new EfaError(
+      "weighted-test",
+      "The robust test correction is numerically inadmissible.",
+    );
+  const scalingFactor = df > 0 ? Math.sqrt(traceSquared / df) : null,
+    shift = scalingFactor ? df - trace / scalingFactor : null,
+    rawStatistic = (n - 1) * objective;
+  return {
+    rawStatistic,
+    df,
+    trace,
+    traceSquared,
+    scalingFactor,
+    shift,
+    statistic: scalingFactor ? rawStatistic / scalingFactor + shift! : null,
+    denominator: n - 1,
+    pValue: scalingFactor
+      ? chiSquareSf(rawStatistic / scalingFactor + shift!, df)
+      : null,
+  };
+}
+
+/** Internal covariance uses the deterministic canonical loading orientation.
+ * Public rotated SEs must differentiate the rotation, not hold it fixed. */
+export function weightedInference(
+  data: EfaPreparedData,
+  moments: WeightedMoments,
+  loadings: number[][],
+  objective: number,
+  progress?: Progress,
+  options: Parameters<typeof planWeightedInference>[4] = {},
+) {
+  const p = loadings.length,
+    k = loadings[0].length,
+    n = data.nRows,
+    m = moments.pairs.length,
+    plan = planWeightedInference(
+      p,
+      k,
+      n,
+      moments.pairs.reduce((s, v) => s + v.values.length, 0),
+      options,
+    ),
+    identified = identifyLoadings(loadings),
+    q = identified.free.length,
+    information = Matrix.zeros(q, q);
+  if (m !== plan.pairs || moments.nRows !== n)
+    throw new EfaError(
+      "weighted-snapshot",
+      "Uncertainty moments do not match the fitting snapshot.",
+    );
+  for (let a = 0; a < m; a++) {
+    const { i, j } = moments.pairs[a],
+      entries = jacobian(identified, i, j),
+      w = moments.weights[a];
+    for (const [u, x] of entries)
+      for (const [v, y] of entries)
+        if (u >= v) information.set(u, v, information.get(u, v) + w * x * y);
+  }
+  for (let a = 0; a < q; a++)
+    for (let b = 0; b < a; b++) information.set(b, a, information.get(a, b));
+  const cholesky = new CholeskyDecomposition(information);
+  if (!cholesky.isPositiveDefinite())
+    throw new EfaError(
+      "weighted-information",
+      "The identified weighted information is singular. Review the factor count and weak or redundant factors.",
+    );
+  const lower = cholesky.lowerTriangularMatrix,
+    diagonal = lower.diag();
+  if (Math.min(...diagonal) / Math.max(...diagonal) < 1e-7)
+    throw new EfaError(
+      "weighted-information",
+      "The identified weighted information is too ill-conditioned for stable uncertainty.",
+    );
+  let covariance: Matrix,
+    trace = 0,
+    traceSquared = 0;
+  if (plan.space === "moments") {
+    const gamma = Matrix.zeros(m, m),
+      wj = Matrix.zeros(m, q);
+    for (let row = 0; row < n; row++) {
+      const scores = moments.pairs.map((pair) => influenceAt(data, pair, row));
+      for (let a = 0; a < m; a++)
+        for (let b = 0; b <= a; b++)
+          gamma.set(a, b, gamma.get(a, b) + (scores[a] * scores[b]) / n);
+      if (row % 128 === 0)
+        progress?.({
+          stage: "Robust moment covariance",
+          completed: row,
+          total: n,
+        });
+    }
+    for (let a = 0; a < m; a++) {
+      for (let b = 0; b < a; b++) gamma.set(b, a, gamma.get(a, b));
+      for (const [v, x] of jacobian(
+        identified,
+        moments.pairs[a].i,
+        moments.pairs[a].j,
+      ))
+        wj.set(a, v, moments.weights[a] * x);
+    }
+    const influence = cholesky.solve(wj.transpose()),
+      u = wj.mmul(influence).neg();
+    for (let a = 0; a < m; a++) u.set(a, a, u.get(a, a) + moments.weights[a]);
+    covariance = influence
+      .mmul(gamma)
+      .mmul(influence.transpose())
+      .div(n - 1);
+    const product = u.mmul(gamma);
+    for (let a = 0; a < m; a++) {
+      trace += product.get(a, a);
+      for (let b = 0; b < m; b++)
+        traceSquared += product.get(a, b) * product.get(b, a);
+    }
+  } else {
+    // Z = S W J L^-T / sqrt(N), with G = L L'. Store only N-by-q.
+    const z = Array.from({ length: n }, () => new Float64Array(q)),
+      rootN = Math.sqrt(n);
+    for (let a = 0; a < m; a++) {
+      const pair = moments.pairs[a],
+        entries = jacobian(identified, pair.i, pair.j),
+        w = moments.weights[a];
+      for (let row = 0; row < n; row++) {
+        const s = influenceAt(data, pair, row) * w;
+        if (s) for (const [v, x] of entries) z[row][v] += s * x;
+      }
+      if (a % 32 === 0)
+        progress?.({
+          stage: "Robust case projections",
+          completed: a,
+          total: m,
+        });
+    }
+    const meat = Matrix.zeros(q, q);
+    for (let row = 0; row < n; row++) {
+      const v = z[row];
+      for (let a = 0; a < q; a++) {
+        let x = v[a];
+        for (let b = 0; b < a; b++) x -= lower.get(a, b) * v[b];
+        v[a] = x / lower.get(a, a);
+      }
+      for (let a = 0; a < q; a++) v[a] /= rootN;
+      for (let a = 0; a < q; a++)
+        for (let b = 0; b <= a; b++)
+          meat.set(a, b, meat.get(a, b) + v[a] * v[b]);
+      if (row % 32 === 0)
+        progress?.({
+          stage: "Robust parameter covariance",
+          completed: row,
+          total: n,
+        });
+    }
+    for (let a = 0; a < q; a++)
+      for (let b = 0; b < a; b++) meat.set(b, a, meat.get(a, b));
+    const inverseLower = Matrix.zeros(q, q);
+    for (let c = 0; c < q; c++)
+      for (let a = 0; a < q; a++) {
+        let x = a === c ? 1 : 0;
+        for (let b = 0; b < a; b++)
+          x -= lower.get(a, b) * inverseLower.get(b, c);
+        inverseLower.set(a, c, x / lower.get(a, a));
+      }
+    covariance = inverseLower
+      .transpose()
+      .mmul(meat)
+      .mmul(inverseLower)
+      .div(n - 1);
+    const block = (start: number) =>
+        Array.from(
+          { length: Math.min(plan.blockSize, n - start) },
+          (_, offset) =>
+            Float64Array.from(
+              moments.pairs,
+              (pair, a) =>
+                influenceAt(data, pair, start + offset) *
+                Math.sqrt(moments.weights[a] / n),
+            ),
+        ),
+      blocks = Math.ceil(n / plan.blockSize),
+      total = (blocks * (blocks + 1)) / 2;
+    let completed = 0;
+    for (let start = 0; start < n; start += plan.blockSize) {
+      const aBlock = block(start);
+      for (let next = 0; next <= start; next += plan.blockSize) {
+        const bBlock = next === start ? aBlock : block(next);
+        for (let a = 0; a < aBlock.length; a++)
+          for (let b = 0; b < bBlock.length; b++) {
+            if (next === start && b > a) continue;
+            let h = 0,
+              correction = 0;
+            for (let pair = 0; pair < m; pair++) {
+              const term = aBlock[a][pair] * bBlock[b][pair] - correction,
+                sum = h + term;
+              correction = sum - h - term;
+              h = sum;
+            }
+            for (let v = 0; v < q; v++) h -= z[start + a][v] * z[next + b][v];
+            const diagonal = start + a === next + b;
+            if (diagonal) trace += h;
+            traceSquared += (diagonal ? 1 : 2) * h * h;
+          }
+        progress?.({
+          stage: "Exact robust trace blocks",
+          completed: ++completed,
+          total,
+        });
+      }
+    }
+  }
+  if (covariance.diag().some((v) => !Number.isFinite(v) || v < 0))
+    throw new EfaError(
+      "weighted-covariance",
+      "Robust parameter covariance is numerically inadmissible.",
+    );
+  return {
+    identified,
+    covariance,
+    test: testResult(objective, n, m - q, trace, traceSquared),
+    plan,
+  };
+}

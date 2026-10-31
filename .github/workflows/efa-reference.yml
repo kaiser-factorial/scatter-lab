@@ -1,7 +1,7 @@
 name: EFA independent R qualification
 on:
   pull_request:
-    paths: ['frontend/src/lib/efa/**', 'frontend/src/lib/__tests__/efa*', 'frontend/src/lib/__tests__/fixtures/efa/**', 'frontend/src/lib/__tests__/fixtures/efa-extensions/**', 'frontend/scripts/efa-reference/**', '.github/workflows/efa-reference.yml']
+    paths: ['frontend/src/lib/efa/**', 'frontend/src/lib/__tests__/efa*', 'frontend/src/lib/__tests__/fixtures/efa/**', 'frontend/src/lib/__tests__/fixtures/efa-extensions/**', 'frontend/src/lib/__tests__/fixtures/efa-weighted/**', 'frontend/scripts/efa-reference/**', '.github/workflows/efa-reference.yml']
   workflow_dispatch:
 jobs:
   reference:
@@ -29,6 +29,11 @@ jobs:
         run: docker run --rm --network none --entrypoint Rscript -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/scripts/efa-reference/generate-large-null.R:/generate.R:ro" -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-extensions:/out" scatter-lab-efa-reference:4.5.1 /generate.R /out/parallel-large-8804-correlation.json /out/parallel-large-8804-r.reference.json 8804
       - run: node scripts/efa-reference/record-extension-provenance.mjs
         working-directory: frontend
+      - run: docker build -f frontend/scripts/efa-reference/Dockerfile.weighted -t scatter-lab-efa-weighted:4.5.1 frontend/scripts/efa-reference
+      - name: Regenerate weighted ordinal moments and robust EFA references
+        run: docker run --rm --network none -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -v "$PWD/frontend/scripts/efa-reference/generate-weighted.R:/generate.R:ro" -v "$PWD/frontend/src/lib/__tests__/fixtures/efa-weighted:/out" scatter-lab-efa-weighted:4.5.1 /generate.R /out
+      - run: node scripts/efa-reference/record-weighted-provenance.mjs
+        working-directory: frontend
       - run: npm ci
         working-directory: frontend
       - run: npx vitest run src/lib/__tests__/efa.test.ts src/lib/__tests__/efa-state.test.ts src/lib/__tests__/efa-conditional.test.ts src/lib/__tests__/efa-contrasts.test.ts src/lib/__tests__/efa-mice.test.ts src/lib/__tests__/efa-stability.test.ts src/lib/__tests__/efa-parallel-batches.test.ts src/lib/__tests__/efa-service.test.ts src/lib/__tests__/efa-extensions-state.test.ts src/lib/__tests__/efa-seeds.test.ts
@@ -38,6 +43,9 @@ jobs:
         working-directory: frontend
         env:
           EFA_LARGE_PARITY: '1'
+      - name: Qualify DWLS and bounded WLSMV against independently generated R outputs
+        run: npx vitest run src/lib/__tests__/efa-weighted.test.ts --maxWorkers=1
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,3 +53,4 @@ jobs:
           path: |
             frontend/src/lib/__tests__/fixtures/efa/
             frontend/src/lib/__tests__/fixtures/efa-extensions/
+            frontend/src/lib/__tests__/fixtures/efa-weighted/
