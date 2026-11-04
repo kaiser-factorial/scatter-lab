@@ -128,6 +128,14 @@ it("bounds imputation workers and preserves independent chain order despite out-
   expect(result.fits.map((f) => f.imputation)).toEqual([0, 1, 2, 3, 4, 5]);
   expect(result.failures).toEqual([]);
   expect(job.status).toBe("completed");
+  const report = h.service.report(job.id)!;
+  expect(report.activeWorkers).toBe(0);
+  expect(report.workersCreated).toBe(4);
+  expect(report.requests.imputation.count).toBe(6);
+  expect(report.requests.initialize.count).toBe(3);
+  expect(report.transport.sentTypedBufferBytes).toBe(3 * 400 * spec.items.length * 3);
+  expect(report.transport.receivedTypedBufferBytes).toBe(400 * spec.items.length * 3);
+  expect(JSON.stringify(report)).not.toContain("worker fixture");
 });
 it("retains failed parallel replicates, orders successful draws and withholds an incomplete suggestion", async () => {
   const h = harness(),
@@ -160,6 +168,8 @@ it("cancels preparation and never publishes a cancelled or superseded batch", as
   await expect(second.promise).rejects.toThrow(/cancelled/);
   expect(first.result).toBeUndefined();
   expect(second.result).toBeUndefined();
+  expect(h.service.report(first.id)?.status).toBe("cancelled");
+  expect(h.service.report(second.id)?.activeWorkers).toBe(0);
   expect(h.workers.every((w) => w.terminated)).toBe(true);
 });
 it("rejects invalid imputation settings before allocating workers", () => {

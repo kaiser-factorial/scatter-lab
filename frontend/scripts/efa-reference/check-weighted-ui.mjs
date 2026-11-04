@@ -1,5 +1,6 @@
 import { chromium, expect } from "@playwright/test";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
+const artifactDirectory = process.argv[3] ?? "scripts/efa-reference";
 const input = JSON.parse(
   await readFile("src/lib/__tests__/fixtures/efa/mixed.input.json", "utf8"),
 );
@@ -114,9 +115,9 @@ try {
     throw new Error("Weighted CSV metadata missing");
   await dialog.getByLabel("Saved run", { exact: true }).focus();
   await expect(dialog.getByLabel("Saved run", { exact: true })).toBeFocused();
-  await mkdir("scripts/efa-reference/screenshots", { recursive: true });
+  await mkdir(`${artifactDirectory}/screenshots`, { recursive: true });
   await page.screenshot({
-    path: "scripts/efa-reference/screenshots/efa-weighted-loadings.png",
+    path: `${artifactDirectory}/screenshots/efa-weighted-loadings.png`,
   });
   await page
     .getByRole("button", { name: "Compare promax", exact: true })
@@ -160,7 +161,7 @@ try {
     .getByRole("button", { name: "Factor correlations", exact: true })
     .click();
   await expect(dialog.getByLabel("First row").first()).toHaveValue("1");
-  await mkdir("scripts/efa-reference/screenshots", { recursive: true });
+  await mkdir(`${artifactDirectory}/screenshots`, { recursive: true });
   for (const theme of ["primary", "terminal"]) {
     await page.evaluate((theme) => {
       document.documentElement.setAttribute("data-theme", theme);
@@ -174,7 +175,7 @@ try {
       localStorage.setItem("theme", theme);
     }, theme);
     await page.screenshot({
-      path: `scripts/efa-reference/screenshots/efa-weighted-${theme}.png`,
+      path: `${artifactDirectory}/screenshots/efa-weighted-${theme}.png`,
     });
   }
   await page.keyboard.press("Escape");
@@ -289,7 +290,7 @@ try {
     { timeout: 30000 },
   );
   await writeFile(
-    "scripts/efa-reference/weighted-ui-verification.json",
+    `${artifactDirectory}/weighted-ui-verification.json`,
     JSON.stringify(
       {
         status: failures.length ? "failed" : "passed",

@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-11-01T02:43:24.882433+00:00",
+  "status": "passed",
+  "scope": "Per-file, rule and severity counts compared to the retained full baseline; source locations may move. New files must introduce no findings.",
+  "baselineSha256": "c62d7cc477d567fa130cca2588d2ed2d22ca0ab582457328c5d27689412bdc41",
+  "currentSha256": "97d57c4e89edd3808dd202ca0a681330b7e0065a4aa700e6f934fbd0bf34bf5b",
+  "baseline": {
+    "files": 168,
+    "errors": 117,
+    "warnings": 6
+  },
+  "current": {
+    "files": 178,
+    "errors": 117,
+    "warnings": 6
+  },
+  "increased": []
+}

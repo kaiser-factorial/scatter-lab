@@ -1,8 +1,10 @@
 import { CholeskyDecomposition } from "ml-matrix";
+import { projectCases, normalizeCaseProjections } from "./weighted-linalg";
 import { Matrix } from "./math";
 import { EfaError, type EfaPreparedData, type Progress } from "./types";
 import { influenceAt, type WeightedMoments } from "./weighted-moments";
 import { chiSquareSf } from "../statTests";
+import { cpuTraceBlock, type RobustTraceBlock, type TraceKernel } from "./trace-kernel";
 
 export interface IdentifiedLoadings {
   loadings: number[][];
@@ -123,7 +125,8 @@ export function planWeightedInference(
     16 * p * k +
     16 * blockSize * m;
   const momentBytes = 1.2 * (common + 8 * (5 * m * m + 4 * m * q)),
-    caseBytes = 1.2 * (common + 8 * n * q);
+    // One typed copy of L plus the compact <=2k-entry pair Jacobian.
+    caseBytes = 1.2 * (common + 8 * n * q + 8 * q * q + 24 * m * k + 4 * (m + 1));
   const space =
       options.space ??
       (m < n && momentBytes <= budgetBytes ? "moments" : "cases"),
@@ -197,14 +200,14 @@ function testResult(
 
 /** Internal covariance uses the deterministic canonical loading orientation.
  * Public rotated SEs must differentiate the rotation, not hold it fixed. */
-export function weightedInference(
+export function* weightedInferenceSteps(
   data: EfaPreparedData,
   moments: WeightedMoments,
   loadings: number[][],
   objective: number,
   progress?: Progress,
   options: Parameters<typeof planWeightedInference>[4] = {},
-) {
+): Generator<RobustTraceBlock, { identified: IdentifiedLoadings; covariance: Matrix; test: WeightedTest; plan: InferencePlan }, Float64Array> {
   const p = loadings.length,
     k = loadings[0].length,
     n = data.nRows,
@@ -224,6 +227,7 @@ export function weightedInference(
       "weighted-snapshot",
       "Uncertainty moments do not match the fitting snapshot.",
     );
+  progress?.({ stage: "Weighted information matrix", completed: 0, total: m });
   for (let a = 0; a < m; a++) {
     const { i, j } = moments.pairs[a],
       entries = jacobian(identified, i, j),
@@ -232,6 +236,8 @@ export function weightedInference(
       for (const [v, y] of entries)
         if (u >= v) information.set(u, v, information.get(u, v) + w * x * y);
   }
+  progress?.({ stage: "Weighted information matrix", completed: m, total: m });
+  progress?.({ stage: "Information factorization", completed: 0, total: 1 });
   for (let a = 0; a < q; a++)
     for (let b = 0; b < a; b++) information.set(b, a, information.get(a, b));
   const cholesky = new CholeskyDecomposition(information);
@@ -247,6 +253,7 @@ export function weightedInference(
       "weighted-information",
       "The identified weighted information is too ill-conditioned for stable uncertainty.",
     );
+  progress?.({ stage: "Information factorization", completed: 1, total: 1 });
   let covariance: Matrix,
     trace = 0,
     traceSquared = 0;
@@ -289,57 +296,15 @@ export function weightedInference(
     }
   } else {
     // Z = S W J L^-T / sqrt(N), with G = L L'. Store only N-by-q.
-    const z = Array.from({ length: n }, () => new Float64Array(q)),
-      rootN = Math.sqrt(n);
-    for (let a = 0; a < m; a++) {
-      const pair = moments.pairs[a],
-        entries = jacobian(identified, pair.i, pair.j),
-        w = moments.weights[a];
-      for (let row = 0; row < n; row++) {
-        const s = influenceAt(data, pair, row) * w;
-        if (s) for (const [v, x] of entries) z[row][v] += s * x;
-      }
-      if (a % 32 === 0)
-        progress?.({
-          stage: "Robust case projections",
-          completed: a,
-          total: m,
-        });
-    }
-    const meat = Matrix.zeros(q, q);
-    for (let row = 0; row < n; row++) {
-      const v = z[row];
-      for (let a = 0; a < q; a++) {
-        let x = v[a];
-        for (let b = 0; b < a; b++) x -= lower.get(a, b) * v[b];
-        v[a] = x / lower.get(a, a);
-      }
-      for (let a = 0; a < q; a++) v[a] /= rootN;
-      for (let a = 0; a < q; a++)
-        for (let b = 0; b <= a; b++)
-          meat.set(a, b, meat.get(a, b) + v[a] * v[b]);
-      if (row % 32 === 0)
-        progress?.({
-          stage: "Robust parameter covariance",
-          completed: row,
-          total: n,
-        });
-    }
-    for (let a = 0; a < q; a++)
-      for (let b = 0; b < a; b++) meat.set(b, a, meat.get(a, b));
-    const inverseLower = Matrix.zeros(q, q);
-    for (let c = 0; c < q; c++)
-      for (let a = 0; a < q; a++) {
-        let x = a === c ? 1 : 0;
-        for (let b = 0; b < a; b++)
-          x -= lower.get(a, b) * inverseLower.get(b, c);
-        inverseLower.set(a, c, x / lower.get(a, a));
-      }
-    covariance = inverseLower
-      .transpose()
-      .mmul(meat)
-      .mmul(inverseLower)
-      .div(n - 1);
+    const z = projectCases(data, moments, identified, progress);
+    const { meat, inverseLower } = normalizeCaseProjections(z, lower, progress);
+    progress?.({ stage: "Covariance matrix products", completed: 0, total: 2 });
+    covariance = inverseLower.transpose().mmul(meat);
+    progress?.({ stage: "Covariance matrix products", completed: 1, total: 2 });
+    covariance = covariance.mmul(inverseLower).div(n - 1);
+    progress?.({ stage: "Covariance matrix products", completed: 2, total: 2 });
+    const rootWeights = Float64Array.from(moments.weights, weight => Math.sqrt(weight / n));
+    const source = { nRows: n, codes: data.codes, observed: data.observed, pairs: moments.pairs, rootWeights, projection: z };
     const block = (start: number) =>
         Array.from(
           { length: Math.min(plan.blockSize, n - start) },
@@ -348,28 +313,34 @@ export function weightedInference(
               moments.pairs,
               (pair, a) =>
                 influenceAt(data, pair, start + offset) *
-                Math.sqrt(moments.weights[a] / n),
+                rootWeights[a],
             ),
         ),
       blocks = Math.ceil(n / plan.blockSize),
       total = (blocks * (blocks + 1)) / 2;
     let completed = 0;
+    progress?.({ stage: "Exact robust trace blocks", completed, total });
     for (let start = 0; start < n; start += plan.blockSize) {
-      const aBlock = block(start);
+      const aLength = Math.min(plan.blockSize, n - start);
+      let aBlock: Float64Array[] | undefined;
       for (let next = 0; next <= start; next += plan.blockSize) {
-        const bBlock = next === start ? aBlock : block(next);
-        for (let a = 0; a < aBlock.length; a++)
-          for (let b = 0; b < bBlock.length; b++) {
+        const bLength = Math.min(plan.blockSize, n - next);
+        let bBlock: Float64Array[] | undefined;
+        const values = yield {
+          get left() { return aBlock ??= block(start); },
+          get right() { return next === start ? aBlock ??= block(start) : bBlock ??= block(next); },
+          leftProjection: z.slice(start, start + aLength),
+          rightProjection: z.slice(next, next + bLength),
+          diagonal: next === start,
+          ordinal: { source, leftStart: start, rightStart: next, leftRows: aLength, rightRows: bLength },
+        };
+        if (values.length !== aLength * bLength)
+          throw new EfaError("weighted-kernel", "The trace kernel returned an incorrect block shape.");
+        for (let a = 0; a < aLength; a++)
+          for (let b = 0; b < bLength; b++) {
             if (next === start && b > a) continue;
-            let h = 0,
-              correction = 0;
-            for (let pair = 0; pair < m; pair++) {
-              const term = aBlock[a][pair] * bBlock[b][pair] - correction,
-                sum = h + term;
-              correction = sum - h - term;
-              h = sum;
-            }
-            for (let v = 0; v < q; v++) h -= z[start + a][v] * z[next + b][v];
+            const h = values[a * bLength + b];
+            if (!Number.isFinite(h)) throw new EfaError("weighted-kernel", "The trace kernel returned a non-finite value.");
             const diagonal = start + a === next + b;
             if (diagonal) trace += h;
             traceSquared += (diagonal ? 1 : 2) * h * h;
@@ -393,4 +364,23 @@ export function weightedInference(
     test: testResult(objective, n, m - q, trace, traceSquared),
     plan,
   };
+}
+
+/** Production synchronous path. The generator isolates a kernel boundary
+ * without changing covariance, normalization, trace reduction, or inference. */
+export function weightedInference(...args: Parameters<typeof weightedInferenceSteps>) {
+  const steps = weightedInferenceSteps(...args);
+  let state = steps.next();
+  while (!state.done) state = steps.next(cpuTraceBlock(state.value));
+  return state.value;
+}
+
+/** Experimental benchmark entry point; no UI estimator substitution. */
+export async function weightedInferenceWithKernel(kernel: TraceKernel, ...args: Parameters<typeof weightedInferenceSteps>) {
+  const steps = weightedInferenceSteps(...args);
+  try {
+    let state = steps.next();
+    while (!state.done) state = steps.next(await kernel(state.value));
+    return state.value;
+  } finally { steps.return(undefined as never); }
 }

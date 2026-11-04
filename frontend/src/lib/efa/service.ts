@@ -14,6 +14,7 @@ import {
   type EfaExtraction,
 } from "./types";
 import type { WorkerRequest } from "./efa.worker";
+import { ComputeTrace, type ComputeReport } from "./telemetry";
 import {
   planWeightedInference,
   type InferencePlan,
@@ -47,6 +48,7 @@ export interface EfaJob<T = unknown> {
   result?: T;
   promise: Promise<T>;
   cancel: () => void;
+  trace: ComputeTrace;
 }
 type CacheEntry = {
   key: string;
@@ -56,18 +58,23 @@ type CacheEntry = {
 class WorkerClient {
   worker: Worker;
   counter = 0;
+  terminated = false;
   pending = new Map<
     number,
     {
       resolve: (value: unknown) => void;
       reject: (error: Error) => void;
       progress: (value: EfaProgress) => void;
+      op: string;
+      started: number;
+      postMessageMs: number;
     }
   >();
-  constructor(factory: () => Worker) {
+  constructor(factory: () => Worker, private trace: ComputeTrace, private index: number) {
     this.worker = factory();
+    trace.worker(true, index);
     this.worker.onmessage = (event) => {
-      const { id, progress, error, value } = event.data;
+      const { id, progress, error, value, workerMs = 0, workerStages = {} } = event.data;
       const p = this.pending.get(id);
       if (!p) return;
       if (progress) {
@@ -75,11 +82,23 @@ class WorkerClient {
         return;
       }
       this.pending.delete(id);
+      const durationMs = performance.now() - p.started;
+      trace.request(p.op, durationMs, workerMs, p.postMessageMs);
+      trace.workerTiming(workerStages);
+      trace.event("request", error ? `${p.op} failed` : `${p.op} completed`, {
+        worker: index, request: id, durationMs, workerMs,
+      });
+      if (p.op === "prepare" && !error) {
+        trace.prepared(value.nRows, value.items.length, value.fingerprint);
+        trace.received(value.codes.byteLength + value.observed.byteLength);
+      }
+      if (p.op === "fit" && !error) trace.numerical(value);
       if (error)
         p.reject(new EfaError(error.code, error.message, error.diagnostics));
       else p.resolve(value);
     };
     this.worker.onerror = (event) => {
+      trace.event("worker", "runtime error", { worker: index });
       for (const p of this.pending.values())
         p.reject(new Error(event.message || "Worker failed."));
       this.pending.clear();
@@ -91,16 +110,36 @@ class WorkerClient {
   ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const id = ++this.counter;
-      this.pending.set(id, {
-        resolve: (v) => resolve(v as T),
-        reject,
-        progress,
-      });
-      this.worker.postMessage({ ...request, id });
+      const started = performance.now();
+      if (!["initialize", "pairs", "observed-support"].includes(request.op)) this.trace.operation(request.op);
+      if (request.op === "prepare") this.trace.spec(request.spec, request.rows.length, "prepare");
+      if (request.op === "initialize") {
+        this.trace.prepared(request.data.nRows, request.data.items.length, request.data.fingerprint);
+        this.trace.sent(request.data.codes.byteLength + request.data.observed.byteLength);
+      }
+      const pending = {
+        resolve: (v: unknown) => resolve(v as T), reject, progress,
+        op: request.op, started, postMessageMs: 0,
+      };
+      this.pending.set(id, pending);
+      this.trace.event("request", `${request.op} started`, { worker: this.index, request: id,
+        count: request.op === "pairs" ? request.pairs.length : undefined });
+      try {
+        const before = performance.now();
+        this.worker.postMessage({ ...request, id });
+        pending.postMessageMs = performance.now() - before;
+      } catch (error) {
+        this.pending.delete(id);
+        this.trace.event("request", `${request.op} message failed`, { worker: this.index, request: id });
+        reject(error);
+      }
     });
   }
   terminate() {
+    if (this.terminated) return;
+    this.terminated = true;
     this.worker.terminate();
+    this.trace.worker(false, this.index);
     for (const p of this.pending.values())
       p.reject(new EfaError("cancelled", "Analysis cancelled."));
     this.pending.clear();
@@ -114,6 +153,7 @@ export class EfaService {
   private listeners = new Set<() => void>();
   private cache = new WeakMap<DataTable, CacheEntry[]>();
   private revisionIds = new WeakMap<DataTable, string>();
+  private traces = new WeakMap<WorkerClient[], ComputeTrace>();
   constructor(
     private workerFactory = () =>
       new Worker(new URL("./efa.worker.ts", import.meta.url)),
@@ -153,6 +193,17 @@ export class EfaService {
   listJobs() {
     return [...this.jobs.values()];
   }
+  report(id: string): ComputeReport | undefined {
+    return this.jobs.get(id)?.trace.snapshot();
+  }
+  trackPublication<T>(job: EfaJob<unknown>, completion: Promise<T>) {
+    job.trace.publication("pending");
+    void completion.then(() => {
+      job.trace.publication("accepted"); this.emit();
+    }, () => {
+      job.trace.publication("discarded"); this.emit();
+    });
+  }
   revision(table: DataTable) {
     let id = this.revisionIds.get(table);
     if (!id) {
@@ -176,8 +227,11 @@ export class EfaService {
     this.cancelAll();
     const workers: WorkerClient[] = [],
       id = crypto.randomUUID();
+    const trace = new ComputeTrace(id);
+    this.traces.set(workers, trace);
     const job: EfaJob<T> = {
       id,
+      trace,
       status: "running",
       progress: { stage: "Preparing", completed: 0, total: 1 },
       promise: Promise.resolve(undefined as T),
@@ -185,6 +239,7 @@ export class EfaService {
         if (job.status !== "running") return;
         job.status = "cancelled";
         workers.forEach((w) => w.terminate());
+        trace.finish("cancelled");
         this.emit();
       },
     };
@@ -195,6 +250,7 @@ export class EfaService {
       if (job.status === "running") {
         const changedStage = p.stage !== job.progress.stage;
         job.progress = p;
+        trace.progress(p);
         const now = performance.now();
         if (
           changedStage ||
@@ -212,6 +268,7 @@ export class EfaService {
           throw new EfaError("cancelled", "Analysis cancelled.");
         job.result = result;
         job.status = "completed";
+        trace.finish("completed");
         job.progress = { stage: "Completed", completed: 1, total: 1 };
         return result;
       })
@@ -219,6 +276,7 @@ export class EfaService {
         if (job.status !== "cancelled") {
           job.status = "failed";
           job.error = error instanceof Error ? error.message : String(error);
+          trace.finish("failed");
         }
         throw error;
       })
@@ -234,7 +292,7 @@ export class EfaService {
     return job;
   }
   private client(workers: WorkerClient[]) {
-    const client = new WorkerClient(this.workerFactory);
+    const client = new WorkerClient(this.workerFactory, this.traces.get(workers)!, workers.length + 1);
     workers.push(client);
     return client;
   }
@@ -495,6 +553,8 @@ export class EfaService {
       const first = this.client(workers),
         entries = this.cache.get(table) ?? [],
         cached = entries.find((e) => e.key === key);
+      const trace = this.traces.get(workers)!;
+      trace.event("cache", cached ? "correlations hit: identical preprocessing and rows" : "correlations miss");
       const data = cached
         ? cached.data
         : await first.request<EfaPreparedData>({
@@ -504,6 +564,7 @@ export class EfaService {
             rows: membership,
           });
       if (cached) await first.request({ op: "initialize", data });
+      trace.spec(snapshot, membership.length, "fit");
       let correlation = cached?.correlation;
       if (!correlation) {
         const subset = entries.find(
@@ -516,6 +577,7 @@ export class EfaService {
             ),
         );
         if (subset) {
+          trace.event("cache", "retained pairs reused: identical fitting rows and item transformations");
           const oldIndices = data.items.map((item) =>
               subset.data.items.findIndex(
                 (previous) => JSON.stringify(previous) === JSON.stringify(item),
@@ -569,6 +631,7 @@ export class EfaService {
         let next = 0,
           done = 0;
         const estimates: PairEstimate[] = [];
+        progress({ stage: "Correlations", completed: 0, total: pairs.length });
         await Promise.all(
           clients.map(async (client) => {
             while (next < pairs.length && live()) {
@@ -635,6 +698,7 @@ export class EfaService {
           "rotation",
           "The fitted inputs changed. Create a refit before comparing rotations.",
         );
+      if (extraction) trace.event("cache", "unrotated extraction reused");
       // Correlation workers are finished. Keep just the fitting worker while
       // weighted covariance and rotated uncertainty use their bounded buffers.
       if (snapshot.extraction && snapshot.extraction !== "minres")

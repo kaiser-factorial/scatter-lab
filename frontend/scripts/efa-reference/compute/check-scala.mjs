@@ -1,0 +1,33 @@
+import { build } from "esbuild";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import os from "node:os";
+const exec = promisify(execFile), directory = process.argv[2] ?? "/tmp/scatter-efa-scala";
+await build({ entryPoints: ["scripts/efa-reference/compute/binary.ts"], bundle: true, platform: "node", format: "esm", outfile: "/tmp/scatter-compute-binary.mjs" });
+const { decodeBlock, difference } = await import("/tmp/scatter-compute-binary.mjs");
+const dependencies = JSON.parse(await readFile(`${directory}/dependencies.json`, "utf8"));
+const jars = dependencies.map(d => `${directory}/${d.artifact.split('/').at(-1)}`);
+for (let i = 0; i < jars.length; i++) if (createHash("sha256").update(await readFile(jars[i])).digest("hex") !== dependencies[i].sha256) throw new Error("Dependency hash mismatch");
+await mkdir(`${directory}/classes`, { recursive: true });
+const compileStart = performance.now();
+await exec("java", ["-Dscala.usejavacp=true", "-cp", jars.join(':'), "scala.tools.nsc.Main", "-d", `${directory}/classes`, "scripts/efa-reference/compute/TraceBenchmark.scala"]);
+const compileMs = performance.now() - compileStart;
+const manifest = JSON.parse(await readFile("public/efa-qualification/compute/fixtures/manifest.json", "utf8")), results = [];
+for (const fixture of manifest.fixtures) for (const mode of ["loop", "blas"]) {
+  const input = `public/efa-qualification/compute/fixtures/${fixture.name}.bin`, output = `${directory}/${fixture.name}.${mode}.bin`;
+  const raw = await readFile(input), expected = await readFile(input.replace('.bin', '.reference.bin'));
+  if (createHash("sha256").update(raw).digest("hex") !== fixture.inputSha256) throw new Error("Input hash mismatch");
+  if (createHash("sha256").update(expected).digest("hex") !== fixture.referenceSha256) throw new Error("Reference hash mismatch");
+  const start = performance.now();
+  const { stdout, stderr } = await exec("java", ["-cp", [`${directory}/classes`, ...jars].join(':'), "TraceBenchmark", input, output, mode, "5"], { env: { ...process.env, VECLIB_MAXIMUM_THREADS: "1", OPENBLAS_NUM_THREADS: "1" }, maxBuffer: 1024 ** 2 });
+  const processMs = performance.now() - start, report = JSON.parse(stdout.trim()), bytes = await readFile(output);
+  const buffer = b => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+  const values = new Float64Array(buffer(bytes));
+  results.push({ fixture: fixture.name, mode, ...report, processMs, stderr, errors: difference(decodeBlock(buffer(raw)), new Float64Array(buffer(expected)), values, 1e-10), outputSha256: createHash("sha256").update(bytes).digest("hex"), output: Array.from(values) });
+}
+const report = { status: results.every(r => r.errors.passed) ? "passed" : "numerical-failures", scope: "Targeted case-block kernels; not a Scala implementation of the full EFA pipeline", recordedAt: new Date().toISOString(), compileMs, hardware: { cpu: os.cpus()[0].model, architecture: os.arch(), memoryBytes: os.totalmem() }, threadEnvironment: { VECLIB_MAXIMUM_THREADS: "1", OPENBLAS_NUM_THREADS: "1" }, dependencies, results };
+await writeFile("scripts/efa-reference/compute/scala-kernels.json", JSON.stringify(report, null, 2) + "\n");
+console.log(JSON.stringify({ status: report.status, cases: results.length, backends: [...new Set(results.map(r => r.backend))] }));
+if (report.status !== "passed") process.exitCode = 1;

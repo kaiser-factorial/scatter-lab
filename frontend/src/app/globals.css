@@ -51,6 +51,12 @@ body {
   font-family: var(--font-sans);
 }
 
+.compute-inspector { border-color: var(--p-blue, var(--system-green)); }
+.compute-inspector-header { border-color: currentColor; }
+.compute-duration { background: var(--p-blue, var(--system-green)); }
+.compute-selected { background: var(--p-blue, var(--system-green)); color: var(--p-white, #000); }
+.compute-inspector th, .compute-inspector td { padding: 0.5rem 0.35rem; }
+
 /* Keyboard focus is always visible, themed per side of the app */
 :focus-visible {
   outline: 2px solid var(--p-blue, var(--system-green, #0045AD));

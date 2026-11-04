@@ -6,6 +6,7 @@ import { prepareEfa } from "../efa/prepare";
 import { correlate } from "../efa/correlation";
 import { fitEfa } from "../efa/fit";
 import { emptyEfaState } from "../efa/state";
+import { ComputeTrace } from "../efa/telemetry";
 import type { DataTable } from "../table";
 import type { EfaSpec, EfaResult } from "../efa/types";
 
@@ -52,6 +53,7 @@ function setup(deferState = false) {
   const service = new EfaService(),
     pending = deferred<EfaResult>();
   const job: EfaJob<EfaResult> = {
+    trace: new ComputeTrace("job"),
     id: "job",
     status: "running",
     progress: { stage: "test", completed: 0, total: 1 },
@@ -106,6 +108,7 @@ it("never publishes a completion after dataset or filter changes", async () => {
     t.pending.resolve(result);
     await expect(fit).rejects.toThrow(/not published/);
     expect(t.get().state.runs).toHaveLength(0);
+    expect(t.job.trace.snapshot().publication).toBe("discarded");
   }
 });
 it("workspace restoration / undo invalidates even a same-table completion", async () => {
@@ -138,6 +141,7 @@ it("snapshots specifications and substantive review reasons before an asynchrono
   expect(saved.spec.label).toBe(spec.label);
   expect(saved.reviews.item1.note).toBe("Original content rationale");
   expect(saved.reasons).toBe("Original item set");
+  expect(t.job.trace.snapshot().publication).toBe("accepted");
 });
 it("saved child results retain the parent and record the chosen item reviews", async () => {
   const t = setup(),

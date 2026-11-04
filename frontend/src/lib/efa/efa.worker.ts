@@ -9,6 +9,7 @@ import {
 } from "./parallel";
 import { fitImputationChain, observedPairFloor } from "./imputation-analysis";
 import { fingerprintPrepared } from "./fingerprint";
+import { WorkerStageTimer } from "./telemetry";
 import type { MiceOptions } from "./mice";
 import {
   stabilityReplicate,
@@ -70,9 +71,13 @@ export type WorkerRequest =
 let prepared: EfaPreparedData | undefined;
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const request = event.data,
-    id = request.id;
-  const progress = (value: unknown) =>
+    id = request.id,
+    started = performance.now();
+  const timer = new WorkerStageTimer(request.op === "pairs" ? "Correlations" : request.op);
+  const progress = (value: { stage: string; completed: number; total: number }) => {
+    timer.change(value.stage);
     self.postMessage({ id, progress: value });
+  };
   try {
     let value: unknown;
     if (request.op === "prepare") {
@@ -162,10 +167,12 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           break;
       }
     }
-    self.postMessage({ id, value });
+    self.postMessage({ id, value, workerMs: performance.now() - started, workerStages: timer.finish() });
   } catch (error) {
     self.postMessage({
       id,
+      workerMs: performance.now() - started,
+      workerStages: timer.finish(),
       error: {
         code: error instanceof EfaError ? error.code : "worker",
         message: error instanceof Error ? error.message : String(error),

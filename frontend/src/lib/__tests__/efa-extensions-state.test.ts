@@ -11,6 +11,7 @@ import {
 import { bootstrapStability, type StabilityResult } from "../efa/stability";
 import { EfaController, type EfaContext } from "../efa/controller";
 import { EfaService, type EfaJob } from "../efa/service";
+import { ComputeTrace } from "../efa/telemetry";
 import { validateWorkspace } from "../workspaces";
 import { fingerprintPrepared } from "../efa/fingerprint";
 import type { EfaSpec, EfaState, EfaRun } from "../efa/types";
@@ -188,6 +189,7 @@ function harness<T>(result: T) {
   let resolve!: (v: T) => void;
   const promise = new Promise<T>((yes) => (resolve = yes));
   const job: EfaJob<T> = {
+    trace: new ComputeTrace("extension"),
     id: "extension-job",
     status: "running",
     progress: { stage: "test", completed: 0, total: 1 },

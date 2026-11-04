@@ -46,6 +46,7 @@ import { formatTestResult, runTestPlan, type TestResult } from "@/lib/statTests"
 import { compileChart, type CompiledChart } from "@/lib/chartCompile";
 import { EfaService, type EfaJob } from '@/lib/efa/service';
 import { EfaController } from '@/lib/efa/controller';
+import { ComputeInspector } from '@/components/ComputeInspector';
 import { emptyEfaState } from '@/lib/efa/state';
 import type { EfaState } from '@/lib/efa/types';
 const EfaPanel = dynamic(() => import('@/components/EfaPanel').then(m => m.EfaPanel), { ssr: false });
@@ -4660,6 +4661,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           >
             {APP_NAME}
           </span>
+          <ComputeInspector service={efaService} compact />
         </aside>
       ) : (
       <aside className="w-[320px] h-full bg-[var(--card)] border-r border-[var(--border)] flex flex-col p-6 overflow-y-auto relative z-10 flex-shrink-0">
@@ -4705,7 +4707,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         {/* The privacy story lives in the info dialog and the per-dataset
             lock/globe badges now — the always-on headline banner here was
             retired as sidebar noise (owner's call). */}
-        <div className="mb-4" />
+        <div className="mb-4"><ComputeInspector service={efaService} /></div>
 
         <SidebarGroup theme={theme}>
 

@@ -1,4 +1,5 @@
 import { Matrix } from "./math";
+import { covarianceQuadraticForms } from "./weighted-linalg";
 import { rotate } from "./rotation";
 import { matchFactors } from "./compare";
 import {
@@ -75,6 +76,7 @@ export function rotatedUncertainty(
     ];
   };
   let maxChange = 0;
+  progress?.({ stage: "Rotated standard errors", completed: 0, total: q });
   for (let a = 0; a < q; a++) {
     const [i, f] = identified.free[a],
       h = 0.001 * (1 + Math.abs(identified.loadings[i][f])),
@@ -100,19 +102,16 @@ export function rotatedUncertainty(
       total: q,
     });
   }
-  const se = derivatives.map((row) => {
-    let variance = 0;
-    for (let a = 0; a < q; a++) {
-      let v = 0;
-      for (let b = 0; b < q; b++) v += covariance.get(a, b) * row[b];
-      variance += row[a] * v;
-    }
+  progress?.({ stage: "Rotated covariance propagation", completed: 0, total: outputs });
+  const variances = covarianceQuadraticForms(covariance, derivatives, progress);
+  const se = Array.from(variances, (variance) => {
     if (!Number.isFinite(variance) || variance < -1e-12)
       throw new EfaError(
         "weighted-covariance",
         "Rotated uncertainty produced an inadmissible variance.",
       );
-    return Math.sqrt(Math.max(0, variance));
+    const value = Math.sqrt(Math.max(0, variance));
+    return value;
   });
   let offset = 0;
   const matrix = (rows: number, cols: number) =>

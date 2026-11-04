@@ -17,7 +17,9 @@ import {
   identifyLoadings,
   planWeightedInference,
   weightedInference,
+  weightedInferenceWithKernel,
 } from "../efa/weighted-inference";
+import { cpuTraceBlock } from "../efa/trace-kernel";
 import type { DataTable } from "../table";
 import type { EfaSpec } from "../efa/types";
 
@@ -284,6 +286,46 @@ describe("Independent pinned R WLSMV correction", () => {
     expect(
       maxDiff(a.covariance.to2DArray(), b.covariance.to2DArray()),
     ).toBeLessThan(1e-10);
+  });
+  it("asynchronous kernel execution preserves the correction and rejects malformed backend output", async () => {
+    const { data, correlation } = weightedFixture("pairwise");
+    const moments = weightedMoments(data, correlation);
+    const fit = extractDwls(correlation.matrix, moments, 2);
+    const args = [data, moments, fit.loadings, fit.convergence.objective, undefined, { space: "cases" as const, blockSize: 31 }] as const;
+    const expected = weightedInference(...args);
+    let calls = 0;
+    const actual = await weightedInferenceWithKernel(async block => {
+      calls++;
+      return cpuTraceBlock(block);
+    }, ...args);
+    expect(calls).toBeGreaterThan(1);
+    expect(actual.test).toEqual(expected.test);
+    expect(actual.covariance.to2DArray()).toEqual(expected.covariance.to2DArray());
+    const resident = await weightedInferenceWithKernel(async block => {
+      const ordinal = block.ordinal!;
+      const { source, leftStart, rightStart, leftRows, rightRows } = ordinal;
+      // A resident backend must be able to complete without expanding either
+      // lazy block in the coordinator. Reconstruct from the encoded source to
+      // check masks, pair lookup indexing, and weights independently.
+      Object.defineProperties(block, {
+        left: { get() { throw new Error("Expanded left block was accessed"); } },
+        right: { get() { throw new Error("Expanded right block was accessed"); } },
+      });
+      const rows = (start: number, length: number) => Array.from({ length }, (_, offset) =>
+        Float64Array.from(source.pairs, (pair, index) => {
+          const i = pair.i * source.nRows + start + offset;
+          const j = pair.j * source.nRows + start + offset;
+          return source.observed[i] && source.observed[j]
+            ? pair.values[source.codes[i] * pair.columns + source.codes[j]] * source.rootWeights[index]
+            : 0;
+        }));
+      return cpuTraceBlock({ left: rows(leftStart, leftRows), right: rows(rightStart, rightRows), leftProjection: source.projection.slice(leftStart, leftStart + leftRows), rightProjection: source.projection.slice(rightStart, rightStart + rightRows), diagonal: block.diagonal });
+    }, ...args);
+    expect(resident.test).toEqual(expected.test);
+    expect(resident.covariance.to2DArray()).toEqual(expected.covariance.to2DArray());
+    await expect(weightedInferenceWithKernel(async () => new Float64Array(1), ...args)).rejects.toThrow(/block shape/);
+    await expect(weightedInferenceWithKernel(async block => new Float64Array(block.left.length * block.right.length).fill(NaN), ...args)).rejects.toThrow(/non-finite/);
+    await expect(weightedInferenceWithKernel(async () => { throw new Error("GPU device lost"); }, ...args)).rejects.toThrow(/GPU device lost/);
   });
   it("orientation removes only the arbitrary orthogonal degrees of freedom", () => {
     const a = [

@@ -1,0 +1,271 @@
+{
+  "recordedAt": "2026-11-01T04:11:25.046Z",
+  "status": "passed",
+  "scope": "Targeted synthetic CPU substages only; not a full fit. Three alternating-order repetitions include allocation. No full-size JavaScript baseline is run.",
+  "sourceSha256": "5c2c7e3b2ec8c89b67c3909f19bee9d7c887020f9fd971c221d0e91a9624c1a0",
+  "scriptSha256": "cc4970f9cca0678e270f2a7c4fd622002701ba6ddb6d5b9fbc2d2d31fb543c4e",
+  "seed": 140591,
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "memoryBytes": 8589934592
+  },
+  "node": "v26.8.1",
+  "projection": {
+    "dimensions": {
+      "rows": 512,
+      "items": 500,
+      "factors": 5,
+      "parameters": 2490
+    },
+    "codeSha256": "00e9118d676d7d237e921081afd9ba9aea8b3abff91b9aa24ee3da652c222d03",
+    "expectedProjection": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d",
+    "results": [
+      {
+        "name": "baseline",
+        "repeat": 0,
+        "elapsedMs": 5677.9841670000005,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-32",
+        "repeat": 0,
+        "elapsedMs": 1584.1420420000004,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-64",
+        "repeat": 0,
+        "elapsedMs": 1046.7552079999996,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-128",
+        "repeat": 0,
+        "elapsedMs": 1053.5552909999988,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-128",
+        "repeat": 1,
+        "elapsedMs": 2414.603874999999,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-64",
+        "repeat": 1,
+        "elapsedMs": 1110.3121250000004,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-32",
+        "repeat": 1,
+        "elapsedMs": 1032.2946670000001,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "baseline",
+        "repeat": 1,
+        "elapsedMs": 2742.5868329999994,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "baseline",
+        "repeat": 2,
+        "elapsedMs": 2970.066499999997,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-32",
+        "repeat": 2,
+        "elapsedMs": 1021.7587910000002,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-64",
+        "repeat": 2,
+        "elapsedMs": 1114.0539580000004,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      },
+      {
+        "name": "tile-128",
+        "repeat": 2,
+        "elapsedMs": 1000.5610830000005,
+        "exactMatch": true,
+        "sha256": "af8d08e4fe115704f95f9d1f6b85cf72401347561b30bd8c3890105ef66b0b8d"
+      }
+    ],
+    "summary": [
+      {
+        "name": "baseline",
+        "medianMs": 2970.066499999997
+      },
+      {
+        "name": "tile-32",
+        "medianMs": 1032.2946670000001
+      },
+      {
+        "name": "tile-64",
+        "medianMs": 1110.3121250000004
+      },
+      {
+        "name": "tile-128",
+        "medianMs": 1053.5552909999988
+      }
+    ]
+  },
+  "normalization": {
+    "dimensions": {
+      "rows": 128,
+      "parameters": 768
+    },
+    "expectedNormalization": [
+      "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+      "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+      "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+    ],
+    "results": [
+      {
+        "name": "baseline",
+        "repeat": 0,
+        "elapsedMs": 531.1687090000014,
+        "exactMatch": true,
+        "digests": [
+          "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+          "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+          "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+        ]
+      },
+      {
+        "name": "typed-triangular",
+        "repeat": 0,
+        "elapsedMs": 160.23466700000063,
+        "exactMatch": true,
+        "digests": [
+          "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+          "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+          "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+        ]
+      },
+      {
+        "name": "typed-triangular",
+        "repeat": 1,
+        "elapsedMs": 151.36733300000196,
+        "exactMatch": true,
+        "digests": [
+          "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+          "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+          "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+        ]
+      },
+      {
+        "name": "baseline",
+        "repeat": 1,
+        "elapsedMs": 697.1743750000023,
+        "exactMatch": true,
+        "digests": [
+          "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+          "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+          "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+        ]
+      },
+      {
+        "name": "baseline",
+        "repeat": 2,
+        "elapsedMs": 496.39008300000205,
+        "exactMatch": true,
+        "digests": [
+          "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+          "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+          "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+        ]
+      },
+      {
+        "name": "typed-triangular",
+        "repeat": 2,
+        "elapsedMs": 173.62387500000114,
+        "exactMatch": true,
+        "digests": [
+          "6cf33837a19ba54249c022ff03e920e74797e57308b7b4d8a0518216614cbeb4",
+          "cd1dc5542884c831c51b7afdfbf3ef3ecb3ce314bbceb973a63b0b46373d5e07",
+          "789c462a2c4db7a8dba7962825e726d25f20d36dc8d3fb1882eed8f10f16b525"
+        ]
+      }
+    ],
+    "summary": [
+      {
+        "name": "baseline",
+        "medianMs": 531.1687090000014
+      },
+      {
+        "name": "typed-triangular",
+        "medianMs": 160.23466700000063
+      }
+    ]
+  },
+  "propagation": {
+    "dimensions": {
+      "outputs": 64,
+      "parameters": 2490
+    },
+    "results": [
+      {
+        "name": "baseline",
+        "repeat": 0,
+        "elapsedMs": 437.6770830000023,
+        "maxAbsoluteError": 0
+      },
+      {
+        "name": "packed-batched",
+        "repeat": 0,
+        "elapsedMs": 128.7522080000017,
+        "maxAbsoluteError": 1.6484591469634324e-12
+      },
+      {
+        "name": "packed-batched",
+        "repeat": 1,
+        "elapsedMs": 137.69633299999987,
+        "maxAbsoluteError": 1.6484591469634324e-12
+      },
+      {
+        "name": "baseline",
+        "repeat": 1,
+        "elapsedMs": 419.79541699999754,
+        "maxAbsoluteError": 0
+      },
+      {
+        "name": "baseline",
+        "repeat": 2,
+        "elapsedMs": 407.20416699999987,
+        "maxAbsoluteError": 0
+      },
+      {
+        "name": "packed-batched",
+        "repeat": 2,
+        "elapsedMs": 185.39137499999924,
+        "maxAbsoluteError": 1.6484591469634324e-12
+      }
+    ],
+    "summary": [
+      {
+        "name": "baseline",
+        "medianMs": 419.79541699999754
+      },
+      {
+        "name": "packed-batched",
+        "medianMs": 137.69633299999987
+      }
+    ]
+  }
+}

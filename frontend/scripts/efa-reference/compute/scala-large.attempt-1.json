@@ -1,0 +1,23 @@
+{
+  "status": "cancelled-for-backend-redesign",
+  "recordedAt": "2026-10-31T22:42:32.795121+00:00",
+  "scope": "Incomplete full 500x20000 WLSMV execution trial; no robust statistic or rotated SE completion",
+  "reason": "Repeated expansion and transmission of weighted case blocks; replace with resident encoded source and row-range requests, retaining estimator and CPU baseline",
+  "blockPayloadBytes": 260587544,
+  "progress": {
+    "recordedAt": "2026-10-31T22:42:22.593Z",
+    "stage": "Exact robust trace blocks",
+    "completed": 64,
+    "total": 12403
+  },
+  "memory": {
+    "recordedAt": "2026-10-31T22:42:27.935Z",
+    "rootPid": 64561,
+    "rssBytes": 732971008,
+    "peakRssBytes": 1920647168,
+    "samples": 840,
+    "samplingErrors": 0,
+    "elapsedMs": 841744,
+    "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once"
+  }
+}

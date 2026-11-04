@@ -3,6 +3,7 @@ import { runAssistantTurn, type AppBridge } from "../assistant";
 import { call, replayTransport, say } from "../replay";
 import { EfaController, type EfaContext } from "../efa/controller";
 import { EfaService, type EfaJob } from "../efa/service";
+import { ComputeTrace } from "../efa/telemetry";
 import { prepareEfa } from "../efa/prepare";
 import { correlate } from "../efa/correlation";
 import { fitEfa, scoreEfa } from "../efa/fit";
@@ -66,6 +67,7 @@ function setup(patch: Partial<EfaContext> = {}) {
     jobs = new Map<string, EfaJob>();
   const job = <T>(value: T): EfaJob<T> => {
     const j: EfaJob<T> = {
+      trace: new ComputeTrace("replay"),
       id: `job-${jobs.size}`,
       status: "completed",
       progress: { stage: "Completed", completed: 1, total: 1 },

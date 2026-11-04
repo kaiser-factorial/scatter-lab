@@ -274,6 +274,7 @@ export class EfaController {
       return id;
     });
     this.published.set(job.id, completion);
+    this.service.trackPublication(job, completion);
     void completion.catch(() => {});
     return { job, completion };
   }
@@ -303,17 +304,17 @@ export class EfaController {
         "The active filter excludes fitting rows. Restore the fitting filter or refit before adding scores.",
       );
     const generation = ++this.generation,
-      scores = await this.service.scores(context.table, run).promise;
-    this.assertCurrent(context, generation);
-    const result = addScoreColumns(context.table, run, scores);
-    this.adapter().scores(
-      context.datasetId,
-      context.table,
-      result.table,
-      run.id,
-      result.columns,
-    );
-    return `Added ${result.columns.join(", ")}. Ordinal linear score approximations; incomplete and excluded rows remain unscored.`;
+      job = this.service.scores(context.table, run);
+    const completion = job.promise.then((scores) => {
+      this.assertCurrent(context, generation);
+      const result = addScoreColumns(context.table, run, scores);
+      this.adapter().scores(
+        context.datasetId, context.table, result.table, run.id, result.columns,
+      );
+      return `Added ${result.columns.join(", ")}. Ordinal linear score approximations; incomplete and excluded rows remain unscored.`;
+    });
+    this.service.trackPublication(job, completion);
+    return completion;
   };
   preview = async (spec: EfaSpec) => {
     const { context, rows } = this.input(spec);
@@ -349,6 +350,7 @@ export class EfaController {
       return id;
     });
     this.simulations.set(job.id, completion);
+    this.service.trackPublication(job, completion);
     void completion.catch(() => {});
     return { job, completion };
   }
@@ -435,6 +437,7 @@ export class EfaController {
       return id;
     });
     this.simulations.set(job.id, completion);
+    this.service.trackPublication(job, completion);
     void completion.catch(() => {});
     return { job, completion };
   };
@@ -491,6 +494,7 @@ export class EfaController {
       return id;
     });
     this.simulations.set(job.id, completion);
+    this.service.trackPublication(job, completion);
     void completion.catch(() => {});
     return completion;
   };

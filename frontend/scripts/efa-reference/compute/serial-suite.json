@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-10-31T23:34:39.180Z",
+  "status": "stopped-for-user-reordering",
+  "stages": [
+    {
+      "name": "existing-native-run",
+      "pid": 80874,
+      "startedAt": "2026-10-31T23:34:39.187Z",
+      "status": "suspended"
+    }
+  ],
+  "stoppedAt": "2026-10-31T23:47:40.366Z",
+  "reason": "WebGPU first; original JavaScript CPU baseline skipped by latest user instruction",
+  "remaining": [
+    "Finish full WebGPU trial",
+    "Resume and finish the preserved native trial",
+    "Compare numerical outputs with interruption-aware timing notes",
+    "Holdout refits and post-baseline optimization experiments",
+    "Final browser, lint, build, and evidence audit"
+  ]
+}
