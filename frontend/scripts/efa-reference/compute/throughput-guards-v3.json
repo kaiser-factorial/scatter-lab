@@ -1,0 +1,79 @@
+{
+  "recordedAt": "2026-11-04T01:47:13.507Z",
+  "status": "passed",
+  "source": "scripts/efa-reference/compute/throughput-browser-r-v3c.json",
+  "sourceSha256": "16992822fc11b879a6bfbf799d1dff662904591ed05655b35a77b7d51893772c",
+  "results": [
+    {
+      "name": "ordinary-browser control",
+      "passed": true,
+      "expected": null
+    },
+    {
+      "name": "hidden runtime developer flag",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":false,\"sameRotationWorker\":true,\"sameRotationExecution\":true,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "explicit developer flag",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":false,\"sameRotationWorker\":true,\"sameRotationExecution\":true,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "strictMath metadata",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":false,\"sameRotationWorker\":true,\"sameRotationExecution\":true,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "different executable worker",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":false,\"noDeveloperFlags\":true,\"sameRotationWorker\":true,\"sameRotationExecution\":true,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "truncated candidate scores",
+      "passed": true,
+      "expected": "Missing complete score vectors",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/fit-comparison.mjs:35\n  if (!s || !vector(s.values, n * k) || !vector(s.completeMask, n) || !matrix(s.weights, p, k) || !vector(s.means, p) || !vector(s.sds, p) || s.sds.some(value => value <= 0)) throw new Error('Missing complete score vectors or fitted scaling');\n                                                                                                                                                                                     ^\n\nError: Missing complete score vectors or fitted scaling\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/fit-comparison.mjs:35:182)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/fit-comparison.mjs:40:27)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:65:111\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:49:26\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "different derivative worker",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":true,\"sameRotationWorker\":false,\"sameRotationExecution\":true,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "missing derivative executable",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":true,\"sameRotationWorker\":false,\"sameRotationExecution\":true,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "missing derivative execution records",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":true,\"sameRotationWorker\":true,\"sameRotationExecution\":false,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "different rotation pool size",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":true,\"sameRotationWorker\":true,\"sameRotationExecution\":false,\"sameTraceSettings\":true}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "different trace chunk",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":true,\"sameRotationWorker\":true,\"sameRotationExecution\":true,\"sameTraceSettings\":false}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "unqualified panel path",
+      "passed": true,
+      "expected": "Unqualified candidate provenance",
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48\nif (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);\n                                                                   ^\n\nError: Unqualified candidate provenance: {\"independentReferencesPassed\":true,\"sameWorker\":true,\"noDeveloperFlags\":true,\"sameRotationWorker\":true,\"sameRotationExecution\":true,\"sameTraceSettings\":false}\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-candidate.mjs:48:68\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\nNode.js v26.8.1\n"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { EFA_ENGINE, EfaError } from "./types";
 import { extractDwls } from "./dwls";
 import { weightedMoments } from "./weighted-moments";
 import { planWeightedInference, weightedInference } from "./weighted-inference";
-import { rotatedUncertainty } from "./weighted-rotation";
+import { rotatedUncertainty, type RotatedUncertainty, type RotationDerivativeContext, rotationDerivativeContext } from "./weighted-rotation";
 import type {
   EfaPreparedData,
   EfaCorrelations,
@@ -15,13 +15,20 @@ import type {
   EfaExtraction,
 } from "./types";
 
-export function fitEfa(
+export interface FitRotationTask {
+  context: RotationDerivativeContext;
+  covariance: Matrix;
+}
+
+/** Pause only after the robust covariance is complete. The owning worker
+ * keeps the covariance and continuation while peers compute small batches. */
+export function* fitEfaSteps(
   data: EfaPreparedData,
   correlation: EfaCorrelations,
   spec: EfaSpec,
   progress?: Progress,
   extraction?: EfaExtraction,
-): EfaResult {
+): Generator<FitRotationTask, EfaResult, RotatedUncertainty> {
   const { conditionNumber } = checkCorrelation(correlation.matrix);
   const estimator = spec.extraction ?? "minres",
     pointEstimator = estimator === "minres" ? "minres" : "dwls";
@@ -104,14 +111,10 @@ export function fitEfa(
       weighted.robust = {
         test: inference.test,
         plan: inference.plan,
-        standardErrors: rotatedUncertainty(
-          inference.identified,
-          inference.covariance,
-          rotation,
-          spec.rotation,
-          spec.seed,
-          progress,
-        ),
+        standardErrors: yield {
+          context: rotationDerivativeContext(inference.identified, rotation, spec.rotation, spec.seed),
+          covariance: inference.covariance,
+        },
       };
     }
   }
@@ -179,6 +182,24 @@ export function fitEfa(
     },
   };
 }
+export function fitEfa(
+  data: EfaPreparedData, correlation: EfaCorrelations, spec: EfaSpec,
+  progress?: Progress, extraction?: EfaExtraction,
+): EfaResult {
+  const steps = fitEfaSteps(data, correlation, spec, progress, extraction);
+  const step = steps.next();
+  if (step.done) return step.value;
+  const { context, covariance } = step.value;
+  const uncertainty = rotatedUncertainty(
+    context.identified, covariance,
+    { pattern: context.referencePattern },
+    context.method, context.seed, progress,
+  );
+  const done = steps.next(uncertainty);
+  if (!done.done) throw new EfaError("worker", "Unexpected additional fit continuation.");
+  return done.value;
+}
+
 export function scoreEfa(
   data: EfaPreparedData,
   result: EfaResult,

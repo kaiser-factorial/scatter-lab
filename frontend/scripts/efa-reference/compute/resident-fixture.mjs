@@ -1,7 +1,7 @@
 // A deterministic kernel workload, not a fitted factor model. Use it to compare
 // allocation/thread/transport changes after the complete baseline fits. The
 // independent R fixtures still qualify the surrounding inference pipeline.
-export function residentFixture({ rows = 20000, items = 500, factors = 5, seed = 20261101 } = {}) {
+export function residentFixture({ rows = 20000, items = 500, factors = 5, blockSize = 128, seed = 20261101 } = {}) {
   if (!Number.isSafeInteger(rows) || rows < 512 || !Number.isSafeInteger(items) || items < 8 || !Number.isSafeInteger(factors) || factors < 1 || factors >= items) throw new Error('Invalid resident fixture shape');
   let state = seed >>> 0;
   const random = () => {
@@ -24,12 +24,14 @@ export function residentFixture({ rows = 20000, items = 500, factors = 5, seed =
   const parameters = items * factors - factors * (factors - 1) / 2;
   const projection = Array.from({ length: rows }, () => Float64Array.from({ length: parameters }, () => (random() - 0.5) / Math.sqrt(rows)));
   const source = { nRows: rows, codes, observed, pairs, rootWeights, projection };
+  if (![128, 256].includes(blockSize)) throw new Error("Unsupported fixture block size");
+  const b = blockSize;
   const ranges = [
-    [0, 0, 128, 128], [128, 0, 128, 128], [128, 128, 128, 128],
-    [128, 256, 128, 128], [128, 384, 128, 128], [256, 0, 128, 128],
-    [rows - 31, rows - 128, 31, 128], [rows - 31, rows - 31, 31, 31],
+    [0, 0, b, b], [b, 0, b, b], [b, b, b, b],
+    [b, 2 * b, b, b], [b, 3 * b, b, b], [2 * b, 0, b, b],
+    [rows - 31, rows - b, 31, b], [rows - 31, rows - 31, 31, 31],
     // Revisit full blocks after ragged buffers to expose stale tails or strides.
-    [128, 0, 128, 128], [0, 128, 128, 128],
+    [b, 0, b, b], [0, b, b, b],
   ];
   const materialize = (start, count) => Array.from({ length: count }, (_, offset) => Float64Array.from(pairs, (pair, index) => {
     const x = pair.i * rows + start + offset, y = pair.j * rows + start + offset;

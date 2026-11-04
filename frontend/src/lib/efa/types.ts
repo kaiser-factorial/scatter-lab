@@ -100,7 +100,7 @@ export interface Convergence {
   objective: number;
   gradient: number;
 }
-export const EFA_ENGINE = "scatter-efa/5";
+export const EFA_ENGINE = "scatter-efa/6";
 export interface EfaExtraction {
   estimator?: "minres" | "dwls";
   method?: string;

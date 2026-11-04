@@ -1,5 +1,7 @@
 # Default-browser WebGPU precision and weighted-inference optimization
 
+The next phase is documented in [trace throughput and parallel rotation derivatives](EFA-THROUGHPUT-ROTATION.md). This report retains the prior checkpoint measurements.
+
 This continues the retained [backend comparison](EFA-COMPUTE-COMPARISON.md).
 The original full JavaScript/CPU baseline remains skipped. Public and synthetic
 fixtures are used throughout; no participant data or paid provider calls are

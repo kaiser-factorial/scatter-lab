@@ -37,7 +37,9 @@ await build({ entryPoints: ['scripts/efa-reference/compute/binary.ts'], bundle: 
 const protocolSha256 = hash(await readFile(binaryBundle));
 const { encodeOrdinalSource, encodeOrdinalRange } = await import(binaryBundle);
 const generated = performance.now();
-let fixture = residentFixture();
+const blockSize = Number(option("block", "128")), subBlock = Number(option("sub-block", String(blockSize)));
+if (![128, 256].includes(blockSize) || ![128, 256].includes(subBlock) || subBlock > blockSize) throw new Error("Invalid block sizes");
+let fixture = residentFixture({ blockSize });
 const fixtureMs = performance.now() - generated, manifest = fixture.manifest;
 const beforePack = performance.now();
 let payload = Buffer.from(encodeOrdinalSource(fixture.source));
@@ -68,7 +70,7 @@ child.stdout.on('data', chunk => {
   incoming = Buffer.concat([incoming, chunk]);
   if (incoming.length < 4) return;
   const length = incoming.readUInt32BE(0);
-  if (length < 8 || length > 32 + 128 * 128 * 8) { pending?.reject(new Error('Invalid native reply length')); child.kill(); return; }
+  if (length < 8 || length > 32 + 256 * 256 * 8) { pending?.reject(new Error('Invalid native reply length')); child.kill(); return; }
   if (incoming.length >= length + 4 && pending) {
     const reply = incoming.subarray(4, length + 4); incoming = incoming.subarray(length + 4);
     const callback = pending; pending = undefined; callback.resolve(reply);
@@ -106,11 +108,27 @@ try {
   if (![1, 3].includes(headerDoubles)) throw new Error('Unknown native timing header');
   const results = ranges.map((_, index) => ({ range: manifest.ranges[index], calls: [], output: undefined }));
   partialResults = results;
+  async function rangeRequest(packet, range) {
+    if (subBlock === blockSize) return request(packet);
+    const [left, right, rows, cols] = range, result = Buffer.alloc((headerDoubles + rows * cols) * 8);
+    let elapsed = 0, materialize = 0, blas = 0;
+    for (let a = 0; a < rows; a += subBlock) for (let b = 0; b < cols; b += subBlock) {
+      const nr = Math.min(subBlock, rows - a), nc = Math.min(subBlock, cols - b), payload = Buffer.from(packet);
+      payload.writeUInt32LE(left + a, 4); payload.writeUInt32LE(right + b, 8); payload.writeUInt32LE(nr, 12); payload.writeUInt32LE(nc, 16);
+      const reply = await request(payload);
+      elapsed += reply.readDoubleLE(0);
+      if (headerDoubles === 3) { materialize += reply.readDoubleLE(8); blas += reply.readDoubleLE(16); }
+      for (let i = 0; i < nr; i++) reply.copy(result, (headerDoubles + (a + i) * cols + b) * 8, (headerDoubles + i * nc) * 8, (headerDoubles + (i + 1) * nc) * 8);
+    }
+    result.writeDoubleLE(elapsed, 0);
+    if (headerDoubles === 3) { result.writeDoubleLE(materialize, 8); result.writeDoubleLE(blas, 16); }
+    return result;
+  }
   const iterationMs = [];
   for (let repeat = 0; repeat < repeats; repeat++) {
     const iterationStart = performance.now();
     for (let i = 0; i < ranges.length; i++) {
-      const before = performance.now(), reply = await request(ranges[i]), roundTripMs = performance.now() - before;
+      const before = performance.now(), reply = await rangeRequest(ranges[i], manifest.ranges[i]), roundTripMs = performance.now() - before;
       const result = results[i], length = result.range[2] * result.range[3];
       if (reply.length !== (headerDoubles + length) * 8) throw new Error('Invalid native output shape');
       const values = Array.from({ length }, (_, j) => reply.readDoubleLE((j + headerDoubles) * 8));
@@ -123,7 +141,7 @@ try {
   }
   const passed = results.every(result => result.calls.every(call => !call.errors || call.errors.passed));
   let cancellation;
-  if (metadata.cancellationProbe === true) {
+  if (metadata.cancellationProbe === true && subBlock === blockSize) {
     let dispatchTimer;
     const dispatched = new Promise((resolve, reject) => {
       dispatchTimer = setTimeout(() => reject(new Error('Native cancellation probe did not start')), 10000);
@@ -142,9 +160,10 @@ try {
     pending?.reject(new Error('Intentional native cancellation probe')); pending = undefined;
     await probe.catch(() => {});
     const terminal = await exited, acknowledgedMs = performance.now() - beforeKill;
-    cancellation = { acknowledgedMs, passed: acknowledgedMs < 1000, requestedSignal: 'SIGTERM', terminal, range: manifest.ranges[1], scope: 'Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test.' };
+    cancellation = { acknowledgedMs, passed: acknowledgedMs < 1000, requestedSignal: 'SIGTERM', terminal, range: manifest.ranges[1], scope: `Actual owned JVM exit after acknowledging a repeated ${blockSize}-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test.` };
   }
   const report = {
+    blockSize, subBlock,
     status: !passed ? 'numerical-failures' : cancellation?.passed === false ? 'cancellation-failure' : reference ? 'passed' : 'reference-recorded', recordedAt: new Date().toISOString(),
     scope: 'Resident case-block kernel benchmark. Generation, compilation, JVM startup and source initialization are separate. Does not measure a complete EFA fit.',
     referencePath, referenceSha256: referencePath ? hash(await readFile(referencePath)) : undefined,

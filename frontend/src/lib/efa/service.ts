@@ -13,6 +13,7 @@ import {
   type ParallelResult,
   type EfaExtraction,
 } from "./types";
+import type { RotationDerivativeContext, RotationDerivativeBatch } from "./weighted-rotation";
 import type { WorkerRequest } from "./efa.worker";
 import { ComputeTrace, type ComputeReport } from "./telemetry";
 import {
@@ -92,7 +93,8 @@ class WorkerClient {
         trace.prepared(value.nRows, value.items.length, value.fingerprint);
         trace.received(value.codes.byteLength + value.observed.byteLength);
       }
-      if (p.op === "fit" && !error) trace.numerical(value);
+      if ((p.op === "fit" || p.op === "fit-finish") && !error && value?.extraction) trace.numerical(value);
+      if (p.op === "rotation-batch" && !error) trace.received(value.values.byteLength);
       if (error)
         p.reject(new EfaError(error.code, error.message, error.diagnostics));
       else p.resolve(value);
@@ -117,6 +119,7 @@ class WorkerClient {
         this.trace.prepared(request.data.nRows, request.data.items.length, request.data.fingerprint);
         this.trace.sent(request.data.codes.byteLength + request.data.observed.byteLength);
       }
+      if (request.op === "rotation-accept") this.trace.sent(request.batch.values.byteLength);
       const pending = {
         resolve: (v: unknown) => resolve(v as T), reject, progress,
         op: request.op, started, postMessageMs: 0,
@@ -126,7 +129,7 @@ class WorkerClient {
         count: request.op === "pairs" ? request.pairs.length : undefined });
       try {
         const before = performance.now();
-        this.worker.postMessage({ ...request, id });
+        this.worker.postMessage({ ...request, id }, request.op === "rotation-accept" ? [request.batch.values.buffer as ArrayBuffer] : []);
         pending.postMessageMs = performance.now() - before;
       } catch (error) {
         this.pending.delete(id);
@@ -699,16 +702,42 @@ export class EfaService {
           "The fitted inputs changed. Create a refit before comparing rotations.",
         );
       if (extraction) trace.event("cache", "unrotated extraction reused");
-      // Correlation workers are finished. Keep just the fitting worker while
-      // weighted covariance and rotated uncertainty use their bounded buffers.
+      // Release correlation workers and their data before robust covariance.
+      // Small derivative peers are created only after that stage finishes.
       if (snapshot.extraction && snapshot.extraction !== "minres")
         workers
           .filter((worker) => worker !== first)
           .forEach((worker) => worker.terminate());
-      return first.request<EfaResult>(
-        { op: "fit", correlation, spec: snapshot, extraction },
-        progress,
+      if (snapshot.extraction !== "wlsmv") return first.request<EfaResult>(
+        { op: "fit", correlation, spec: snapshot, extraction }, progress,
       );
+      const { rotationContext: context } = await first.request<{ rotationContext: RotationDerivativeContext }>(
+        { op: "fit", correlation, spec: snapshot, extraction, parallelDerivatives: true }, progress,
+      );
+      if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+      const q = context.identified.free.length, clients = [first];
+      for (let slot = 1; slot < Math.min(this.concurrency, Math.ceil(q / 8)); slot++) {
+        if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+        const client = this.client(workers);
+        await client.request({ op: "rotation-initialize", context });
+        clients.push(client);
+      }
+      trace.event("worker", `Rotation derivatives: ${clients.length} workers, batches of 8, four perturbations per parameter`);
+      let next = 0;
+      progress({ stage: "Rotated standard errors", completed: 0, total: q });
+      await Promise.all(clients.map(async client => {
+        while (next < q && live()) {
+          const start = next, count = Math.min(8, q - start); next += count;
+          const batch = await client.request<RotationDerivativeBatch>({ op: "rotation-batch", start, count });
+          if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+          if (batch.start !== start || batch.count !== count) throw new EfaError("weighted-rotation-batch", "Rotation worker returned the wrong range.");
+          const completed = await first.request<number>({ op: "rotation-accept", batch });
+          progress({ stage: "Rotated standard errors", completed, total: q });
+        }
+      }));
+      if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+      clients.filter(client => client !== first).forEach(client => client.terminate());
+      return first.request<EfaResult>({ op: "fit-finish" }, progress);
     });
   }
   scores(table: DataTable, run: EfaRun): EfaJob<(number | null)[][]> {

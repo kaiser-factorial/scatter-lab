@@ -36,7 +36,7 @@ self.onmessage = async ({ data: options }) => {
     for (const backend of options.backends ?? defaults) {
       if (!configurations[backend]) throw new Error(`Unknown experimental variant ${backend}`);
       try {
-        kernel = await createGpuKernel({ ...configurations[backend], resident: mode === 'resident', strictMath: options.strictMath ? true : undefined });
+        kernel = await createGpuKernel({ ...configurations[backend], dotChunkSize: options.dotChunkSize, materializePanels: !!options.materializePanels, preSplit: !!options.preSplit, resident: mode === 'resident', strictMath: options.strictMath ? true : undefined });
         metadata.push({ ...kernel.metadata, variant: backend });
         const fixtures = mode === 'kernels' ? manifest.fixtures : reference.results.map((value, index) => ({ name: `resident-range-${index}`, index, range: value.range }));
         for (const fixture of fixtures) {

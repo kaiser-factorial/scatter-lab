@@ -5,6 +5,7 @@ import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import os from "node:os";
+import { Worker } from "node:worker_threads";
 import { gzipSync, gunzipSync } from 'node:zlib';
 const directory = "/tmp/scatter-efa-scala", exec = promisify(execFile);
 const option = (key, fallback) => process.argv.find(arg => arg.startsWith(`--${key}=`))?.slice(key.length + 3) ?? fallback;
@@ -31,6 +32,31 @@ if (pipelineArchive) {
 await build({ entryPoints: ['scripts/efa-reference/compute/binary.ts'], bundle: true, format: 'esm', platform: 'node', outfile: '/tmp/scatter-compute-binary.mjs' });
 await exec('java', ['-Dscala.usejavacp=true', '-cp', jars.join(':'), 'scala.tools.nsc.Main', '-d', classes, sourcePath]);
 const nativeBytecode = Object.fromEntries(await Promise.all((await readdir(classes)).filter(name => name === `${mainClass}.class` || (name.startsWith(`${mainClass}$`) && name.endsWith('.class'))).sort().map(async name => [name, createHash('sha256').update(await readFile(`${classes}/${name}`)).digest('hex')])));
+for (const [optionName, entry, output] of [
+  ['rotation-worker-archive', 'rotation-node-worker.mjs', '/tmp/scatter-rotation-node.mjs'],
+  ['rotation-pool-archive', 'rotation-pool.mjs', '/tmp/scatter-rotation-pool.mjs'],
+]) {
+  const archive = option(optionName, undefined);
+  if (archive) {
+    const bytes = gunzipSync(await readFile(archive)), digest = createHash('sha256').update(bytes).digest('hex');
+    if (!archive.endsWith(`/${digest}.mjs.gz`)) throw new Error('Archived rotation executable hash mismatch');
+    await writeFile(output, bytes);
+  } else await build({ entryPoints: [`scripts/efa-reference/compute/${entry}`], bundle: true, format: 'esm', platform: 'node', outfile: output });
+}
+const { createRotationPool } = await import('/tmp/scatter-rotation-pool.mjs');
+const rotationWorkerSha256 = createHash('sha256').update(await readFile('/tmp/scatter-rotation-node.mjs')).digest('hex');
+const rotationPoolSha256 = createHash('sha256').update(await readFile('/tmp/scatter-rotation-pool.mjs')).digest('hex');
+const rotationConcurrency = Math.min(Number(option('rotation-workers', '4')), Math.max(1, os.availableParallelism()));
+const rotationWorkerPath = `/tmp/scatter-rotation-${rotationWorkerSha256}.mjs`;
+await writeFile(rotationWorkerPath, await readFile('/tmp/scatter-rotation-node.mjs'));
+function rotationFactory() {
+  const worker = new Worker(new URL(`file://${rotationWorkerPath}`));
+  const adapter = { onmessage: null, onerror: null, postMessage: value => worker.postMessage(value), terminate: () => worker.terminate() };
+  worker.on('message', data => adapter.onmessage?.({ data }));
+  worker.on('error', error => adapter.onerror?.({ message: error.message }));
+  worker.on('exit', code => { if (code !== 0) adapter.onerror?.({ message: `Rotation worker exited ${code}` }); });
+  return adapter;
+}
 const { runPipeline } = await import(pipelineBundle);
 const { encodeBlock, encodeOrdinalSource, encodeOrdinalRange } = await import('/tmp/scatter-compute-binary.mjs');
 const nativeLibPath = process.platform === 'darwin' ? '/System/Library/Frameworks/Accelerate.framework/Accelerate' : undefined;
@@ -46,7 +72,7 @@ async function createKernel(backend) {
     bytes = Buffer.concat([bytes, chunk]);
     if (bytes.length < 4) return;
     const length = bytes.readUInt32BE(0);
-    if (length < 8 || length > 24 + 128 * 128 * 8) { pending?.reject(new Error('Invalid child response')); child.kill(); return; }
+    if (length < 8 || length > 24 + 256 * 256 * 8) { pending?.reject(new Error('Invalid child response')); child.kill(); return; }
     if (bytes.length >= length + 4 && pending) {
       const packet = bytes.subarray(4, length + 4); bytes = bytes.subarray(length + 4);
       const callback = pending; pending = undefined; callback.resolve(packet);
@@ -103,7 +129,7 @@ const scalaSourceSha256 = sourceDigest;
 const protocolSha256 = createHash('sha256').update(await readFile('/tmp/scatter-compute-binary.mjs')).digest('hex');
 const sourceArchives = {};
 await mkdir('scripts/efa-reference/compute/archives', { recursive: true });
-for (const [name, path, digest] of [['pipeline', pipelineBundle, pipelineSha256], ['protocol', '/tmp/scatter-compute-binary.mjs', protocolSha256], ['scala', sourcePath, scalaSourceSha256]]) {
+for (const [name, path, digest] of [['rotationWorker', '/tmp/scatter-rotation-node.mjs', rotationWorkerSha256], ['rotationPool', '/tmp/scatter-rotation-pool.mjs', rotationPoolSha256], ['pipeline', pipelineBundle, pipelineSha256], ['protocol', '/tmp/scatter-compute-binary.mjs', protocolSha256], ['scala', sourcePath, scalaSourceSha256]]) {
   const archive = `scripts/efa-reference/compute/archives/${digest}.${name === 'scala' ? 'scala' : 'mjs'}.gz`;
   try { await writeFile(archive, gzipSync(await readFile(path)), { flag: 'wx' }); }
   catch (error) { if (error.code !== 'EEXIST') throw error; }
@@ -113,10 +139,12 @@ let latest, lastProgress = performance.now();
 const timer = setInterval(() => {
   if (latest) { console.log(JSON.stringify(latest)); void writeFile(output.replace('.json', '.progress.json'), JSON.stringify(latest, null, 2) + '\n'); }
 }, 30000);
+const rotationPool = createRotationPool(rotationFactory, rotationConcurrency);
 try {
   const candidate = process.argv.includes('--streamed') ? 'scala-blas' : 'scala-resident';
   const fixture = process.argv.find(s => s.startsWith('--fixture='))?.split('=')[1] ?? (process.argv.includes('--large') ? 'large' : undefined);
   const report = await runPipeline({ backends: fixture ? [candidate] : ['cpu', candidate], fixtures: fixture ? [fixture] : undefined, blockSize, budgetBytes }, {
+    rotationPool,
     progress: p => {
       latest = { recordedAt: new Date().toISOString(), backend: candidate, ...p };
       if (performance.now() - lastProgress > 30000) {
@@ -126,8 +154,8 @@ try {
     }, kernelFactory: createKernel,
     loadReference: async name => ({ input: JSON.parse(await readFile(`src/lib/__tests__/fixtures/efa-weighted/${name}.input.json`, 'utf8')), reference: JSON.parse(await readFile(`src/lib/__tests__/fixtures/efa-weighted/${name}.reference.json`, 'utf8')) }),
   });
-  Object.assign(report, { recordedAt: new Date().toISOString(), dependencies, nativeLibPath, node: process.version, pipelineSha256, pipelineArchive, scalaSourceSha256, sourcePath, mainClass, nativeArguments, nativeBytecode, protocolSha256, sourceArchives, blockSize, budgetBytes, hardware: { cpu: os.cpus()[0].model, architecture: os.arch(), memoryBytes: os.totalmem() } });
+  Object.assign(report, { recordedAt: new Date().toISOString(), dependencies, nativeLibPath, node: process.version, rotationWorkerSha256, rotationPoolSha256, pipelineSha256, pipelineArchive, scalaSourceSha256, sourcePath, mainClass, nativeArguments, nativeBytecode, protocolSha256, sourceArchives, blockSize, budgetBytes, hardware: { cpu: os.cpus()[0].model, architecture: os.arch(), memoryBytes: os.totalmem() } });
   await writeFile(output, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ status: report.status, error: report.error, fits: report.results.map(r => ({ backend: r.backend, fixture: r.fixture, totalMs: r.totalMs, passed: r.passed })) }));
   if (['failed', 'numerical-failures'].includes(report.status)) process.exitCode = 1;
-} finally { clearInterval(timer); }
+} finally { rotationPool.destroy(); clearInterval(timer); }

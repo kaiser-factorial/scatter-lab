@@ -104,7 +104,7 @@ export class ComputeTrace {
       workersCreated: 0, activeWorkers: 0, requests: {}, workerStages: {},
       transport: {
         sentTypedBufferBytes: 0, receivedTypedBufferBytes: 0,
-        description: "Cumulative typed-array payload bytes copied by messages; excludes ordinary arrays/objects. Not resident or peak memory. Round-trip time includes queuing and communication; postMessage time is measured on the sender.",
+        description: "Cumulative typed-array payload bytes copied or transferred by messages; excludes ordinary arrays/objects. Not resident or peak memory. Round-trip time includes queuing and communication; postMessage time is measured on the sender.",
       },
       stages: [], events: [], droppedEvents: 0, droppedStages: 0,
     };

@@ -1,0 +1,2 @@
+{"status":"reference-recorded","requestedBlasThreads":4,"firstIterationMs":3309.1342090000007,"subsequentMedianMs":2568.6875005}
+{"status":"passed","requestedBlasThreads":4,"firstIterationMs":1967.0156659999993,"subsequentMedianMs":1407.899875}

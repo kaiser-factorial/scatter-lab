@@ -21,6 +21,16 @@ const archive = `scripts/efa-reference/compute/archives/${workerSha256}.js.gz`;
 await mkdir('scripts/efa-reference/compute/archives', { recursive: true });
 try { await writeFile(archive, gzipSync(workerBytes), { flag: 'wx' }); }
 catch (error) { if (error.code !== 'EEXIST') throw error; }
+let rotationWorkerBytes, rotationWorkerSha256, rotationWorkerArchive;
+if (parameters.has('pipeline')) {
+  const rotationSource = process.argv.find(arg => arg.startsWith('--rotation-worker-archive='))?.slice('--rotation-worker-archive='.length);
+  rotationWorkerBytes = rotationSource ? gunzipSync(await readFile(rotationSource)) : await readFile('public/efa-qualification/compute/rotation-worker.js');
+  rotationWorkerSha256 = createHash('sha256').update(rotationWorkerBytes).digest('hex');
+  if (rotationSource && !rotationSource.endsWith(`/${rotationWorkerSha256}.js.gz`)) throw new Error('Archived rotation worker hash mismatch');
+  rotationWorkerArchive = `scripts/efa-reference/compute/archives/${rotationWorkerSha256}.js.gz`;
+  try { await writeFile(rotationWorkerArchive, gzipSync(rotationWorkerBytes), { flag: 'wx' }); }
+  catch (error) { if (error.code !== 'EEXIST') throw error; }
+}
 const browser = await chromium.launch({ channel: "chrome", headless: true, args: developerArguments }), exec = promisify(execFile);
 let timer, memoryTimer, peakRss = 0, workerSnapshotsServed = 0, memorySamples = 0, samplingErrors = 0, latestProgress, latestResult;
 try {
@@ -33,6 +43,7 @@ try {
   // Freeze the actual executable bytes for this run even if a later build
   // changes the local qualification asset while the benchmark is running.
   await page.route(`**/${workerAsset}`, route => { workerSnapshotsServed++; return route.fulfill({ body: workerBytes, contentType: 'text/javascript' }); });
+  if (rotationWorkerBytes) await page.addInitScript(source => { window.__rotationWorkerSource = source; }, rotationWorkerBytes.toString('utf8'));
   await page.goto(url);
   await page.getByRole('button', { name: 'Run kernels' }).click();
   timer = setInterval(async () => {
@@ -63,6 +74,7 @@ try {
     cancellation = { acknowledgedMs, passed: acknowledgedMs < 1000, dimensions: last.dimensions, blockSize: last.plan.blockSize, scope: 'Worker termination call duration after an additional kernel dispatch using this fit\'s resident source. Does not measure GPU command retirement.' };
   }
   const report = { ...result, recordedAt: new Date().toISOString(), url, browser: await browser.version(), hardware: { cpu: os.cpus()[0].model, architecture: os.arch(), memoryBytes: os.totalmem() }, memory: { peakBrowserProcessRssBytes: peakRss, method: 'One-second RSS samples summed over isolated Chrome processes; shared pages may be counted more than once' }, heartbeat: await page.evaluate(() => ({ count: Number(document.querySelector('#heartbeat').textContent), maxGapMs: window.maxHeartbeatGap })), workerSha256, workerDelivery: 'Immutable bytes captured at launch and fulfilled by the benchmark harness' };
+  Object.assign(report, { rotationWorkerSha256, rotationWorkerArchive, rotationWorkerDelivery: rotationWorkerBytes ? "Immutable source passed to coordinator; Blob workers" : undefined });
   report.workerSnapshotsServed = workerSnapshotsServed;
   report.runtimeLimitMinutes = timeoutMinutes === 0 ? null : timeoutMinutes;
   report.workerArchive = archive;
@@ -75,6 +87,7 @@ try {
   report.cancellation = cancellation;
   if (cancellation?.passed === false) { report.status = 'failed'; report.error = 'Worker cancellation exceeded one second'; }
   if (workerSnapshotsServed !== 1) { report.status = 'failed'; report.error = 'The immutable worker snapshot was not served exactly once'; }
+  if (parameters.has('pipeline') && result.results.some(fit => fit.rotationExecution?.workerSha256 !== rotationWorkerSha256)) { report.status = 'failed'; report.error = 'Rotation worker executable hash does not match the immutable source'; }
   await writeFile(output, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ status: report.status, error: report.error, results: report.results.map(r => ({ backend: r.backend, fixture: r.fixture, passed: r.passed, totalMs: r.totalMs, errors: r.errors })) }));
   if (['failed', 'numerical-failures'].includes(report.status)) process.exitCode = 1;

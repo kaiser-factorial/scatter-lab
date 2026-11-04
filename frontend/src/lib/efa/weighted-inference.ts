@@ -110,7 +110,7 @@ export function planWeightedInference(
     n < 3 ||
     !Number.isInteger(blockSize) ||
     blockSize < 1 ||
-    blockSize > 128 ||
+    blockSize > 256 ||
     !Number.isFinite(budgetBytes) ||
     budgetBytes <= 0
   )

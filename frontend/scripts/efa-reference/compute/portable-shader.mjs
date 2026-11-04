@@ -53,3 +53,21 @@ export function portableReductionShader(source) {
   return vec2<f32>(hi, fpSub(error, fpSub(hi, sum)));` + source.slice(end))
     .replace('unused0: u32', 'roundingMask: u32') + arithmetic;
 }
+
+// Share the exact significand decomposition across the 16 dot products using
+// each tile input. Rounded values and per-dot accumulation order are unchanged.
+export function tiledPortableShader(source) {
+  if (source.split('productError(av.x, bv.x, product)').length !== 3) throw new Error('Portable tile template mismatch');
+  return source.replaceAll('array<vec2<f32>, 256>', 'array<vec4<f32>, 256>')
+    .replaceAll('tileA[t] = vec2<f32>(0.0); tileB[t] = vec2<f32>(0.0);', 'tileA[t] = vec4<f32>(0.0); tileB[t] = vec4<f32>(0.0);')
+    .replace(/(tile[AB]\[t\] = )([^;]+)(; \})/g, '$1splitInput($2)$3')
+    .replaceAll('productError(av.x, bv.x, product)', 'tileProductError(av, bv, product)') + `
+fn splitInput(v: vec2<f32>) -> vec4<f32> {
+  let high = bitcast<f32>(bitcast<u32>(v.x) & 0xfffff000u);
+  return vec4<f32>(v, high, fpSub(v.x, high));
+}
+fn tileProductError(a: vec4<f32>, b: vec4<f32>, product: f32) -> f32 {
+  let first = fpSub(fpMul(a.z, b.z), product);
+  return fpAdd(fpAdd(fpAdd(first, fpMul(a.z, b.w)), fpMul(a.w, b.z)), fpMul(a.w, b.w));
+}`;
+}

@@ -34,6 +34,17 @@ const provenance = native ? {
   sameWorker: same(candidate.data.workerSha256, qualification.data.workerSha256),
   noDeveloperFlags: [candidate.data, qualification.data].every(report => report.developerOnly === false && Array.isArray(report.browserArguments) && report.browserArguments.length === 0 && (report.webgpuRuntimeFlags === undefined || (Array.isArray(report.webgpuRuntimeFlags) && report.webgpuRuntimeFlags.length === 0)) && report.results.every(fit => fit.developerOnly === false && fit.kernelMetadata?.developerOnly === false && fit.kernelMetadata.strictMathRequested === null)),
 };
+// New parallel executables/configuration are part of the qualified method.
+// Legacy reports remain readable; a new candidate cannot omit these fields.
+if ([...fits, ...qualification.data.results].some(fit => fit.rotationExecution)) {
+  provenance.sameRotationWorker = same(candidate.data.rotationWorkerSha256, qualification.data.rotationWorkerSha256);
+  if (native) provenance.sameRotationPool = same(candidate.data.rotationPoolSha256, qualification.data.rotationPoolSha256);
+  provenance.sameRotationExecution = fits.every(fit => qualification.data.results.some(ref => ref.backend === fit.backend && same(fit.rotationExecution, ref.rotationExecution)));
+}
+if (!native && [...fits, ...qualification.data.results].some(fit => fit.kernelMetadata?.dotChunkSize)) {
+  const settings = fit => [fit.kernelMetadata?.dotChunkSize, fit.kernelMetadata?.materializePanels, fit.kernelMetadata?.preSplit];
+  provenance.sameTraceSettings = fits.every(fit => qualification.data.results.some(ref => ref.backend === fit.backend && same(settings(fit), settings(ref))));
+}
 if (Object.values(provenance).some(value => value !== true)) throw new Error(`Unqualified candidate provenance: ${JSON.stringify(provenance)}`);
 const comparisons = fits.map(fit => {
   const reference = baseline.data.results.find(r => r.fixture === fit.fixture && r.backend === 'scala-resident');

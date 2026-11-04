@@ -1,9 +1,14 @@
 /** Experimental bounded WLSMV case-block kernel. Never selected by the app.
  * WGSL f32 arithmetic, optional compensated accumulation; host reduction f64. */
+import { panelDotShader, panelShader } from "./panel-shader.mjs";
 import { splitShader, residentShader } from "./split-shader.mjs";
 import { reduceShader, compensateSplit } from "./reduce-shader.mjs";
-import { portableDotShader, portableReductionShader } from "./portable-shader.mjs";
-export async function createGpuKernel({ compensated = true, split = false, resident = false, compensatedSplit = false, reduce = false, portable = false, strictMath, signal } = {}) {
+import { portableDotShader, portableReductionShader, tiledPortableShader } from "./portable-shader.mjs";
+export async function createGpuKernel({ compensated = true, split = false, resident = false, compensatedSplit = false, reduce = false, portable = false, strictMath, signal, dotChunkSize, materializePanels = false, preSplit = false } = {}) {
+  dotChunkSize ??= portable ? 1024 : 256;
+  if (![64, 128, 256, 512, 1024, 2048].includes(dotChunkSize)) throw new Error('Unsupported dot chunk size');
+  if (materializePanels && (!resident || !portable)) throw new Error('Panel expansion requires the portable resident kernel');
+  if (preSplit && !portable) throw new Error("Tiled splitting requires portable arithmetic");
   split ||= resident;
   if (portable && (!split || strictMath !== undefined || compensatedSplit)) throw new Error('Portable precision requires split inputs and no strictMath/alternate compensation');
   if ((compensatedSplit || reduce) && !split) throw new Error('Split precision is required for these experiments');
@@ -21,7 +26,7 @@ export async function createGpuKernel({ compensated = true, split = false, resid
   const add = compensated
     ? "let t = av * bv - correction; let next = sum + t; correction = (next - sum) - t; sum = next;"
     : "sum += av * bv;";
-  let code = resident ? residentShader : split ? splitShader : `
+  let code = materializePanels ? panelDotShader : resident ? residentShader : split ? splitShader : `
 struct Shape { rows: u32, cols: u32, pairs: u32, parameters: u32 }
 @group(0) @binding(0) var<storage, read> a: array<f32>;
 @group(0) @binding(1) var<storage, read> b: array<f32>;
@@ -56,8 +61,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
   }
   if (row < shape.rows && col < shape.cols) { out[row * shape.cols + col] = product - sum; }
 }`;
+  if (split) code = code.replaceAll('group.z * 256u', `group.z * ${dotChunkSize}u`)
+    .replaceAll('begin + 256u', `begin + ${dotChunkSize}u`)
+    .replace('(max(shape.pairs, shape.parameters) + 255u) / 256u', `(max(shape.pairs, shape.parameters) + ${dotChunkSize - 1}u) / ${dotChunkSize}u`);
   if (portable) code = portableDotShader(code, resident);
   else if (compensatedSplit) code = compensateSplit(code);
+  if (preSplit) code = tiledPortableShader(code);
   const reductionCode = portable ? portableReductionShader(reduceShader) : reduceShader;
   let strictMathRecognized = strictMath === undefined ? null : false;
   const createShaderModule = code => {
@@ -74,14 +83,17 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
   }
   const pipeline = await device.createComputePipelineAsync({ layout: "auto", compute: { module: shaderModule, entryPoint: "main" } });
   const reductionPipeline = reduce ? await device.createComputePipelineAsync({ layout: 'auto', compute: { module: createShaderModule(reductionCode), entryPoint: 'main' } }) : undefined;
-  const queryCount = reduce ? 4 : 2, queryBytes = queryCount * 8;
+  const panelPipeline = materializePanels ? await device.createComputePipelineAsync({ layout: 'auto', compute: { module: createShaderModule(panelShader), entryPoint: 'main' } }) : undefined;
+  const panels = [], panelCapacities = [0, 0], panelRanges = [];
+  const panelShapes = materializePanels ? [0, 1].map(() => device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST })) : [];
+  const queryCount = materializePanels ? 6 : reduce ? 4 : 2, queryBytes = queryCount * 8;
   const query = timestamps ? device.createQuerySet({ type: "timestamp", count: queryCount }) : undefined;
   const queryResolve = timestamps ? device.createBuffer({ size: queryBytes, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : undefined;
   const queryRead = timestamps ? device.createBuffer({ size: queryBytes, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST }) : undefined;
   const reductionShape = reduce ? device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }) : undefined;
   let reduced, reducedCapacity = 0;
   let buffers = [], capacities = [], sourceSizes, currentSource, read, readSize = 0, dispatchObserver;
-  const timings = { startupMs: performance.now() - startup, packMs: 0, uploadSubmitMs: 0, dispatchReadbackMs: 0, readMapWaitMs: 0, hostReductionMs: 0, gpuMs: timestamps ? 0 : null, reductionGpuMs: timestamps && reduce ? 0 : null, calls: 0, uploadedBytes: 0, readbackBytes: 0, peakOwnedGpuBufferBytes: 0, sourceInitializations: 0 };
+  const timings = { startupMs: performance.now() - startup, packMs: 0, uploadSubmitMs: 0, dispatchReadbackMs: 0, readMapWaitMs: 0, hostReductionMs: 0, gpuMs: timestamps ? 0 : null, reductionGpuMs: timestamps && reduce ? 0 : null, panelExpansions: 0, panelCacheHits: 0, panelGpuMs: timestamps && materializePanels ? 0 : null, calls: 0, uploadedBytes: 0, readbackBytes: 0, peakOwnedGpuBufferBytes: 0, sourceInitializations: 0 };
   const pack = rows => {
     const result = new Float32Array(rows.length * rows[0].length * (split ? 2 : 1));
     if (split) rows.forEach((row, i) => { for (let k = 0; k < row.length; k++) {
@@ -107,7 +119,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
     return [codes, meta, lookup, pack(source.projection)];
   };
   return {
-    metadata: { backend: "webgpu", precision: split ? `${portable ? 'explicit-rounding-dekker-' : compensatedSplit ? 'compensated-' : ''}split-f32/${reduce ? 'gpu-pair-reduction/host-f64' : 'chunked-host-f64'}` : compensated ? "f32-compensated/host-f64" : "f32/host-f64", strictMathRequested: strictMath ?? null, strictMathRecognized, developerOnly: strictMath === true, transport: resident ? "Resident ordinal source and projections; per-block row ranges only" : "Expanded block inputs uploaded per call", ownedGpuBufferBudgetBytes: 1024 ** 3, adapter: { vendor: adapter.info.vendor, architecture: adapter.info.architecture, device: adapter.info.device, description: adapter.info.description }, timestamps, shader: code, reductionShader: reduce ? reductionCode : undefined },
+    metadata: { backend: "webgpu", dotChunkSize, materializePanels, preSplit, precision: split ? `${portable ? 'explicit-rounding-dekker-' : compensatedSplit ? 'compensated-' : ''}split-f32/${reduce ? 'gpu-pair-reduction/host-f64' : 'chunked-host-f64'}` : compensated ? "f32-compensated/host-f64" : "f32/host-f64", strictMathRequested: strictMath ?? null, strictMathRecognized, developerOnly: strictMath === true, transport: resident ? "Resident ordinal source and projections; per-block row ranges only" : "Expanded block inputs uploaded per call", ownedGpuBufferBudgetBytes: 1024 ** 3, adapter: { vendor: adapter.info.vendor, architecture: adapter.info.architecture, device: adapter.info.device, description: adapter.info.description }, timestamps, shader: code, panelShader: materializePanels ? panelShader : undefined, reductionShader: reduce ? reductionCode : undefined },
     timings,
     setDispatchObserver(observer) { dispatchObserver = observer; },
     async run(block) {
@@ -118,13 +130,15 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
       const shape = resident
         ? new Uint32Array([ordinal.leftRows, ordinal.rightRows, ordinal.source.pairs.length, ordinal.source.projection[0].length, ordinal.leftStart, ordinal.rightStart, 0, 0])
         : new Uint32Array([block.left.length, block.right.length, block.left[0].length, block.leftProjection[0].length, ...(portable ? [0, 0, 0, 0] : [])]);
-      const chunks = split ? Math.ceil(Math.max(shape[2], shape[3]) / 256) : 1;
+      const chunks = split ? Math.ceil(Math.max(shape[2], shape[3]) / dotChunkSize) : 1;
       const outputBytes = shape[0] * shape[1] * 4 * chunks * (split ? 4 : 1);
+      const panelSizes = materializePanels ? [shape[0] * shape[2] * 8, shape[1] * shape[2] * 8] : [];
+      const panelOwned = panelSizes.reduce((sum, size, i) => sum + Math.max(size, panelCapacities[i]), 0) + panelShapes.length * 16;
       const reducedBytes = reduce ? shape[0] * shape[1] * 16 : 0;
       const readBytes = reduce ? reducedBytes : outputBytes;
       if (resident) {
         const source = ordinal.source;
-        const estimate = Math.ceil(source.codes.length / 2) * 4 + source.pairs.length * 16 + source.pairs.reduce((sum, pair) => sum + pair.values.length * 8, 0) + source.nRows * shape[3] * 8 + outputBytes + readBytes + reducedBytes + 128;
+        const estimate = Math.ceil(source.codes.length / 2) * 4 + source.pairs.length * 16 + source.pairs.reduce((sum, pair) => sum + pair.values.length * 8, 0) + source.nRows * shape[3] * 8 + outputBytes + readBytes + reducedBytes + panelOwned + 128;
         if (estimate > 1024 ** 3) throw new Error("Resident GPU source and blocks exceed the explicit 1 GiB device-buffer budget");
       }
       const inputs = resident ? currentSource === ordinal.source ? undefined : packSource(ordinal.source)
@@ -132,10 +146,15 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
       if (inputs) sourceSizes = inputs.map(v => v.byteLength);
       timings.packMs += performance.now() - start;
       const sizes = [...sourceSizes, outputBytes, shape.byteLength];
-      if (sizes.some(size => size > device.limits.maxStorageBufferBindingSize)) throw new Error("Block exceeds GPU storage-buffer limit");
-      const retainedBytes = sizes.reduce((sum, size, i) => sum + Math.max(size, capacities[i] ?? 0), 0) + Math.max(readSize, readBytes) + Math.max(reducedCapacity, reducedBytes) + (query ? queryBytes * 2 : 0) + (reduce ? 16 : 0);
+      if ([...sizes, ...panelSizes].some(size => size > device.limits.maxStorageBufferBindingSize)) throw new Error("Block exceeds GPU storage-buffer limit");
+      const retainedBytes = panelOwned + sizes.reduce((sum, size, i) => sum + Math.max(size, capacities[i] ?? 0), 0) + Math.max(readSize, readBytes) + Math.max(reducedCapacity, reducedBytes) + (query ? queryBytes * 2 : 0) + (reduce ? 16 : 0);
       if (retainedBytes > 1024 ** 3) throw new Error("Retained GPU buffers exceed the explicit 1 GiB device-buffer budget");
       const beforeUpload = performance.now();
+      panelSizes.forEach((size, i) => {
+        if (panelCapacities[i] >= size) return;
+        panels[i]?.destroy(); panelRanges[i] = undefined; panelCapacities[i] = size;
+        panels[i] = device.createBuffer({ size, usage: GPUBufferUsage.STORAGE });
+      });
       sizes.forEach((size, i) => {
         if ((capacities[i] ?? 0) >= size) return;
         buffers[i]?.destroy(); capacities[i] = size;
@@ -150,12 +169,32 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
         reduced = device.createBuffer({ size: reducedCapacity, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
       }
       inputs?.forEach((input, i) => device.queue.writeBuffer(buffers[i], 0, input));
+      if (materializePanels && inputs) panelRanges.length = 0;
       if (resident && inputs) { currentSource = ordinal.source; timings.sourceInitializations++; }
       device.queue.writeBuffer(buffers[5], 0, shape);
       if (reduce) device.queue.writeBuffer(reductionShape, 0, new Uint32Array([shape[0] * shape[1], chunks, 0, 0]));
-      const bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: buffers.map((buffer, binding) => ({ binding, resource: { buffer, size: sizes[binding] } })) });
+      const dotBuffers = materializePanels ? [panels[0], panels[1], buffers[3], buffers[3], buffers[4], buffers[5]] : buffers;
+      const dotSizes = materializePanels ? [panelSizes[0], panelSizes[1], sizes[3], sizes[3], sizes[4], sizes[5]] : sizes;
+      const bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: dotBuffers.map((buffer, binding) => ({ binding, resource: { buffer, size: dotSizes[binding] } })) });
       device.pushErrorScope("validation");
       const encoder = device.createCommandEncoder();
+      if (materializePanels) {
+        const expansion = encoder.beginComputePass(query ? { timestampWrites: { querySet: query, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : {});
+        expansion.setPipeline(panelPipeline);
+        for (let i = 0; i < 2; i++) {
+          const rows = shape[i], start = shape[4 + i], key = `${start}:${rows}`;
+          if (panelRanges[i] === key) { timings.panelCacheHits++; continue; }
+          const groups = Math.ceil(rows * shape[2] / 256);
+          if (groups > device.limits.maxComputeWorkgroupsPerDimension) throw new Error('Panel expansion exceeds dispatch limits');
+          device.queue.writeBuffer(panelShapes[i], 0, new Uint32Array([rows, start, shape[2], 0]));
+          const expansionBuffers = [buffers[0], buffers[1], buffers[2], panels[i], panelShapes[i]];
+          const expansionSizes = [sizes[0], sizes[1], sizes[2], panelSizes[i], 16];
+          expansion.setBindGroup(0, device.createBindGroup({ layout: panelPipeline.getBindGroupLayout(0), entries: expansionBuffers.map((buffer, binding) => ({ binding, resource: { buffer, size: expansionSizes[binding] } })) }));
+          expansion.dispatchWorkgroups(groups);
+          panelRanges[i] = key; timings.panelExpansions++;
+        }
+        expansion.end();
+      }
       const pass = encoder.beginComputePass(query ? { timestampWrites: { querySet: query, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } } : {});
       pass.setPipeline(pipeline); pass.setBindGroup(0, bindGroup);
       pass.dispatchWorkgroups(Math.ceil(shape[1] / 16), Math.ceil(shape[0] / 16), chunks); pass.end();
@@ -196,6 +235,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
         const times = new BigUint64Array(queryRead.getMappedRange());
         timings.gpuMs += Number(times[1] - times[0]) / 1e6;
         if (reduce) { const elapsed = Number(times[3] - times[2]) / 1e6; timings.reductionGpuMs += elapsed; timings.gpuMs += elapsed; }
+        if (materializePanels) { const elapsed = Number(times[5] - times[4]) / 1e6; timings.panelGpuMs += elapsed; timings.gpuMs += elapsed; }
         queryRead.unmap();
       }
       const error = await device.popErrorScope();
@@ -204,11 +244,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
       timings.calls++;
       timings.uploadedBytes += (inputs?.reduce((sum, v) => sum + v.byteLength, 0) ?? 0) + shape.byteLength + (reduce ? 16 : 0);
       timings.readbackBytes += readBytes;
-      timings.peakOwnedGpuBufferBytes = Math.max(timings.peakOwnedGpuBufferBytes, capacities.reduce((a, b) => a + b, 0) + readSize + reducedCapacity + (query ? queryBytes * 2 : 0) + (reduce ? 16 : 0));
+      timings.peakOwnedGpuBufferBytes = Math.max(timings.peakOwnedGpuBufferBytes, panelOwned + capacities.reduce((a, b) => a + b, 0) + readSize + reducedCapacity + (query ? queryBytes * 2 : 0) + (reduce ? 16 : 0));
       return output;
     },
     destroy() {
       signal?.removeEventListener("abort", abort);
+      panels.forEach(buffer => buffer.destroy()); panelShapes.forEach(buffer => buffer.destroy());
       buffers.forEach(buffer => buffer.destroy()); read?.destroy(); reduced?.destroy(); reductionShape?.destroy(); query?.destroy(); queryResolve?.destroy(); queryRead?.destroy(); device.destroy();
     },
   };
