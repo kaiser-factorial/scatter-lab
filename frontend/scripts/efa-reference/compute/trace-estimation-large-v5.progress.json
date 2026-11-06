@@ -1,0 +1,15 @@
+{
+  "progress": {
+    "stage": "A × probes",
+    "completed": 14336,
+    "total": 20000
+  },
+  "lastEstimate": {
+    "fixture": "large",
+    "seed": 61002,
+    "probes": 64,
+    "elapsedMs": 18271.300000071526,
+    "relativeTraceSquaredError": 0.00012322911243729405
+  },
+  "completedFixtures": 0
+}

@@ -1,0 +1,13 @@
+
+> frontend@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v4.1.10 /Users/corinakaiser/Projects/pca-workbench/frontend
+
+
+ Test Files  54 passed | 2 skipped (56)
+      Tests  672 passed | 4 skipped (676)
+   Start at  00:42:56
+   Duration  16.41s (transform 1.22s, setup 0ms, import 2.78s, tests 23.20s, environment 6ms)
+

@@ -1,0 +1,84 @@
+{
+  "status": "qualified-mice-stability-parallel",
+  "recordedAt": "2026-10-31T09:34:35.350055+00:00",
+  "baselineCommit": "1f86b63",
+  "scope": "Ordinal MICE, resampling stability, heatmaps, persistence and parallel-analysis batches qualified within the recorded fixture/performance scope. DWLS/WLSMV and expanded assistant integration remain next.",
+  "sourceSha256": {
+    "src/lib/efa/extraction.ts": "7fc3ba0679f2df0efb75874ef671b23885ca47e2e5795047e102ee4f70de6549",
+    "src/lib/efa/rotation.ts": "026780dd5d3da2c7793cbad8a73352a894529d2635a583422636b63519aa8663",
+    "src/lib/efa/mice.ts": "12562a773db1fbe6599573c31a97fcfeace075315717046237b808fc904f8691",
+    "src/lib/efa/ordinal-regression.ts": "598ab395649a8619c34502a78b3e19c42f7d2c1575ee8c7ed0e8958a8d406ad8",
+    "src/lib/efa/stability.ts": "b174237cfb78e41f11afd382eda497340b0ca0b65a9b606edf87b8cbd1dcaa8d",
+    "src/lib/efa/service.ts": "389fbca352709087df6e518182f6235ec1b03c358170dc2cf8d18a7963b89008",
+    "src/lib/efa/controller.ts": "ac7a0ef6102e81ba8abd42ef2d55b00c86b694549ea8a63bc504c3b27aed7de1",
+    "src/lib/efa/persistence.ts": "e96ccd2db6643d9df74322cfa23d36413509369f83a131a6c7c6d09dad6c764d",
+    "src/components/EfaPanel.tsx": "9af594d738845484c7996d75a19677f4f42b6612afa9431fdc6137fbb0f7e87a",
+    "src/components/EfaBatchResults.tsx": "07402204d7e2899c9b3c087e9a9bfe3952a08b8ae9375148338fbfd0f44a005c",
+    "src/lib/efa/parallel.ts": "a26dfe429efce69dfa2b53e56ee2460b387c214d4161a70377c66f73e53f0952",
+    "src/lib/efa/fingerprint.ts": "affb3faf3f6a4c6e114555991286dd15ae8e3d1fa524341d52b9947eeb667d77",
+    "src/lib/efa/imputation-analysis.ts": "ff64fea72754fc4911f8138fe1bacea367b56f3b320e8fdbe7d504c10e871915",
+    "scripts/efa-reference/large-imputation-benchmark.ts": "0b663f35fd43dafa76c99982f819ef631a75facd9ff81d395300fe02128496c9",
+    "scripts/efa-reference/check-large-imputation.mjs": "c57743a63eae4f9544088f449fc64163107a44972eee7c011a6fa43d68d068ae",
+    "src/lib/__tests__/efa-large-reference.test.ts": "ddd9052615c478b2c63bdf5924168ccc024a59db38353c4daa7535c3c633b2f6",
+    "src/lib/__tests__/efa-seeds.test.ts": "898580de57fecf2b4bf803b3043b10fc9d9a9b4c08d01ee64de534e612909bbd",
+    "src/lib/__tests__/efa-contrasts.test.ts": "cfeb2b778065e716d9f1680b64e5d60f495c2bf5070412c6d77412b778d38b2e",
+    "scripts/efa-reference/generate-conditional.R": "c81063364e67ef487c694ac9ea1c4c6c4855ce703a4a0c539843f8a075be203f"
+  },
+  "checks": {
+    "unitSuite": {
+      "passed": 552,
+      "skipped": 4,
+      "testWorkers": 2,
+      "durationSeconds": 11.97,
+      "note": "Three large-reference tests passed separately; the fourth skipped test is the optional Node benchmark. Includes seed boundaries, category-allocation guard, and seven/eleven-point R references."
+    },
+    "typescript": "passed",
+    "lint": {
+      "errors": 117,
+      "warnings": 6,
+      "efaIssues": 0,
+      "existingCeiling": 123
+    },
+    "productionBuild": {
+      "status": "passed",
+      "method": "Isolated source/dependency snapshot; temporary benchmark assets and environment files excluded",
+      "snapshot": "/tmp/scatter-efa-engine3-build.hzxKsr",
+      "engine": "scatter-efa/3",
+      "next": "16.2.10",
+      "compilationSeconds": 13.8,
+      "typescriptSeconds": 10.9,
+      "note": "Passed with the final MICE seed/category guards and reference tests. Final combined build remains required after weighted and assistant integration."
+    },
+    "references": "manifest.json records pinned R synthetic inputs and outputs; local generation executed; remote CI not executed",
+    "browserReports": [
+      "browser-benchmark.json",
+      "extensions-browser-benchmark.json",
+      "extensions-ui-verification.json",
+      "large-ui-verification.json",
+      "ui-verification.json",
+      "extensions-browser-benchmark.engine-3.json",
+      "large-imputation-benchmark.json",
+      "parallel-benchmark.attempt-4.json"
+    ],
+    "largeReferenceParity": "passed; three 500-item shared-matrix extraction comparisons, 778 s, Node 26.8.1"
+  },
+  "remaining": [
+    "DWLS followed by robust WLSMV; MICE/stability/parallel gate passed",
+    "Expanded assistant per-item selection/refitting and offline privacy replays",
+    "Final combined regression and delivery"
+  ],
+  "initializationQualification": "initialization-qualification.json; full 500-item workflow rerun in browser-benchmark.json",
+  "parallelBatch": {
+    "status": "passed",
+    "report": "parallel-benchmark.attempt-4.json",
+    "completed": 100,
+    "requested": 100,
+    "failed": 0,
+    "elapsedMs": 3324912.5999999642,
+    "cancelMs": 2.199999988079071,
+    "peakSampledRssBytes": 771784704,
+    "workerSha256": "dcc14a9cbd45d855ee88a8c79ecceccb734e1d372cf3c0281ae540a4b00963d8",
+    "note": "Loaded worker predates added input-hash metadata and invalid-seed/category guards; its numerical implementation and accepted qualification seeds are unchanged. Other local checks ran concurrently, so wall time includes resource contention."
+  },
+  "overallGoal": "active"
+}

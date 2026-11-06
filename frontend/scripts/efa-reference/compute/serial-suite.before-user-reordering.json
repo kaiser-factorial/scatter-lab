@@ -1,0 +1,12 @@
+{
+  "startedAt": "2026-10-31T23:34:39.180Z",
+  "status": "running",
+  "stages": [
+    {
+      "name": "existing-native-run",
+      "pid": 80874,
+      "startedAt": "2026-10-31T23:34:39.187Z",
+      "status": "waiting"
+    }
+  ]
+}

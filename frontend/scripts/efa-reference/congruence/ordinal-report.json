@@ -1,0 +1,2138 @@
+{
+  "recordedAt": "2026-11-06T12:02:50.608Z",
+  "scope": "Raw ordinal inputs through native pair-margin polychorics and influence moments; independent R polycor/lavaan moments and supplied-moment DWLS/WLSMV. Signs/permutations only. No claim of equivalence to different raw-data lavaan threshold defaults.",
+  "summary": {
+    "passed": 8,
+    "failed": 0
+  },
+  "results": [
+    {
+      "dataset": "ordinal-mcar",
+      "missing": "pairwise",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 5.623279619726418e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 2.2749246930686695e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 1.1705731869926517e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 8.264494029130987e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 9.051651307379061e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 3.198444875618378e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 8.26449403024121e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 8.860854512349192e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.1644142483557829e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 8.26449402691054e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 6.447793278185898e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 6.069163549504708e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 5.5645187235775495e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 8.576260923653933e-9,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 6.069163493993557e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 5.980014308043513e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 1.510483915723171e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 6.069163505095787e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 4.910750328601665e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 3.0734970124512984e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 5.170510242180626e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 2.335889259796886e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 9.671856204818141e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 6.260777452027355e-10,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 98.39016699999999
+    },
+    {
+      "dataset": "ordinal-mcar",
+      "missing": "complete",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 1.8606949314659005e-11,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 6.814693254142412e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 1.3128387266192476e-14,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 9.276569923333255e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 8.30078927815947e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 2.5826147886931494e-9,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 9.276569856719874e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 8.432709996952781e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.7873353685970983e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 9.276569867822104e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 0.00006850523302623368,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 8.570935716711858e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 1.392339495920325e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 1.0312469100881572e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 8.570935727814089e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 7.584693959006295e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 3.909095613874314e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 8.570935716711858e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 2.5819067420163044e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 2.062705561911571e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 1.1357291995750529e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 4.304734346760597e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 2.7474349906242423e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 1.999794663198884e-9,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 56.410167
+    },
+    {
+      "dataset": "ordinal-mcar",
+      "missing": "mean",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 2.1708190800495686e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 7.025824366735378e-12,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 1.699883289685289e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 0.0000013086050738575494,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 0.0000013737541433300748,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 2.3524617587256103e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 0.0000013086050737465271,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 0.0000014638807244171659,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.7622582315635071e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 0.0000013086050737465271,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 0.00015320803910293113,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 1.291968665384502e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 1.564961559230582e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 2.0279731338668228e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 1.291968665384502e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 1.214061079446438e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 2.7774894939547323e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 1.291968669825394e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 5.482954245628058e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 5.8053117868439585e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 3.789470959247865e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 4.028371858311175e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 1.3004537890992651e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 8.755125513459916e-10,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 73.26825000000002
+    },
+    {
+      "dataset": "ordinal-mcar",
+      "missing": "median",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 2.1708190800495686e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 7.025824366735378e-12,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 1.699883289685289e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 0.0000013086050738575494,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 0.0000013737541433300748,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 2.3524617587256103e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 0.0000013086050737465271,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 0.0000014638807244171659,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.7622582315635071e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 0.0000013086050737465271,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 0.00015320803910293113,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 1.291968665384502e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 1.564961559230582e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 2.0279731338668228e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 1.291968665384502e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 1.214061079446438e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 2.7774894939547323e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 1.291968669825394e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 5.482954245628058e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 5.8053117868439585e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 3.789470959247865e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 4.028371858311175e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 1.3004537890992651e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 8.755125513459916e-10,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 52.48683299999999
+    },
+    {
+      "dataset": "bfi25-original",
+      "missing": "pairwise",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 1.5770940109405274e-11,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 3.602484976994447e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 1.7337242752546445e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 5.089548692494006e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 3.530804612017491e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 2.1342377206842733e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 5.08954870137579e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 3.0908395598494565e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.4371418072256503e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 5.089548705816682e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 2.8407740138014503e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 2.1026048485639492e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 3.004354842128798e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 9.576872597727437e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 2.1026048496741723e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 2.7834630222933754e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 1.1078837744427084e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 2.1026048452332802e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 2.2821669920514154e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 1.2146756489528343e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 8.203389256777882e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 6.098591143199883e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 0.000001635452008486027,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 0,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 1284.685208
+    },
+    {
+      "dataset": "bfi25-original",
+      "missing": "complete",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 1.4622355409832366e-11,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 3.0160318686967e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.846056723626589e-13,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 6.863552641789283e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 4.618748967732955e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 3.3885935290557667e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 6.863552638458614e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 4.004649633015944e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.8861027534233799e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 6.863552642899506e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 0.00001675619299883191,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 3.604796848383218e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 3.8782656536229254e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 5.241657872745442e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 3.60479684893833e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 3.762561550102461e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 2.1640257852340028e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 3.604796839362656e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 4.230111228797906e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 1.093440005206503e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 7.735675922049268e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 4.437085721065159e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 0.0000012890752714156406,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 0,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 966.3858339999997
+    },
+    {
+      "dataset": "bfi25-original",
+      "missing": "mean",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 1.0735761238334085e-11,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 1.5505818851124786e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 1.6801560143164807e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 5.141333394576009e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 3.4060005105196467e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 2.183989855839008e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 5.141333393465786e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 3.096304813654527e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.545804236280368e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 5.141333390135117e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 0.000004586785209481636,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 4.3381394898567294e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 5.851969296505333e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 6.29545062219572e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 4.338139489024062e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 6.308947873151505e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 3.50778706748045e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 4.338139490134285e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 5.177281816315382e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 2.8451950129237957e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 0.0000011214167301432099,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 4.2689634227599527e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 0.000015236404578899965,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 0,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 1007.05575
+    },
+    {
+      "dataset": "bfi25-original",
+      "missing": "median",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "polychoric max abs",
+          "error": 1.5402413719445285e-11,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "original observed pair counts",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "influence Gamma max abs",
+          "error": 2.7754687437209213e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.4857117192643727e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax common max abs",
+          "error": 5.060646618426645e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax pattern max abs",
+          "error": 4.049852757592731e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax Phi max abs",
+          "error": 2.1783355096463564e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin common max abs",
+          "error": 5.06064662397776e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin pattern max abs",
+          "error": 3.501634913138929e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin Phi max abs",
+          "error": 1.5563775901394905e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax common max abs",
+          "error": 5.060646616206199e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax pattern max abs",
+          "error": 0.000004636792944712198,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "minres/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls native convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax common max abs",
+          "error": 3.5461903680200635e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax pattern max abs",
+          "error": 4.143853346016968e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax Phi max abs",
+          "error": 3.426380989490774e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/promax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin common max abs",
+          "error": 3.5461903657996174e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin pattern max abs",
+          "error": 5.733243482186623e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin Phi max abs",
+          "error": 3.1567874078652913e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/oblimin native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax common max abs",
+          "error": 3.5461903746814016e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax pattern max abs",
+          "error": 3.4845388513504716e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "dwls/varimax native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R weighted convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw weighted chi-square abs",
+          "error": 2.3546135707874782e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 3.530865626544255e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 4.724707878267509e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 0.000014740336155227851,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 0,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 875.1465829999997
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@scatterlab/stats",
+  "version": "0.1.0",
+  "description": "Typed statistical computing for Node and browsers, with explicit measurement, missingness and convergence contracts.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "PCA.md", "EFA.md", "VALIDATION.md", "NOTICE.md"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./data": { "types": "./dist/data.d.ts", "import": "./dist/data.js" },
+    "./stats": { "types": "./dist/stats.d.ts", "import": "./dist/stats.js" },
+    "./pca": { "types": "./dist/pca.d.ts", "import": "./dist/pca.js" },
+    "./efa": { "types": "./dist/efa.d.ts", "import": "./dist/efa.js" },
+    "./missing": { "types": "./dist/missing.d.ts", "import": "./dist/missing.js" },
+    "./diagnostics": { "types": "./dist/diagnostics.d.ts", "import": "./dist/diagnostics.js" },
+    "./cluster": { "types": "./dist/cluster.d.ts", "import": "./dist/cluster.js" },
+    "./internal/*": { "types": "./dist/internal/*.d.ts", "import": "./dist/internal/*.js" },
+    "./package.json": "./package.json"
+  },
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run --maxWorkers=2",
+    "prepack": "npm run build"
+  },
+  "dependencies": { "ml-matrix": "6.12.1" },
+  "devDependencies": { "typescript": "5.9.3", "esbuild": "0.27.0", "vitest": "4.1.10" }
+}

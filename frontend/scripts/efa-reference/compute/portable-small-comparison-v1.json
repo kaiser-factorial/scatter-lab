@@ -1,0 +1,516 @@
+{
+  "recordedAt": "2026-11-01T03:29:03.453Z",
+  "status": "passed",
+  "provenance": {
+    "independentReferencesPassed": true,
+    "sameWorker": true,
+    "noDeveloperFlags": true
+  },
+  "comparisons": [
+    {
+      "fixture": "normal",
+      "dimensions": {
+        "rows": 1000,
+        "items": 8,
+        "factors": 2
+      },
+      "inputSha256": "ebf673637615d13c1399b76f5332ac97d99a23567590c518e3d58f746d93e87a",
+      "errors": {
+        "rawStatistic": 4.149836030364895e-10,
+        "trace": 2.4069635173873394e-13,
+        "traceSquared": 3.872457909892546e-13,
+        "scalingFactor": 3.447242491461111e-14,
+        "shift": 4.440892098500626e-13,
+        "statistic": 9.602008077536084e-10,
+        "pValue": 5.439948491670066e-11
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            -1,
+            1
+          ],
+          "errors": {
+            "pattern": 7.752121167214909e-11,
+            "structure": 5.387534862677512e-11,
+            "phi": 1.2869638688073337e-10,
+            "communalities": 4.4119152775579096e-12,
+            "reproduced": 4.446665258228677e-12,
+            "patternSE": 3.0935202528087347e-7,
+            "structureSE": 2.091878850279949e-7,
+            "phiSE": 3.834520597156832e-7,
+            "communalitySE": 3.253231017907865e-13,
+            "uniquenessSE": 3.253231017907865e-13
+          },
+          "scores": {
+            "maxAbsolute": 1.5926748808681168e-10,
+            "maxStandardized": 1.9020185426654734e-10,
+            "sameCompleteMask": true,
+            "completeRows": 1000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 4.394484776071295e-12,
+            "structure": 2.99571478734606e-12,
+            "phi": 2.0983215165415459e-13,
+            "communalities": 4.412248344465297e-12,
+            "reproduced": 4.4469983251360645e-12,
+            "patternSE": 0.000001829449269144523,
+            "structureSE": 0.0000010563759484105706,
+            "phiSE": 8.235174348003582e-11,
+            "communalitySE": 3.253231017907865e-13,
+            "uniquenessSE": 3.253231017907865e-13
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            1,
+            0
+          ],
+          "signs": [
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 2.657208559853075e-7,
+            "structure": 2.657208559853075e-7,
+            "phi": 0,
+            "communalities": 4.412581411372685e-12,
+            "reproduced": 4.447109347438527e-12,
+            "patternSE": 0.0000068641044266640194,
+            "structureSE": 0.0000068641044266640194,
+            "phiSE": 0,
+            "communalitySE": 3.253231017907865e-13,
+            "uniquenessSE": 3.253231017907865e-13
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    },
+    {
+      "fixture": "pairwise",
+      "dimensions": {
+        "rows": 1000,
+        "items": 8,
+        "factors": 2
+      },
+      "inputSha256": "1d5d3b2509874c0baa0338c078e4b7608c1997383a448aae97416fe1670d8d85",
+      "errors": {
+        "rawStatistic": 3.0100366643637244e-11,
+        "trace": 7.052136652418994e-13,
+        "traceSquared": 6.146194664324867e-13,
+        "scalingFactor": 5.062616992290714e-14,
+        "shift": 1.3855583347321954e-13,
+        "statistic": 6.31548147111971e-11,
+        "pValue": 5.288880444709321e-12
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 9.733482964069395e-9,
+            "structure": 6.46985354180174e-9,
+            "phi": 1.2600969434561904e-8,
+            "communalities": 2.2093993301552928e-12,
+            "reproduced": 2.2093993301552928e-12,
+            "patternSE": 5.871264018714184e-8,
+            "structureSE": 4.168115422947816e-8,
+            "phiSE": 1.065832888474949e-7,
+            "communalitySE": 1.3426065814670096e-13,
+            "uniquenessSE": 1.3426065814670096e-13
+          },
+          "scores": {
+            "maxAbsolute": 1.9769266446090228e-8,
+            "maxStandardized": 2.3225309009333728e-8,
+            "sameCompleteMask": true,
+            "completeRows": 428,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 3.6473916165125075e-8,
+            "structure": 3.212022553489291e-8,
+            "phi": 4.563560307424552e-9,
+            "communalities": 2.2095103524577553e-12,
+            "reproduced": 2.2095103524577553e-12,
+            "patternSE": 0.000002108151230278965,
+            "structureSE": 0.000002382494904723531,
+            "phiSE": 3.9176755020631227e-7,
+            "communalitySE": 1.3426065814670096e-13,
+            "uniquenessSE": 1.3426065814670096e-13
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 3.0037156067974635e-7,
+            "structure": 3.0037156067974635e-7,
+            "phi": 0,
+            "communalities": 2.2093438190040615e-12,
+            "reproduced": 2.2093438190040615e-12,
+            "patternSE": 0.000012830053930115715,
+            "structureSE": 0.000012830053930115715,
+            "phiSE": 0,
+            "communalitySE": 1.3426065814670096e-13,
+            "uniquenessSE": 1.3426065814670096e-13
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    },
+    {
+      "fixture": "complete",
+      "dimensions": {
+        "rows": 431,
+        "items": 8,
+        "factors": 2
+      },
+      "inputSha256": "108ccde224e419b679c78f8448aa6b83ab91f63ea4b14eff50645b3cb32f319c",
+      "errors": {
+        "rawStatistic": 6.982059375104654e-11,
+        "trace": 7.780442956573097e-13,
+        "traceSquared": 5.124789481669723e-13,
+        "scalingFactor": 4.796163466380676e-14,
+        "shift": 4.369837824924616e-13,
+        "statistic": 1.6835421945415874e-10,
+        "pValue": 1.305267005591304e-11
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            1,
+            0
+          ],
+          "signs": [
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 1.586802356179362e-10,
+            "structure": 1.1353296081040298e-10,
+            "phi": 2.802523768608012e-10,
+            "communalities": 2.5327517860773696e-12,
+            "reproduced": 2.5327517860773696e-12,
+            "patternSE": 7.650345992468721e-7,
+            "structureSE": 3.8824996699549086e-7,
+            "phiSE": 0.0000010094413400510427,
+            "communalitySE": 2.1106033587514617e-13,
+            "uniquenessSE": 2.1106033587514617e-13
+          },
+          "scores": {
+            "maxAbsolute": 3.444793339468788e-10,
+            "maxStandardized": 4.1469938594218547e-10,
+            "sameCompleteMask": true,
+            "completeRows": 431,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 4.838380374128093e-8,
+            "structure": 3.393335679113818e-8,
+            "phi": 6.960823140111927e-9,
+            "communalities": 2.5327517860773696e-12,
+            "reproduced": 2.5327517860773696e-12,
+            "patternSE": 0.000010705995927125234,
+            "structureSE": 0.00000590156617138321,
+            "phiSE": 5.287227753392187e-7,
+            "communalitySE": 2.1106033587514617e-13,
+            "uniquenessSE": 2.1106033587514617e-13
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 1.929567616798522e-12,
+            "structure": 1.929567616798522e-12,
+            "phi": 0,
+            "communalities": 2.5327517860773696e-12,
+            "reproduced": 2.5327517860773696e-12,
+            "patternSE": 0.000026750544074020943,
+            "structureSE": 0.000026750544074020943,
+            "phiSE": 0,
+            "communalitySE": 2.1106033587514617e-13,
+            "uniquenessSE": 2.1106033587514617e-13
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    },
+    {
+      "fixture": "skew",
+      "dimensions": {
+        "rows": 1000,
+        "items": 8,
+        "factors": 2
+      },
+      "inputSha256": "b895f61608e7e769a38d979c86b6406734b950ca6104f00f5ab5f90944f64a18",
+      "errors": {
+        "rawStatistic": 3.125979475271379e-10,
+        "trace": 1.468158927764307e-12,
+        "traceSquared": 1.3251622021925868e-12,
+        "scalingFactor": 1.209587985329108e-13,
+        "shift": 1.580957587066223e-13,
+        "statistic": 7.359908238413482e-10,
+        "pValue": 1.5252799023812713e-11
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 5.1275650392312855e-12,
+            "structure": 3.4322544806286714e-12,
+            "phi": 1.701971896750365e-13,
+            "communalities": 4.22967216806569e-12,
+            "reproduced": 4.22967216806569e-12,
+            "patternSE": 8.249144122438046e-7,
+            "structureSE": 2.0653194806458108e-7,
+            "phiSE": 4.2310514351134865e-7,
+            "communalitySE": 2.2166990465422032e-13,
+            "uniquenessSE": 2.2166990465422032e-13
+          },
+          "scores": {
+            "maxAbsolute": 9.653527976993814e-12,
+            "maxStandardized": 1.1285750112222104e-11,
+            "sameCompleteMask": true,
+            "completeRows": 1000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 4.920619467441156e-12,
+            "structure": 3.4363623058197845e-12,
+            "phi": 6.130651541980114e-13,
+            "communalities": 4.22967216806569e-12,
+            "reproduced": 4.22967216806569e-12,
+            "patternSE": 0.000012204507273967657,
+            "structureSE": 0.000007271998835829685,
+            "phiSE": 5.284569423724683e-8,
+            "communalitySE": 2.2166990465422032e-13,
+            "uniquenessSE": 2.2166990465422032e-13
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            1,
+            0
+          ],
+          "signs": [
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 2.7539710512058946e-9,
+            "structure": 2.7539710512058946e-9,
+            "phi": 0,
+            "communalities": 4.229727679216921e-12,
+            "reproduced": 4.229727679216921e-12,
+            "patternSE": 0.00006631540334670755,
+            "structureSE": 0.00006631540334670755,
+            "phiSE": 0,
+            "communalitySE": 2.2166990465422032e-13,
+            "uniquenessSE": 2.2166990465422032e-13
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    },
+    {
+      "fixture": "heavy-tail",
+      "dimensions": {
+        "rows": 1000,
+        "items": 8,
+        "factors": 2
+      },
+      "inputSha256": "c4286981c258e212064841a532273a6a96e409bed729b42bd89ed0e2200e0d79",
+      "errors": {
+        "rawStatistic": 4.462386016257369e-11,
+        "trace": 6.430411758628907e-13,
+        "traceSquared": 5.750955267558311e-13,
+        "scalingFactor": 5.2791104820926193e-14,
+        "shift": 4.263256414560601e-14,
+        "statistic": 1.0529532801228925e-10,
+        "pValue": 8.789635685957364e-12
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            1,
+            0
+          ],
+          "signs": [
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 3.818251270715223e-10,
+            "structure": 2.458649395187251e-10,
+            "phi": 3.5193226111118747e-10,
+            "communalities": 1.152522521863375e-12,
+            "reproduced": 1.6870393970691566e-12,
+            "patternSE": 0.0000013429182730388678,
+            "structureSE": 3.4497731035004753e-7,
+            "phiSE": 4.4943912588107926e-7,
+            "communalitySE": 8.153200337090993e-14,
+            "uniquenessSE": 8.153200337090993e-14
+          },
+          "scores": {
+            "maxAbsolute": 8.669736040189946e-10,
+            "maxStandardized": 1.0119911575401375e-9,
+            "sameCompleteMask": true,
+            "completeRows": 1000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 1.567333152152628e-9,
+            "structure": 1.00416813753057e-9,
+            "phi": 4.029345745948376e-10,
+            "communalities": 1.1519674103510624e-12,
+            "reproduced": 1.6873724639765442e-12,
+            "patternSE": 0.000003918034020222727,
+            "structureSE": 0.000002102326821004641,
+            "phiSE": 4.848739684065739e-7,
+            "communalitySE": 8.153200337090993e-14,
+            "uniquenessSE": 8.153200337090993e-14
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            0,
+            1
+          ],
+          "signs": [
+            -1,
+            1
+          ],
+          "errors": {
+            "pattern": 4.070986048265723e-9,
+            "structure": 4.070986048265723e-9,
+            "phi": 0,
+            "communalities": 1.1519674103510624e-12,
+            "reproduced": 1.6874834862790067e-12,
+            "patternSE": 0.00003127283820553162,
+            "structureSE": 0.00003127283820553162,
+            "phiSE": 0,
+            "communalitySE": 8.153200337090993e-14,
+            "uniquenessSE": 8.153200337090993e-14
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/scala-full-bundle-reference.json",
+      "sha256": "05b9807d2958b4fa7e9dcb27ab8092681c02727743a0882aa3516ebdbb3e0cd7"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-portable-qualified-v1.json",
+      "sha256": "06cf84656ab2d37c3838e603b5066dec8c00d8042f8116a8b7b54cd6693fe7e6"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-portable-qualified-v1.json",
+      "sha256": "06cf84656ab2d37c3838e603b5066dec8c00d8042f8116a8b7b54cd6693fe7e6"
+    }
+  ],
+  "scope": "Exact saved inputs; unchanged full-output tolerances. Candidate source qualified against five independent R fixtures. No cross-device guarantee or automatic production promotion."
+}

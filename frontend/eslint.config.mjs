@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // self-contained HTML export. Linting 1.7MB of minified third-party code
     // reported ~4,450 problems and buried the ~135 real ones.
     "public/vendor/**",
+    // Generated only for the isolated browser qualification harness.
+    "public/efa-qualification/**",
   ]),
 ]);
 

@@ -1,0 +1,18 @@
+{
+  "generated": "module NumericCellContract where\n\n// Source-derived conditional cell update; Number payloads are uninterpreted bits.\ncellWrite : [8] -> [64] -> [64] -> [64]\ncellWrite mask original replacement = if mask != 0 then replacement else original\n\nproperty preservesObserved mask original replacement = (mask != 0) ==> (cellWrite mask original replacement == original)\nproperty fillsMissing mask original replacement = (mask == 0) ==> (cellWrite mask original replacement == replacement)\n",
+  "source": {
+    "file": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-cell/numeric-imputation.ts.txt",
+    "sha256": "b4c88ea2dc143acfa91c4f4de92b2784706f8d493199a4dfc043180783b82008",
+    "function": "completeNumericSample",
+    "writeOnMissing": false,
+    "index": "j*n+i",
+    "sourceLine": 26
+  },
+  "trusted": [
+    "TypeScript AST recognizer and lowering",
+    "Uint8Array truthiness equals nonzero",
+    "Float64 payload copy preserves values",
+    "Standard unmodified slice and ordinary arrays"
+  ],
+  "scope": "The single guarded numeric-cell write preserves an observed payload and replaces a missing payload. No theorem about replacement calculation, array-loop execution, optimizer, compiler, or R equivalence."
+}

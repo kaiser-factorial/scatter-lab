@@ -1,0 +1,286 @@
+{
+  "R": "R version 4.5.1 (2025-06-13)",
+  "qualification": "Unchanged pinned missMDA1.20/FactoMineR2.12 source adapter. A separate counter-only instrumented copy records iteration counts and must return exactly identical completed matrices.",
+  "results": [
+    {
+      "seed": 20260805,
+      "rate": 0.050000000000000003,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 115,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.7763568394002505e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260805,
+      "rate": 0.050000000000000003,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 115,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.7763568394002505e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260805,
+      "rate": 0.20000000000000001,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 1.1546319456101628e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260805,
+      "rate": 0.20000000000000001,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 298,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 8.8817841970012523e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260805,
+      "rate": 0.34999999999999998,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 4.0856207306205761e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260805,
+      "rate": 0.34999999999999998,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 887,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 2.042810365310288e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 7,
+      "rate": 0.050000000000000003,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 99,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.3322676295501878e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 7,
+      "rate": 0.050000000000000003,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 99,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.3322676295501878e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 7,
+      "rate": 0.20000000000000001,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 1.865174681370263e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 7,
+      "rate": 0.20000000000000001,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 238,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.5987211554602254e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 7,
+      "rate": 0.34999999999999998,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 9.7699626167013776e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 7,
+      "rate": 0.34999999999999998,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 574,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 3.0198066269804258e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 42,
+      "rate": 0.050000000000000003,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 72,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 3.1086244689504383e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 42,
+      "rate": 0.050000000000000003,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 72,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 3.1086244689504383e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 42,
+      "rate": 0.20000000000000001,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 6.2172489379008766e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 42,
+      "rate": 0.20000000000000001,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 371,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.6431300764452317e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 42,
+      "rate": 0.34999999999999998,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 1.865174681370263e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 42,
+      "rate": 0.34999999999999998,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 770,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.7763568394002505e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260806,
+      "rate": 0.050000000000000003,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 74,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 3.5527136788005009e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260806,
+      "rate": 0.050000000000000003,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 74,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 3.5527136788005009e-15,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260806,
+      "rate": 0.20000000000000001,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 1.4210854715202004e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260806,
+      "rate": 0.20000000000000001,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 216,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 1.3322676295501878e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260806,
+      "rate": 0.34999999999999998,
+      "maxIter": 200,
+      "threshold": 1e-08,
+      "iterations": 200,
+      "converged": false,
+      "warnings": [
+        "Stopped after  200  iterations"
+      ],
+      "maximumCompletionDifference": 1.6875389974302379e-14,
+      "instrumentationOutputDifference": 0
+    },
+    {
+      "seed": 20260806,
+      "rate": 0.34999999999999998,
+      "maxIter": 1000,
+      "threshold": 1e-08,
+      "iterations": 524,
+      "converged": true,
+      "warnings": [],
+      "maximumCompletionDifference": 5.3290705182007514e-15,
+      "instrumentationOutputDifference": 0
+    }
+  ]
+}

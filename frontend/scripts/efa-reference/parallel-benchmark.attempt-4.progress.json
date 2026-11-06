@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-31T09:31:11.011Z",
+  "stage": {
+    "id": "6fff0047-e883-4d7d-a4f0-e6a68ffb8724",
+    "status": "running",
+    "stage": "Parallel analysis · replicate 97: MINRES · projected gradient 2.959e-8 (115/2000) · 0 failed",
+    "completed": 99,
+    "total": 100,
+    "workerFailures": [],
+    "activeReplicates": [
+      {
+        "seed": 8897,
+        "startedAt": 3189192.100000024,
+        "stage": "MINRES · projected gradient 2.959e-8",
+        "completed": 115,
+        "total": 2000,
+        "elapsedMs": 138087.69999998808
+      }
+    ]
+  },
+  "heartbeat": "33247",
+  "cancelMs": 2.199999988079071,
+  "workerSha256": "dcc14a9cbd45d855ee88a8c79ecceccb734e1d372cf3c0281ae540a4b00963d8",
+  "peakRssBytes": 771784704
+}

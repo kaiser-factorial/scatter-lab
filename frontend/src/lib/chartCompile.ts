@@ -1,5 +1,6 @@
 import { asNumber, type DataTable } from './table';
 import { MIN_BINS, type AnalysisProfile, type ChartPlan } from './analysisPlan';
+import { PRIMARY_CHART_COLORS } from './chartPalette';
 
 // compileChart: one validated ChartPlan → drawable traces + the aggregate
 // summary the assistant is allowed to see. ALL house policies live here (the
@@ -51,10 +52,7 @@ export type CompiledChart = {
   summary: string;
 };
 
-export const DEFAULT_CHART_COLORS = [
-  '#4195DE', '#D23B72', '#FFD600', '#5F4690', '#1D6996',
-  '#38A6A5', '#0F8554', '#73AF48', '#EDAD08', '#E17C05',
-];
+export const DEFAULT_CHART_COLORS: string[] = [...PRIMARY_CHART_COLORS];
 
 const withAlpha = (hex: string, alpha: number): string => {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);

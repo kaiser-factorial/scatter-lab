@@ -1,0 +1,20 @@
+{
+  "status": "stopped-after-observed-replicate-failures",
+  "dimensions": {
+    "items": 500,
+    "respondents": 20000
+  },
+  "requested": 100,
+  "lastObservedProgress": {
+    "recordedAt": "2026-10-31T07:02:20.446Z",
+    "stage": {
+      "id": "cc45203b-19c5-44cb-b20f-b5af8be7691e",
+      "status": "running",
+      "stage": "Parallel analysis · 2 failed",
+      "completed": 2,
+      "total": 100
+    },
+    "heartbeat": "6901"
+  },
+  "reason": "At least two null fits failed; preserve evidence and diagnose the 500-item one-factor extraction before rerunning the full batch."
+}

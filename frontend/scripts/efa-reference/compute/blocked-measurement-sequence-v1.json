@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-11-01T04:06:50.848Z",
+  "status": "measurements-complete",
+  "stages": [
+    {
+      "threads": 1,
+      "status": "completed",
+      "startedAt": "2026-11-01T04:11:26.296Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:11:40.758Z"
+    },
+    {
+      "threads": 4,
+      "status": "completed",
+      "startedAt": "2026-11-01T04:11:40.763Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:11:54.019Z"
+    }
+  ],
+  "completedAt": "2026-11-01T04:11:54.022Z"
+}

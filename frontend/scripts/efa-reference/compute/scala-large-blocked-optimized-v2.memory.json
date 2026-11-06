@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-11-01T05:27:54.329Z",
+  "rootPid": 86672,
+  "rssBytes": 0,
+  "peakRssBytes": 832585728,
+  "samples": 2087,
+  "samplingErrors": 0,
+  "elapsedMs": 2090947,
+  "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+  "exitCode": 0,
+  "signal": null
+}

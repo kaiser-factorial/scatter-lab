@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   turbopack: {
-    // A stray lockfile in the home directory makes Next infer ~ as the
-    // workspace root, which mis-scopes Turbopack's file watching and cache
-    // (observed: globals.css edits never reaching the served CSS chunk).
-    root: __dirname,
+    // The workbench consumes our sibling statistics package. Bound watching to
+    // this repository, never the unrelated lockfile in the home directory.
+    root: path.resolve(__dirname, '..'),
   },
 };
 

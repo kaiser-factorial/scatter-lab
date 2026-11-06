@@ -1,0 +1,242 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-01T02:39:42.875Z",
+  "checks": [
+    "empty state",
+    "real worker timings",
+    "accepted result",
+    "export without source identifiers",
+    "both themes",
+    "390px viewport",
+    "Escape and focus return",
+    "focus containment"
+  ],
+  "report": {
+    "schema": "scatter-compute/1",
+    "jobId": "8a57cbd9-3631-4525-8c0f-abd49615b1d2",
+    "startedAt": "2026-11-01T02:39:41.571Z",
+    "elapsedMs": 112.19999992847443,
+    "status": "completed",
+    "publication": "accepted",
+    "backend": "browser-cpu",
+    "precision": "float64",
+    "context": {
+      "operation": "fit",
+      "items": 8,
+      "eligibleRows": 1500,
+      "factors": 2,
+      "extraction": "minres",
+      "rotation": "oblimin",
+      "missing": "pairwise",
+      "partition": "all",
+      "fittingRows": 1500,
+      "inputSha256": "99b02e717ccdb571e07e05c12f1bff7324caf461934d94f343ad3d32ac533aae"
+    },
+    "workersCreated": 1,
+    "activeWorkers": 0,
+    "requests": {
+      "prepare": {
+        "count": 1,
+        "roundTripMs": 52.799999952316284,
+        "workerMs": 1.7000000476837158,
+        "postMessageMs": 0.10000002384185791
+      },
+      "pairs": {
+        "count": 1,
+        "roundTripMs": 27.200000047683716,
+        "workerMs": 6.100000023841858,
+        "postMessageMs": 0
+      },
+      "fit": {
+        "count": 1,
+        "roundTripMs": 31,
+        "workerMs": 8.600000023841858,
+        "postMessageMs": 0
+      }
+    },
+    "workerStages": {
+      "prepare": 1.7000000476837158,
+      "Correlations": 6.100000023841858,
+      "fit": 3.5,
+      "MINRES": 1.5,
+      "Rotation": 3.600000023841858
+    },
+    "transport": {
+      "sentTypedBufferBytes": 0,
+      "receivedTypedBufferBytes": 36000,
+      "description": "Cumulative typed-array payload bytes copied by messages; excludes ordinary arrays/objects. Not resident or peak memory. Round-trip time includes queuing and communication; postMessage time is measured on the sender."
+    },
+    "stages": [
+      {
+        "stage": "Preparing",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 53.199999928474426
+      },
+      {
+        "stage": "Correlations",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 58.40000009536743
+      },
+      {
+        "stage": "MINRES",
+        "completed": 6,
+        "total": 500,
+        "durationMs": 0.19999992847442627
+      },
+      {
+        "stage": "Rotation",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 0.3999999761581421
+      }
+    ],
+    "events": [
+      {
+        "sequence": 1,
+        "elapsedMs": 0,
+        "kind": "job",
+        "action": "started"
+      },
+      {
+        "sequence": 2,
+        "elapsedMs": 0,
+        "kind": "stage",
+        "action": "Preparing"
+      },
+      {
+        "sequence": 3,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "worker",
+        "action": "created",
+        "worker": 1
+      },
+      {
+        "sequence": 4,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "cache",
+        "action": "correlations miss"
+      },
+      {
+        "sequence": 5,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "request",
+        "action": "prepare started",
+        "worker": 1,
+        "request": 1
+      },
+      {
+        "sequence": 6,
+        "elapsedMs": 0.6000000238418579,
+        "kind": "publication",
+        "action": "pending"
+      },
+      {
+        "sequence": 7,
+        "elapsedMs": 53.199999928474426,
+        "kind": "request",
+        "action": "prepare completed",
+        "worker": 1,
+        "request": 1,
+        "durationMs": 52.799999952316284,
+        "workerMs": 1.7000000476837158
+      },
+      {
+        "sequence": 8,
+        "elapsedMs": 53.199999928474426,
+        "kind": "stage",
+        "action": "Correlations"
+      },
+      {
+        "sequence": 9,
+        "elapsedMs": 53.39999997615814,
+        "kind": "request",
+        "action": "pairs started",
+        "worker": 1,
+        "request": 2,
+        "count": 28
+      },
+      {
+        "sequence": 10,
+        "elapsedMs": 80.60000002384186,
+        "kind": "request",
+        "action": "pairs completed",
+        "worker": 1,
+        "request": 2,
+        "durationMs": 27.200000047683716,
+        "workerMs": 6.100000023841858
+      },
+      {
+        "sequence": 11,
+        "elapsedMs": 81,
+        "kind": "request",
+        "action": "fit started",
+        "worker": 1,
+        "request": 3
+      },
+      {
+        "sequence": 12,
+        "elapsedMs": 111.60000002384186,
+        "kind": "stage",
+        "action": "MINRES"
+      },
+      {
+        "sequence": 13,
+        "elapsedMs": 111.79999995231628,
+        "kind": "stage",
+        "action": "Rotation"
+      },
+      {
+        "sequence": 14,
+        "elapsedMs": 112.10000002384186,
+        "kind": "request",
+        "action": "fit completed",
+        "worker": 1,
+        "request": 3,
+        "durationMs": 31,
+        "workerMs": 8.600000023841858
+      },
+      {
+        "sequence": 15,
+        "elapsedMs": 112.19999992847443,
+        "kind": "job",
+        "action": "completed"
+      },
+      {
+        "sequence": 16,
+        "elapsedMs": 112.19999992847443,
+        "kind": "worker",
+        "action": "terminated",
+        "worker": 1
+      },
+      {
+        "sequence": 17,
+        "elapsedMs": 112.69999992847443,
+        "kind": "publication",
+        "action": "accepted"
+      }
+    ],
+    "droppedEvents": 0,
+    "droppedStages": 0,
+    "numerical": {
+      "extraction": {
+        "converged": true,
+        "iterations": 6,
+        "objective": 0.0023537428544473872,
+        "gradient": 2.79967699031834e-9,
+        "maxIterations": 500
+      },
+      "rotation": {
+        "converged": true,
+        "iterations": 21,
+        "objective": 0.006586861061959759,
+        "gradient": 4.3629820227008e-9,
+        "maxIterations": 4000
+      },
+      "boundaryItems": 0,
+      "conditionNumber": 8.41974059538982,
+      "residualRms": 0.009168546493402988
+    }
+  }
+}

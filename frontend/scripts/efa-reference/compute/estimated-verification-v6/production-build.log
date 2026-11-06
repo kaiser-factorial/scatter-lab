@@ -1,0 +1,34 @@
+
+> frontend@0.1.0 prebuild
+> node -e "require('fs').mkdirSync('public/vendor',{recursive:true})" && npm run copy-plotly
+
+
+> frontend@0.1.0 copy-plotly
+> node -e "require('fs').copyFileSync('node_modules/plotly.js-gl3d-dist-min/plotly-gl3d.min.js','public/vendor/plotly-gl3d.min.js')"
+
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.2.10 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.7s
+  Running TypeScript ...
+  Finished TypeScript in 8.0s ...
+  Collecting page data using 6 workers ...
+  Generating static pages using 6 workers (0/5) ...
+  Generating static pages using 6 workers (1/5) 
+  Generating static pages using 6 workers (2/5) 
+  Generating static pages using 6 workers (3/5) 
+✓ Generating static pages using 6 workers (5/5) in 376ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+└ ○ /icon.svg
+
+
+○  (Static)  prerendered as static content
+

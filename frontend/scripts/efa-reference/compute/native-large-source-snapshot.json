@@ -1,0 +1,14 @@
+[
+  {
+    "path": "/tmp/scatter-compute-pipeline.mjs",
+    "sha256": "c87ea26497920ba83d2c8cee071c9b8ceb82814d8541ddc9fbaeb96c0327d969",
+    "archive": "scripts/efa-reference/compute/archives/c87ea26497920ba83d2c8cee071c9b8ceb82814d8541ddc9fbaeb96c0327d969.mjs.gz",
+    "modifiedAt": "2026-10-31T22:50:43.704Z"
+  },
+  {
+    "path": "/tmp/scatter-compute-binary.mjs",
+    "sha256": "8ef8921a9ebf1a7ace28c2eb8e7a5091ad6c69e3c01955e4f54dbb4158bc60df",
+    "archive": "scripts/efa-reference/compute/archives/8ef8921a9ebf1a7ace28c2eb8e7a5091ad6c69e3c01955e4f54dbb4158bc60df.mjs.gz",
+    "modifiedAt": "2026-10-31T22:50:43.706Z"
+  }
+]

@@ -1,0 +1,1427 @@
+{
+  "recordedAt": "2026-11-06T11:54:06.951Z",
+  "scope": "Finite independently generated R fixture agreement; no proof of general numerical or optimizer equivalence. Factor alignment is signed permutation only. Largest synthetic excluded.",
+  "runtime": "v26.8.1",
+  "summary": {
+    "passed": 22,
+    "mismatch": 4,
+    "nativeError": 0,
+    "referenceError": 18
+  },
+  "metricBounds": {
+    "PCA eigenvalues max abs": {
+      "maximumObservedError": 0.0011080542178110164,
+      "cases": 20,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0004414324631709654,
+          "limit": 1e-7,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0011080542178110164,
+          "limit": 1e-7,
+          "passed": false
+        }
+      ]
+    },
+    "PCA displayed vector max abs (rounded .001)": {
+      "maximumObservedError": 0.00048193785478678475,
+      "cases": 20,
+      "failures": []
+    },
+    "PCA sampled scores max abs": {
+      "maximumObservedError": 0.0031908982505708394,
+      "cases": 20,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0015646081268729795,
+          "limit": 0.000001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0031908982505708394,
+          "limit": 0.000001,
+          "passed": false
+        }
+      ]
+    },
+    "iterative PCA completion max abs": {
+      "maximumObservedError": 0.00811789596045287,
+      "cases": 4,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "iterative PCA completion max abs",
+          "error": 0.0058036742702674005,
+          "limit": 0.00001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "iterative PCA completion max abs",
+          "error": 0.00811789596045287,
+          "limit": 0.00001,
+          "passed": false
+        }
+      ]
+    },
+    "common covariance max abs": {
+      "maximumObservedError": 3.495438847256338e-7,
+      "cases": 6,
+      "failures": []
+    },
+    "signed-permuted pattern max abs": {
+      "maximumObservedError": 0.0011657363932362358,
+      "cases": 6,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "minres",
+          "missing": "median",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0010758576999406883,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "minres",
+          "missing": "pairwise",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0011657363932362358,
+          "limit": 0.001,
+          "passed": false
+        }
+      ]
+    },
+    "signed-permuted Phi max abs": {
+      "maximumObservedError": 0.00011305037866282674,
+      "cases": 6,
+      "failures": []
+    },
+    "1 - minimum Tucker congruence": {
+      "maximumObservedError": 0.0000010551596991703605,
+      "cases": 6,
+      "failures": []
+    },
+    "native extractor convergence": {
+      "maximumObservedError": 0,
+      "cases": 6,
+      "failures": []
+    },
+    "native rotation convergence": {
+      "maximumObservedError": 0,
+      "cases": 6,
+      "failures": []
+    },
+    "correlation max abs": {
+      "maximumObservedError": 1.2212453270876722e-15,
+      "cases": 6,
+      "failures": []
+    },
+    "MINRES objective abs": {
+      "maximumObservedError": 2.8935014106945545e-13,
+      "cases": 6,
+      "failures": []
+    }
+  },
+  "results": [
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.7439999999999998,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.7439999999999998,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.7439999999999998,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.7889999999999997,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.7889999999999997,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.7889999999999997,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.619999999999999,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.619999999999999,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.619999999999999,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 3.7280000000000015,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 3.7280000000000015,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 3.7280000000000015,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "complete",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 1.9984014443252818e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047770096060240075,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.079270337660091e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 13.710791,
+      "referenceSeconds": 0.05799999999999983,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "complete",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 9.769962616701378e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004795029416653218,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 3.552713678800501e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 17.31762500000002,
+      "referenceSeconds": 0.0010000000000012221,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "mean",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 1.9984014443252818e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047770096060240075,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.079270337660091e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 20.036750000000012,
+      "referenceSeconds": 0.008000000000002672,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "mean",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 9.769962616701378e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004795029416653218,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 3.552713678800501e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 7.14345800000001,
+      "referenceSeconds": 0.0030000000000001137,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "median",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 1.9984014443252818e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047770096060240075,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.079270337660091e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.945875000000001,
+      "referenceSeconds": 0.0030000000000001137,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "median",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 9.769962616701378e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004795029416653218,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 3.552713678800501e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.502042000000017,
+      "referenceSeconds": 0.0019999999999988916,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "pairwise",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 6.661338147750939e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004777009606021787,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.773159728050814e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 9.338832999999994,
+      "referenceSeconds": 0.004999999999999005,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "pairwise",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 2.6645352591003757e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047950294166543284,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 6.439293542825908e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 6.27525,
+      "referenceSeconds": 0.0030000000000001137,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "iterative",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 1.9984014443252818e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047770096060240075,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.079270337660091e-15,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "iterative PCA completion max abs",
+          "error": 0,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 7.623957999999988,
+      "referenceSeconds": 0.09499999999999886,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-complete",
+      "method": "pca",
+      "missing": "iterative",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 9.769962616701378e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004795029416653218,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 3.552713678800501e-15,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "iterative PCA completion max abs",
+          "error": 0,
+          "limit": 0.00001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 5.302915999999982,
+      "referenceSeconds": 0.0010000000000012221,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.8480000000000025,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.8480000000000025,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.8480000000000025,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 4.802,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 4.802,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 4.802,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 3.4954388467012265e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0010758576999406883,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.00011305037866282674,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 0.0000010116222628475668,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.2212453270876722e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.8935014106945545e-13,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 6,
+          "objective": 0.008614889200342937,
+          "gradient": 2.227776332969824e-9,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 109,
+          "objective": 1.9554998736068951,
+          "gradient": 0
+        }
+      },
+      "status": "mismatch",
+      "nativeMs": 27.09537499999999,
+      "referenceSeconds": 0.02599999999999625,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 3.495438847256338e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 3.665228679450294e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 2.1142210981928145e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 8.859579736508749e-14,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.2212453270876722e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.8935014106945545e-13,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 6,
+          "objective": 0.008614889200342937,
+          "gradient": 2.227776332969824e-9,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 18,
+          "objective": 0.004455772247899217,
+          "gradient": 6.218394413924164e-9,
+          "maxIterations": 4000
+        }
+      },
+      "status": "passed",
+      "nativeMs": 11.572374999999994,
+      "referenceSeconds": 0.02599999999999625,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 3.4954388455910035e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00006507238637915025,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 2.9386614253112953e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.2212453270876722e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.8935014106945545e-13,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 6,
+          "objective": 0.008614889200342937,
+          "gradient": 2.227776332969824e-9,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 330,
+          "objective": -2.704269345753862,
+          "gradient": 0
+        }
+      },
+      "status": "passed",
+      "nativeMs": 22.41491700000003,
+      "referenceSeconds": 0.02599999999999625,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.7809292740533778e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0011657363932362358,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.00007864852879757578,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 0.0000010551596991703605,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.731390196826112e-14,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 7,
+          "objective": 0.00838229510228402,
+          "gradient": 4.258743904893652e-10,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 151,
+          "objective": 1.8618791884684647,
+          "gradient": 0
+        }
+      },
+      "status": "mismatch",
+      "nativeMs": 11.923791999999992,
+      "referenceSeconds": 0.029000000000003467,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.7809292673920396e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 1.6914959755087722e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 8.755585700903623e-9,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 1.3433698597964394e-14,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.731390196826112e-14,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 7,
+          "objective": 0.00838229510228402,
+          "gradient": 4.258743904893652e-10,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 109,
+          "objective": 0.0052300691272654295,
+          "gradient": 9.243324964517775e-9,
+          "maxIterations": 4000
+        }
+      },
+      "status": "passed",
+      "nativeMs": 10.220875000000035,
+      "referenceSeconds": 0.029000000000003467,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.7809292662818166e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00007344685908794446,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 3.315832497463589e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.731390196826112e-14,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 7,
+          "objective": 0.00838229510228402,
+          "gradient": 4.258743904893652e-10,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 331,
+          "objective": -2.7059805127991075,
+          "gradient": 0
+        }
+      },
+      "status": "passed",
+      "nativeMs": 13.993625000000009,
+      "referenceSeconds": 0.029000000000003467,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "complete",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 2.6645352591003757e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004803145515880347,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 2.6645352591003757e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.566250000000025,
+      "referenceSeconds": 0.0009999999999976694,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "complete",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 7.993605777301127e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047764530839519703,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 6.217248937900877e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 1.5888329999999655,
+      "referenceSeconds": 0.0010000000000047748,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "mean",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 5.329070518200751e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004422301169935139,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 4.6629367034256575e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 5.657083999999998,
+      "referenceSeconds": 0.0030000000000001137,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "mean",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 6.217248937900877e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00048193785478678475,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 7.049916206369744e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 6.0116669999999885,
+      "referenceSeconds": 0.001999999999995339,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "median",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 2.886579864025407e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004651184028187094,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.551115123125783e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.2542909999999665,
+      "referenceSeconds": 0.0020000000000024443,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "median",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 1.9984014443252818e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.000466036236582007,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.329070518200751e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.438500000000033,
+      "referenceSeconds": 0.0009999999999976694,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "pairwise",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 5.773159728050814e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004624229083157738,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.773159728050814e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.7307499999999436,
+      "referenceSeconds": 0.0040000000000048885,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "pairwise",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 4.440892098500626e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00041909971104375776,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 7.771561172376096e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 6.091000000000008,
+      "referenceSeconds": 0.001999999999995339,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "iterative",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0004414324631709654,
+          "limit": 1e-7,
+          "passed": false
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004723937540919154,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0015646081268729795,
+          "limit": 0.000001,
+          "passed": false
+        },
+        {
+          "metric": "iterative PCA completion max abs",
+          "error": 0.0058036742702674005,
+          "limit": 0.00001,
+          "passed": false
+        }
+      ],
+      "status": "mismatch",
+      "nativeMs": 51.425374999999974,
+      "referenceSeconds": 0.07900000000000063,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "iterative",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0011080542178110164,
+          "limit": 1e-7,
+          "passed": false
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.000435966951445127,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0031908982505708394,
+          "limit": 0.000001,
+          "passed": false
+        },
+        {
+          "metric": "iterative PCA completion max abs",
+          "error": 0.00811789596045287,
+          "limit": 0.00001,
+          "passed": false
+        }
+      ],
+      "status": "mismatch",
+      "nativeMs": 97.09537500000005,
+      "referenceSeconds": 0.07099999999999795,
+      "referenceWarnings": []
+    }
+  ]
+}

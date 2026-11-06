@@ -1,0 +1,969 @@
+{
+  "status": "passed",
+  "startedAt": "2026-11-06T00:19:45.552Z",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "memoryBytes": 8589934592
+  },
+  "order": [
+    "exact",
+    "estimated"
+  ],
+  "options": {
+    "n": 20000,
+    "p": 500,
+    "probes": 128,
+    "seed": 61001
+  },
+  "snapshots": {
+    "efa.worker": {
+      "sha256": "984cc284807934738bf035560f0196549c3abbf9eb4c924e134717a154a0d357",
+      "archive": "scripts/efa-reference/compute/archives/984cc284807934738bf035560f0196549c3abbf9eb4c924e134717a154a0d357.js.gz"
+    },
+    "client": {
+      "sha256": "72eb4bcb03f23f52a4bce61706ab81aa055a985a2bc1bdce2d945e8a46d1c952",
+      "archive": "scripts/efa-reference/compute/archives/72eb4bcb03f23f52a4bce61706ab81aa055a985a2bc1bdce2d945e8a46d1c952.js.gz"
+    }
+  },
+  "arms": [
+    {
+      "correction": "exact",
+      "status": "completed",
+      "startedAt": "2026-11-06T00:19:53.656Z",
+      "browser": "156.0.8078.81",
+      "webgpuRuntimeFlags": [],
+      "completedAt": "2026-11-06T00:50:35.248Z",
+      "workerSnapshotsServed": 16,
+      "heartbeat": {
+        "count": 36695,
+        "maxGapMs": 1452.1999999284744
+      },
+      "memory": {
+        "peakBrowserProcessRssBytes": 1315209216,
+        "samples": 918,
+        "samplingErrors": 0,
+        "method": "2-second RSS sum across benchmark Chrome processes; shared pages can be counted more than once"
+      },
+      "result": {
+        "dimensions": {
+          "rows": 20000,
+          "items": 500,
+          "factors": 5
+        },
+        "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+        "scope": "Cold production-service oblimin fit including preparation, correlations, extraction, numerical self-checks, inference and rotated SEs; then scores and cached promax/varimax. Browser launch and synthetic data generation excluded.",
+        "totalMs": 1836798.2999999523,
+        "dataGenerationMs": 1111.7999999523163,
+        "scoreMs": 1960.7000000476837,
+        "rotations": [
+          {
+            "rotation": "oblimin",
+            "elapsedMs": 1755120.8999999762,
+            "extractionConvergence": {
+              "converged": true,
+              "iterations": 14,
+              "objective": 2.5154475532092784,
+              "gradient": 9.97574720238933e-9,
+              "maxIterations": 2000
+            },
+            "rotationConvergence": {
+              "converged": true,
+              "iterations": 28,
+              "objective": 0.01568717980445183,
+              "gradient": 5.1645708943763315e-9,
+              "maxIterations": 4000
+            },
+            "test": {
+              "rawStatistic": 50306.435616632356,
+              "df": 122260,
+              "trace": 50256.20926658854,
+              "traceSquared": 152209.534696134,
+              "scalingFactor": 1.1157804133303224,
+              "shift": 77218.69199156627,
+              "statistic": 122305.01454716694,
+              "denominator": 19999,
+              "pValue": 0.46320230810215723
+            },
+            "execution": {
+              "backend": "webgpu",
+              "blockSize": 128,
+              "budgetBytes": 1610612736,
+              "state": "completed",
+              "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+              "kernelVersion": "ordinal-trace/1",
+              "adapter": "apple / metal-3 /  / ",
+              "kernelSha256": "7a3dcb12e3861b2c512a6d24a3bf1e5c8396c2f7901e88249266d7cdae772a6f",
+              "timings": {
+                "startupMs": 118.89999997615814,
+                "packMs": 1134.799999833107,
+                "uploadSubmitMs": 1513.8000004291534,
+                "dispatchReadbackMs": 1314251.5999910831,
+                "readMapWaitMs": 1308158.2999962568,
+                "hostReductionMs": 1906.1999970674515,
+                "gpuMs": 1293300.5967359345,
+                "reductionGpuMs": 18731.433983998497,
+                "panelExpansions": 0,
+                "panelCacheHits": 0,
+                "panelGpuMs": null,
+                "calls": 12408,
+                "uploadedBytes": 446390496,
+                "readbackBytes": 3220986976,
+                "peakOwnedGpuBufferBytes": 477851984,
+                "sourceInitializations": 3,
+                "triangularBlocks": 159,
+                "bindGroupCacheHits": 24800
+              },
+              "selfCheck": {
+                "version": "ordinal-trace/1",
+                "passed": true,
+                "checks": 24958,
+                "tolerance": 1e-10,
+                "maxScaledError": 2.2963706476744324e-12,
+                "elapsedMs": 56.39999997615814
+              }
+            },
+            "stages": [
+              {
+                "stage": "Preparing",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 1494.7000000476837
+              },
+              {
+                "stage": "Correlations",
+                "completed": 124750,
+                "total": 124750,
+                "durationMs": 7352
+              },
+              {
+                "stage": "Backend numerical self-check",
+                "completed": 5,
+                "total": 5,
+                "durationMs": 767.8999999761581
+              },
+              {
+                "stage": "Ordinal uncertainty",
+                "completed": 124750,
+                "total": 124750,
+                "durationMs": 44070.799999952316
+              },
+              {
+                "stage": "DWLS",
+                "completed": 14,
+                "total": 2000,
+                "durationMs": 74.5
+              },
+              {
+                "stage": "Rotation",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 210.89999997615814
+              },
+              {
+                "stage": "Weighted information matrix",
+                "completed": 124750,
+                "total": 124750,
+                "durationMs": 152.5
+              },
+              {
+                "stage": "Information factorization",
+                "completed": 1,
+                "total": 1,
+                "durationMs": 3397.4000000953674
+              },
+              {
+                "stage": "Robust case projections",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 50955.89999997616
+              },
+              {
+                "stage": "Robust parameter covariance",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 155271.5
+              },
+              {
+                "stage": "Covariance inverse transform",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 2843.899999976158
+              },
+              {
+                "stage": "Covariance matrix products",
+                "completed": 2,
+                "total": 2,
+                "durationMs": 34123.10000002384
+              },
+              {
+                "stage": "Exact robust trace blocks",
+                "completed": 12403,
+                "total": 12403,
+                "durationMs": 1324585.6000000238
+              },
+              {
+                "stage": "Rotated standard errors",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 121395.19999992847
+              },
+              {
+                "stage": "Rotated covariance propagation",
+                "completed": 5525,
+                "total": 5525,
+                "durationMs": 8419.300000071526
+              }
+            ],
+            "workerStages": {
+              "prepare": 544.5,
+              "initialize": 0.30000007152557373,
+              "Correlations": 26477.299998164177,
+              "fit": 155.80000007152557,
+              "Backend numerical self-check": 767.8999999761581,
+              "Ordinal uncertainty": 44070.5,
+              "DWLS": 74.89999997615814,
+              "Rotation": 210.60000002384186,
+              "Weighted information matrix": 152.79999995231628,
+              "Information factorization": 3397.3000000715256,
+              "Robust case projections": 50954.5,
+              "Robust parameter covariance": 155268.79999995232,
+              "Covariance inverse transform": 2847.8000000715256,
+              "Covariance matrix products": 34123,
+              "Exact robust trace blocks": 1324302.8999999762,
+              "rotation-initialize": 0.09999990463256836,
+              "rotation-batch": 466820.8000006676,
+              "rotation-accept": 1259.5000004768372,
+              "fit-finish": 1.2999999523162842,
+              "Rotated covariance propagation": 7828.5,
+              "fit-cache": 61.60000002384186
+            }
+          },
+          {
+            "rotation": "promax",
+            "elapsedMs": 24291.100000023842,
+            "extractionConvergence": {
+              "converged": true,
+              "iterations": 14,
+              "objective": 2.5154475532092784,
+              "gradient": 9.97574720238933e-9,
+              "maxIterations": 2000
+            },
+            "rotationConvergence": {
+              "converged": true,
+              "iterations": 13,
+              "objective": 116.68873331020913,
+              "gradient": 0
+            },
+            "test": {
+              "rawStatistic": 50306.435616632356,
+              "df": 122260,
+              "trace": 50256.20926658854,
+              "traceSquared": 152209.534696134,
+              "scalingFactor": 1.1157804133303224,
+              "shift": 77218.69199156627,
+              "statistic": 122305.01454716694,
+              "denominator": 19999,
+              "pValue": 0.46320230810215723
+            },
+            "execution": {
+              "backend": "webgpu",
+              "blockSize": 128,
+              "budgetBytes": 1610612736,
+              "state": "completed",
+              "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+              "kernelVersion": "ordinal-trace/1",
+              "adapter": "apple / metal-3 /  / ",
+              "kernelSha256": "7a3dcb12e3861b2c512a6d24a3bf1e5c8396c2f7901e88249266d7cdae772a6f",
+              "selfCheck": {
+                "version": "ordinal-trace/1",
+                "passed": true,
+                "checks": 24958,
+                "tolerance": 1e-10,
+                "maxScaledError": 2.2963706476744324e-12,
+                "elapsedMs": 56.39999997615814
+              },
+              "reusedFromJobId": "d0cc16c6-d225-43fe-9084-eec8881f16d1"
+            },
+            "stages": [
+              {
+                "stage": "Preparing",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 81.89999997615814
+              },
+              {
+                "stage": "Reused rotation-independent WLSMV inference",
+                "completed": 1,
+                "total": 1,
+                "durationMs": 1387.6000000238419
+              },
+              {
+                "stage": "Rotation",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 185.10000002384186
+              },
+              {
+                "stage": "Rotated standard errors",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 14517.799999952316
+              },
+              {
+                "stage": "Rotated covariance propagation",
+                "completed": 5525,
+                "total": 5525,
+                "durationMs": 8117.299999952316
+              }
+            ],
+            "workerStages": {
+              "initialize": 0.09999990463256836,
+              "fit": 875.8999999761581,
+              "Rotation": 138.10000002384186,
+              "rotation-initialize": 0.10000002384185791,
+              "rotation-batch": 48975.700001478195,
+              "rotation-accept": 312.9999998807907,
+              "fit-finish": 7.699999928474426,
+              "Rotated covariance propagation": 7596.300000071526
+            }
+          },
+          {
+            "rotation": "varimax",
+            "elapsedMs": 55422.5,
+            "extractionConvergence": {
+              "converged": true,
+              "iterations": 14,
+              "objective": 2.5154475532092784,
+              "gradient": 9.97574720238933e-9,
+              "maxIterations": 2000
+            },
+            "rotationConvergence": {
+              "converged": true,
+              "iterations": 13,
+              "objective": -367.6096326083761,
+              "gradient": 0
+            },
+            "test": {
+              "rawStatistic": 50306.435616632356,
+              "df": 122260,
+              "trace": 50256.20926658854,
+              "traceSquared": 152209.534696134,
+              "scalingFactor": 1.1157804133303224,
+              "shift": 77218.69199156627,
+              "statistic": 122305.01454716694,
+              "denominator": 19999,
+              "pValue": 0.46320230810215723
+            },
+            "execution": {
+              "backend": "webgpu",
+              "blockSize": 128,
+              "budgetBytes": 1610612736,
+              "state": "completed",
+              "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+              "kernelVersion": "ordinal-trace/1",
+              "adapter": "apple / metal-3 /  / ",
+              "kernelSha256": "7a3dcb12e3861b2c512a6d24a3bf1e5c8396c2f7901e88249266d7cdae772a6f",
+              "selfCheck": {
+                "version": "ordinal-trace/1",
+                "passed": true,
+                "checks": 24958,
+                "tolerance": 1e-10,
+                "maxScaledError": 2.2963706476744324e-12,
+                "elapsedMs": 56.39999997615814
+              },
+              "reusedFromJobId": "d0cc16c6-d225-43fe-9084-eec8881f16d1"
+            },
+            "stages": [
+              {
+                "stage": "Preparing",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 148
+              },
+              {
+                "stage": "Reused rotation-independent WLSMV inference",
+                "completed": 1,
+                "total": 1,
+                "durationMs": 1503.5999999046326
+              },
+              {
+                "stage": "Rotation",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 201.5
+              },
+              {
+                "stage": "Rotated standard errors",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 45591.800000071526
+              },
+              {
+                "stage": "Rotated covariance propagation",
+                "completed": 5525,
+                "total": 5525,
+                "durationMs": 7972.600000023842
+              }
+            ],
+            "workerStages": {
+              "initialize": 0,
+              "fit": 1008.1000000238419,
+              "Rotation": 137.5,
+              "rotation-initialize": 0,
+              "rotation-batch": 166293.9000003338,
+              "rotation-accept": 465.3000000715256,
+              "fit-finish": 0.19999992847442627,
+              "Rotated covariance propagation": 7380.5
+            }
+          }
+        ]
+      }
+    },
+    {
+      "correction": "estimated",
+      "status": "completed",
+      "startedAt": "2026-11-06T00:50:40.541Z",
+      "browser": "156.0.8078.81",
+      "webgpuRuntimeFlags": [],
+      "completedAt": "2026-11-06T01:00:44.182Z",
+      "workerSnapshotsServed": 16,
+      "heartbeat": {
+        "count": 11981,
+        "maxGapMs": 1541.9000000953674
+      },
+      "memory": {
+        "peakBrowserProcessRssBytes": 1207615488,
+        "samples": 299,
+        "samplingErrors": 0,
+        "method": "2-second RSS sum across benchmark Chrome processes; shared pages can be counted more than once"
+      },
+      "result": {
+        "dimensions": {
+          "rows": 20000,
+          "items": 500,
+          "factors": 5
+        },
+        "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+        "scope": "Cold production-service oblimin fit including preparation, correlations, extraction, numerical self-checks, inference and rotated SEs; then scores and cached promax/varimax. Browser launch and synthetic data generation excluded.",
+        "totalMs": 598805.7999999523,
+        "dataGenerationMs": 1139.3999999761581,
+        "scoreMs": 2088,
+        "rotations": [
+          {
+            "rotation": "oblimin",
+            "elapsedMs": 507259.2000000477,
+            "extractionConvergence": {
+              "converged": true,
+              "iterations": 14,
+              "objective": 2.5154475532092784,
+              "gradient": 9.97574720238933e-9,
+              "maxIterations": 2000
+            },
+            "rotationConvergence": {
+              "converged": true,
+              "iterations": 28,
+              "objective": 0.01568717980445183,
+              "gradient": 5.1645708943763315e-9,
+              "maxIterations": 4000
+            },
+            "test": {
+              "rawStatistic": 50306.435616632356,
+              "df": 122260,
+              "trace": 50256.20926658854,
+              "traceSquared": 152286.2009534081,
+              "scalingFactor": 1.116061381074504,
+              "shift": 77230.03111226403,
+              "statistic": 122305.00321478327,
+              "denominator": 19999,
+              "pValue": 0.46321140961313656,
+              "traceEstimation": {
+                "method": "fixed-budget Rademacher estimate of tr(H²)",
+                "approximate": true,
+                "probes": 128,
+                "traceSquared": 152286.2009534081,
+                "monteCarloSE": 104.06172534052584,
+                "normalInterval95": [
+                  152082.23997174067,
+                  152490.1619350755
+                ],
+                "uncertainty": "Normal approximation for a prespecified probe budget; not a rigorous bound or an adaptive stopping guarantee. Separate from floating-point error.",
+                "version": "rademacher-h2/1",
+                "seed": 61001,
+                "requestedProbes": 128
+              }
+            },
+            "execution": {
+              "backend": "webgpu",
+              "state": "completed",
+              "precision": "portable split-f32 / host-f64",
+              "blockSize": 128,
+              "budgetBytes": 1610612736,
+              "kernelVersion": "ordinal-trace-probes/1",
+              "adapter": "apple / metal-3",
+              "kernelSha256": "cece54fd3751bf99b1d3ca69e95f7977eeeb67568b86d7ebc2ff709f983a7bc6",
+              "selfCheck": {
+                "version": "ordinal-trace-probes/1",
+                "passed": true,
+                "checks": 24841,
+                "tolerance": 1e-10,
+                "maxScaledError": 8.5953379461316e-13,
+                "elapsedMs": 448.2000000476837
+              },
+              "timings": {
+                "probes": 128,
+                "operatorMs": 41177.49999988079,
+                "peakOwnedGpuBufferBytes": 491034880,
+                "startupMs": 2368.5999999046326,
+                "A transpose × probes": 20713.099999904633,
+                "Z transpose × probes": 379.60000002384186,
+                "A × probes": 18621.399999976158,
+                "Z × probes": 745.8999999761581
+              }
+            },
+            "stages": [
+              {
+                "stage": "Preparing",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 1583.8999999761581
+              },
+              {
+                "stage": "Correlations",
+                "completed": 124750,
+                "total": 124750,
+                "durationMs": 6855.700000047684
+              },
+              {
+                "stage": "MV operator numerical self-check",
+                "completed": 5,
+                "total": 5,
+                "durationMs": 1206.3999999761581
+              },
+              {
+                "stage": "Ordinal uncertainty",
+                "completed": 124750,
+                "total": 124750,
+                "durationMs": 42064.10000002384
+              },
+              {
+                "stage": "DWLS",
+                "completed": 14,
+                "total": 2000,
+                "durationMs": 68.09999990463257
+              },
+              {
+                "stage": "Rotation",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 226.80000007152557
+              },
+              {
+                "stage": "Weighted information matrix",
+                "completed": 124750,
+                "total": 124750,
+                "durationMs": 120.5
+              },
+              {
+                "stage": "Information factorization",
+                "completed": 1,
+                "total": 1,
+                "durationMs": 3113.600000023842
+              },
+              {
+                "stage": "Robust case projections",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 51187.799999952316
+              },
+              {
+                "stage": "Robust parameter covariance",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 143827.60000002384
+              },
+              {
+                "stage": "Covariance inverse transform",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 2556.600000023842
+              },
+              {
+                "stage": "Covariance matrix products",
+                "completed": 2,
+                "total": 2,
+                "durationMs": 35752
+              },
+              {
+                "stage": "Estimated MV probes",
+                "completed": 0,
+                "total": 128,
+                "durationMs": 840.5
+              },
+              {
+                "stage": "MV matrix products",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 8922.099999904633
+              },
+              {
+                "stage": "Estimated MV probes",
+                "completed": 32,
+                "total": 128,
+                "durationMs": 239.90000009536743
+              },
+              {
+                "stage": "MV matrix products",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 10712.699999928474
+              },
+              {
+                "stage": "Estimated MV probes",
+                "completed": 64,
+                "total": 128,
+                "durationMs": 104.80000007152557
+              },
+              {
+                "stage": "MV matrix products",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 10554.599999904633
+              },
+              {
+                "stage": "Estimated MV probes",
+                "completed": 96,
+                "total": 128,
+                "durationMs": 162.40000009536743
+              },
+              {
+                "stage": "MV matrix products",
+                "completed": 20000,
+                "total": 20000,
+                "durationMs": 10505.699999928474
+              },
+              {
+                "stage": "Estimated MV probes",
+                "completed": 128,
+                "total": 128,
+                "durationMs": 399.2000000476837
+              },
+              {
+                "stage": "Rotated standard errors",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 167272.60000002384
+              },
+              {
+                "stage": "Rotated covariance propagation",
+                "completed": 5525,
+                "total": 5525,
+                "durationMs": 8931.199999928474
+              }
+            ],
+            "workerStages": {
+              "prepare": 515.6000000238419,
+              "initialize": 0.10000002384185791,
+              "Correlations": 25164.900004267693,
+              "fit": 3.799999952316284,
+              "MV operator numerical self-check": 1206.2999999523163,
+              "Ordinal uncertainty": 42064.10000002384,
+              "DWLS": 68.30000007152557,
+              "Rotation": 226.79999995231628,
+              "Weighted information matrix": 120.5,
+              "Information factorization": 3113.5,
+              "Robust case projections": 51184.700000047684,
+              "Robust parameter covariance": 143828.59999990463,
+              "Covariance inverse transform": 2558.9000000953674,
+              "Covariance matrix products": 35749.09999990463,
+              "Estimated MV probes": 1573.6000001430511,
+              "MV matrix products": 40658.59999990463,
+              "rotation-initialize": 0.20000004768371582,
+              "rotation-batch": 623656.0000003576,
+              "rotation-accept": 1981.1999998092651,
+              "fit-finish": 2.700000047683716,
+              "Rotated covariance propagation": 8167.899999976158,
+              "fit-cache": 88.20000004768372
+            }
+          },
+          {
+            "rotation": "promax",
+            "elapsedMs": 25191.5,
+            "extractionConvergence": {
+              "converged": true,
+              "iterations": 14,
+              "objective": 2.5154475532092784,
+              "gradient": 9.97574720238933e-9,
+              "maxIterations": 2000
+            },
+            "rotationConvergence": {
+              "converged": true,
+              "iterations": 13,
+              "objective": 116.68873331020913,
+              "gradient": 0
+            },
+            "test": {
+              "rawStatistic": 50306.435616632356,
+              "df": 122260,
+              "trace": 50256.20926658854,
+              "traceSquared": 152286.2009534081,
+              "scalingFactor": 1.116061381074504,
+              "shift": 77230.03111226403,
+              "statistic": 122305.00321478327,
+              "denominator": 19999,
+              "pValue": 0.46321140961313656,
+              "traceEstimation": {
+                "method": "fixed-budget Rademacher estimate of tr(H²)",
+                "approximate": true,
+                "probes": 128,
+                "traceSquared": 152286.2009534081,
+                "monteCarloSE": 104.06172534052584,
+                "normalInterval95": [
+                  152082.23997174067,
+                  152490.1619350755
+                ],
+                "uncertainty": "Normal approximation for a prespecified probe budget; not a rigorous bound or an adaptive stopping guarantee. Separate from floating-point error.",
+                "version": "rademacher-h2/1",
+                "seed": 61001,
+                "requestedProbes": 128
+              }
+            },
+            "execution": {
+              "backend": "webgpu",
+              "state": "completed",
+              "precision": "portable split-f32 / host-f64",
+              "blockSize": 128,
+              "budgetBytes": 1610612736,
+              "kernelVersion": "ordinal-trace-probes/1",
+              "adapter": "apple / metal-3",
+              "kernelSha256": "cece54fd3751bf99b1d3ca69e95f7977eeeb67568b86d7ebc2ff709f983a7bc6",
+              "selfCheck": {
+                "version": "ordinal-trace-probes/1",
+                "passed": true,
+                "checks": 24841,
+                "tolerance": 1e-10,
+                "maxScaledError": 8.5953379461316e-13,
+                "elapsedMs": 448.2000000476837
+              },
+              "reusedFromJobId": "0b14808b-40f2-465a-ba23-7b16c57bd0ac"
+            },
+            "stages": [
+              {
+                "stage": "Preparing",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 83
+              },
+              {
+                "stage": "Reused rotation-independent WLSMV inference",
+                "completed": 1,
+                "total": 1,
+                "durationMs": 1146.3999999761581
+              },
+              {
+                "stage": "Rotation",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 242.39999997615814
+              },
+              {
+                "stage": "Rotated standard errors",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 15675.700000047684
+              },
+              {
+                "stage": "Rotated covariance propagation",
+                "completed": 5525,
+                "total": 5525,
+                "durationMs": 8042.699999928474
+              }
+            ],
+            "workerStages": {
+              "initialize": 0.20000004768371582,
+              "fit": 642.5999999046326,
+              "Rotation": 178.60000002384186,
+              "rotation-initialize": 0,
+              "rotation-batch": 55838.099997997284,
+              "rotation-accept": 347.30000019073486,
+              "fit-finish": 4.200000047683716,
+              "Rotated covariance propagation": 7495.200000047684
+            }
+          },
+          {
+            "rotation": "varimax",
+            "elapsedMs": 64264.699999928474,
+            "extractionConvergence": {
+              "converged": true,
+              "iterations": 14,
+              "objective": 2.5154475532092784,
+              "gradient": 9.97574720238933e-9,
+              "maxIterations": 2000
+            },
+            "rotationConvergence": {
+              "converged": true,
+              "iterations": 13,
+              "objective": -367.6096326083761,
+              "gradient": 0
+            },
+            "test": {
+              "rawStatistic": 50306.435616632356,
+              "df": 122260,
+              "trace": 50256.20926658854,
+              "traceSquared": 152286.2009534081,
+              "scalingFactor": 1.116061381074504,
+              "shift": 77230.03111226403,
+              "statistic": 122305.00321478327,
+              "denominator": 19999,
+              "pValue": 0.46321140961313656,
+              "traceEstimation": {
+                "method": "fixed-budget Rademacher estimate of tr(H²)",
+                "approximate": true,
+                "probes": 128,
+                "traceSquared": 152286.2009534081,
+                "monteCarloSE": 104.06172534052584,
+                "normalInterval95": [
+                  152082.23997174067,
+                  152490.1619350755
+                ],
+                "uncertainty": "Normal approximation for a prespecified probe budget; not a rigorous bound or an adaptive stopping guarantee. Separate from floating-point error.",
+                "version": "rademacher-h2/1",
+                "seed": 61001,
+                "requestedProbes": 128
+              }
+            },
+            "execution": {
+              "backend": "webgpu",
+              "state": "completed",
+              "precision": "portable split-f32 / host-f64",
+              "blockSize": 128,
+              "budgetBytes": 1610612736,
+              "kernelVersion": "ordinal-trace-probes/1",
+              "adapter": "apple / metal-3",
+              "kernelSha256": "cece54fd3751bf99b1d3ca69e95f7977eeeb67568b86d7ebc2ff709f983a7bc6",
+              "selfCheck": {
+                "version": "ordinal-trace-probes/1",
+                "passed": true,
+                "checks": 24841,
+                "tolerance": 1e-10,
+                "maxScaledError": 8.5953379461316e-13,
+                "elapsedMs": 448.2000000476837
+              },
+              "reusedFromJobId": "0b14808b-40f2-465a-ba23-7b16c57bd0ac"
+            },
+            "stages": [
+              {
+                "stage": "Preparing",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 141.10000002384186
+              },
+              {
+                "stage": "Reused rotation-independent WLSMV inference",
+                "completed": 1,
+                "total": 1,
+                "durationMs": 1323.6000000238419
+              },
+              {
+                "stage": "Rotation",
+                "completed": 0,
+                "total": 1,
+                "durationMs": 232.89999997615814
+              },
+              {
+                "stage": "Rotated standard errors",
+                "completed": 2490,
+                "total": 2490,
+                "durationMs": 54565.39999997616
+              },
+              {
+                "stage": "Rotated covariance propagation",
+                "completed": 5525,
+                "total": 5525,
+                "durationMs": 7998.700000047684
+              }
+            ],
+            "workerStages": {
+              "initialize": 0,
+              "fit": 780.6999999284744,
+              "Rotation": 162.70000004768372,
+              "rotation-initialize": 0,
+              "rotation-batch": 200069.29999887943,
+              "rotation-accept": 720.0999987125397,
+              "fit-finish": 4,
+              "Rotated covariance propagation": 7395.399999976158
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "qualification": "One sequential pair on one machine; fresh browser and service for each arm. Other user applications may remain active; not a controlled idle-machine repetition study.",
+  "comparison": {
+    "parity": {
+      "correlation": 0,
+      "scores": 0,
+      "rotations": [
+        {
+          "rotation": "oblimin",
+          "loadings": 0,
+          "phi": 0,
+          "communalities": 0,
+          "standardErrors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0
+          },
+          "trace": 0
+        },
+        {
+          "rotation": "promax",
+          "loadings": 0,
+          "phi": 0,
+          "communalities": 0,
+          "standardErrors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0
+          },
+          "trace": 0
+        },
+        {
+          "rotation": "varimax",
+          "loadings": 0,
+          "phi": 0,
+          "communalities": 0,
+          "standardErrors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0
+          },
+          "trace": 0
+        }
+      ]
+    },
+    "tolerance": 1e-10,
+    "totalSpeedup": 3.067435719560663,
+    "firstFitSpeedup": 3.460008019568322,
+    "traceSquaredRelativeError": 0.0005036889274192258,
+    "correctionDelta": {
+      "traceSquared": 76.66625727407518,
+      "scalingFactor": 0.00028096774418151504,
+      "shift": 11.33912069775397,
+      "statistic": -0.011332383670378476,
+      "pValue": 0.000009101510979325766
+    },
+    "exactTraceInEstimatedInterval": true
+  },
+  "completedAt": "2026-11-06T01:00:46.850Z",
+  "archive": {
+    "path": "scripts/efa-reference/compute/paired-full-large-v7.json.gz",
+    "sha256": "6358fcfefe6baf83067137bb0c57f80fcb1c48b5fa322c70ffa97d128d971d03",
+    "uncompressedSha256": "38bf5e3f0aa356812abbd3c87d9aff706b62c03f635c5aa011c182a25bb12f5c",
+    "bytes": 20381802,
+    "uncompressedBytes": 82666251
+  }
+}

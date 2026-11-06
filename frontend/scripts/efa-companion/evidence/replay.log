@@ -1,0 +1,13 @@
+
+> frontend@0.1.0 test
+> vitest run --run src/lib/__tests__/replay-efa.test.ts --maxWorkers=2
+
+
+ RUN  v4.1.10 /Users/corinakaiser/Projects/pca-workbench/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  59 passed (59)
+   Start at  21:48:47
+   Duration  4.61s (transform 419ms, setup 0ms, import 520ms, tests 3.97s, environment 0ms)
+

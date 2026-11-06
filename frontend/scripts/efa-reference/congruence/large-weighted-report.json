@@ -1,0 +1,67 @@
+{
+  "recordedAt": "2026-11-06T12:18:06.039Z",
+  "status": "passed",
+  "method": "weighted",
+  "runtime": "v26.8.1",
+  "dimensions": {
+    "respondents": 20000,
+    "items": 500,
+    "factors": 5
+  },
+  "dataSeed": 8801,
+  "timingsMs": {
+    "generation": 2462.467834,
+    "preparation": 2435.4852920000003,
+    "correlation": 20763.267290999996,
+    "pair influence preparation": 50410.628167,
+    "DWLS point extraction": 2714.255541999999,
+    "promax rotation": 20.53370800000266,
+    "oblimin rotation": 69.85154200000397,
+    "varimax rotation": 24.51729200000409
+  },
+  "qualification": "Single isolated Node CPU run; runtime and execution qualification only. Not browser responsiveness, R speed comparison, or full-size cross-implementation accuracy proof.",
+  "stage": "varimax rotation",
+  "peakRssKiB": 220048,
+  "settings": {
+    "extraction": "wlsmv",
+    "correlation": "polychoric",
+    "missing": "complete",
+    "rotation": "promax",
+    "seed": 8801,
+    "likelihood": null
+  },
+  "progress": {
+    "stage": "DWLS · gradient 1.045e-1",
+    "completed": 0,
+    "total": 2000
+  },
+  "convergence": {
+    "converged": true,
+    "iterations": 14,
+    "objective": 2.515447553208788,
+    "gradient": 9.975747339025908e-9,
+    "maxIterations": 2000
+  },
+  "rotations": {
+    "promax": {
+      "converged": true,
+      "iterations": 13,
+      "objective": 116.68873331020909,
+      "gradient": 0
+    },
+    "oblimin": {
+      "converged": true,
+      "iterations": 28,
+      "objective": 0.01568717980446468,
+      "gradient": 6.740729605131383e-9,
+      "maxIterations": 4000
+    },
+    "varimax": {
+      "converged": true,
+      "iterations": 12,
+      "objective": -367.6096326083767,
+      "gradient": 0
+    }
+  },
+  "excluded": "Full WLSMV robust correction and rotated SEs are excluded from this 500-item point-fit timing."
+}

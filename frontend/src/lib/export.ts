@@ -17,10 +17,10 @@ export const DATA_FORMATS: { id: DataFormat; label: string; hint: string }[] = [
 ];
 
 /** Columns this app added: PC scores, composites and cluster labels. */
-export const isDerivedColumn = (name: string): boolean => isPCColumn(name) || /^COMP_/i.test(name) || name === 'Cluster';
+export const isDerivedColumn = (name: string, ownedEfaColumns: string[] = []): boolean => isPCColumn(name) || /^COMP_/i.test(name) || name === 'Cluster' || ownedEfaColumns.includes(name);
 
-export const selectExportColumns = (table: DataTable, includeDerived: boolean): string[] =>
-  includeDerived ? [...table.columns] : table.columns.filter(c => !isDerivedColumn(c));
+export const selectExportColumns = (table: DataTable, includeDerived: boolean, ownedEfaColumns: string[] = []): string[] =>
+  includeDerived ? [...table.columns] : table.columns.filter(c => !isDerivedColumn(c, ownedEfaColumns));
 
 const tsvCell = (value: unknown): string => {
   if (value == null) return '';

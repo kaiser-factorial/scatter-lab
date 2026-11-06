@@ -1,0 +1,3264 @@
+{
+  "recordedAt": "2026-11-06T12:16:14.450Z",
+  "scope": "Pinned saved R reference fixtures; identical recorded random draws, null datasets, and bootstrap row indices. No shared-seed or general distributional equivalence claim.",
+  "fixtureHashes": {
+    "src/lib/__tests__/fixtures/efa-extensions/ordinal-contrasts.reference.json": "640152caaf013ad238cad2c35434f2bbc79a43c4b0cbfe4c41b22c9cfa82988f",
+    "src/lib/__tests__/fixtures/efa-extensions/conditional.reference.json": "cd209f30ba489f84d5761644597210ffdb4c0d289f2c5e7c5d41899bf9e19653",
+    "src/lib/__tests__/fixtures/efa-extensions/mice-chain.reference.json": "bb34dda499351b9f06a71e6041239ee3ca3a21869ad2f02af33b3b6bbf4fbf84",
+    "src/lib/__tests__/fixtures/efa-extensions/mice-chain-polynomial.reference.json": "95de301da4149d7d8f166d000131941eba7a0e580d6adbc041c7bdf7c4e9f08a",
+    "src/lib/__tests__/fixtures/efa-extensions/mice-chain-skew.reference.json": "d986e3198cb17298c76751233c190c79deabaa1d60d253dacf042618fc004cc3",
+    "src/lib/__tests__/fixtures/efa-extensions/mice-chain-polynomial-skew.reference.json": "9a23b7f474111ad7f7669a27dfdd301aae864034febb2c50a23841fafa40631d",
+    "src/lib/__tests__/fixtures/efa-extensions/stability.reference.json": "7daa6bac7e2898162d5d30dd72d421635a89cfea385d5d75fcbb48718f1d07e7",
+    "src/lib/__tests__/fixtures/efa-extensions/parallel-normal.reference.json": "9ac90e0724fca6cf7cffac063c4ce96b1e4a45e3fe5a37b445e5cad5c779cad7",
+    "src/lib/__tests__/fixtures/efa-extensions/parallel-heavy-tail.reference.json": "f407333cfdd5775ece29ed9c448d037b2e4de171c0c442380d40e977e869644b",
+    "src/lib/__tests__/fixtures/efa-extensions/parallel-skew.reference.json": "e5bc798aa8b8f71cfa3962d5b44738c27a3982e8aecc42faf48b0c7f396bb0bb"
+  },
+  "summary": {
+    "passed": 22,
+    "mismatch": 0,
+    "nativeError": 0
+  },
+  "referenceBoundaries": [
+    {
+      "dataset": "normal",
+      "metric": "native null eigenvalues versus psych default optimizer",
+      "maximumDifference": 0.7593844137343837,
+      "casesAbove1e4": 6,
+      "cases": 100
+    },
+    {
+      "dataset": "heavy-tail",
+      "metric": "native null eigenvalues versus psych default optimizer",
+      "maximumDifference": 0.3107317398157736,
+      "casesAbove1e4": 10,
+      "cases": 100
+    },
+    {
+      "dataset": "skew",
+      "metric": "native null eigenvalues versus psych default optimizer",
+      "maximumDifference": 0.0004308538773495352,
+      "casesAbove1e4": 2,
+      "cases": 100
+    }
+  ],
+  "results": [
+    {
+      "dataset": "2 levels",
+      "method": "R contr.poly",
+      "checks": [
+        {
+          "metric": "polynomial contrast max abs",
+          "error": 0,
+          "limit": 1e-10,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 0.10999999999999943
+    },
+    {
+      "dataset": "3 levels",
+      "method": "R contr.poly",
+      "checks": [
+        {
+          "metric": "polynomial contrast max abs",
+          "error": 1.1102230246251565e-16,
+          "limit": 1e-10,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 1.9338750000000005
+    },
+    {
+      "dataset": "5 levels",
+      "method": "R contr.poly",
+      "checks": [
+        {
+          "metric": "polynomial contrast max abs",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-10,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 0.36283299999999485
+    },
+    {
+      "dataset": "7 levels",
+      "method": "R contr.poly",
+      "checks": [
+        {
+          "metric": "polynomial contrast max abs",
+          "error": 7.771561172376096e-16,
+          "limit": 1e-10,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 0.943125000000002
+    },
+    {
+      "dataset": "11 levels",
+      "method": "R contr.poly",
+      "checks": [
+        {
+          "metric": "polynomial contrast max abs",
+          "error": 2.0039525594484076e-14,
+          "limit": 1e-10,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 0.2240420000000043
+    },
+    {
+      "dataset": "ordinal",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "ordinal coefficients max abs",
+          "error": 9.36582922328455e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal thresholds max abs",
+          "error": 3.4518223279711435e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal objective abs",
+          "error": 8.185452315956354e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal probabilities max abs",
+          "error": 1.0029422009560918e-7,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 8.555125000000004
+    },
+    {
+      "dataset": "binary",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "binary beta max abs",
+          "error": 1.913623767779704e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "binary covariance max abs",
+          "error": 9.71198848599697e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "binary sampled max abs",
+          "error": 4.4258719023027027e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "binary probabilities max abs",
+          "error": 3.279508858922142e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 4.2472080000000005
+    },
+    {
+      "dataset": "heavy-tail-skew",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "ordinal coefficients max abs",
+          "error": 7.527306022936386e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal thresholds max abs",
+          "error": 1.955552533239313e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal objective abs",
+          "error": 3.410605131648481e-13,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal probabilities max abs",
+          "error": 2.6158217703020625e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 8.915708000000002
+    },
+    {
+      "dataset": "single-missing",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "ordinal coefficients max abs",
+          "error": 3.253375191469843e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal thresholds max abs",
+          "error": 9.482806595517701e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal objective abs",
+          "error": 1.1368683772161603e-13,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal probabilities max abs",
+          "error": 1.2146534777990325e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 1.791667000000004
+    },
+    {
+      "dataset": "separation",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "ordinal coefficients max abs",
+          "error": 3.9164484988418735e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal thresholds max abs",
+          "error": 1.6161718008333992e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal objective abs",
+          "error": 2.842170943040401e-14,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal probabilities max abs",
+          "error": 1.803115529108723e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 5.200292000000005
+    },
+    {
+      "dataset": "ordinal-seven",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "ordinal coefficients max abs",
+          "error": 2.9649404875708996e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal thresholds max abs",
+          "error": 1.5887930082669754e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal objective abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal probabilities max abs",
+          "error": 5.535172209469863e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.217584000000002
+    },
+    {
+      "dataset": "ordinal-eleven",
+      "method": "MICE conditional",
+      "checks": [
+        {
+          "metric": "augmentation row count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "ordinal coefficients max abs",
+          "error": 4.661941022110483e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal thresholds max abs",
+          "error": 1.6059361129805438e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal objective abs",
+          "error": 4.547473508864641e-13,
+          "limit": 0.000001,
+          "passed": true
+        },
+        {
+          "metric": "ordinal probabilities max abs",
+          "error": 6.368841654058599e-8,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "conditional recorded-draw difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.573875000000001
+    },
+    {
+      "dataset": "heavy-tail/rank",
+      "method": "MICE chains and pooled fits",
+      "checks": [
+        {
+          "metric": "MICE failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed chain count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed-cell code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE observed-cell difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace mean max abs",
+          "error": 0,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace SD max abs",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 2.8352875602877248e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 8.848549959972196e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 7.719950051443547e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 1.4877266085733254e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 0.000007124583998652234,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 0.0000094352813164722,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 54.74420900000001
+    },
+    {
+      "dataset": "heavy-tail/polynomial",
+      "method": "MICE chains and pooled fits",
+      "checks": [
+        {
+          "metric": "MICE failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed chain count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed-cell code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE observed-cell difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace mean max abs",
+          "error": 0,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace SD max abs",
+          "error": 6.661338147750939e-16,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 2.2376520775191366e-11,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 0.000003846791204908939,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 0.00000446873241527479,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 8.958112029944232e-13,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 0.00000293188657474186,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 0.0000020843364745282145,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 69.869292
+    },
+    {
+      "dataset": "skew/rank",
+      "method": "MICE chains and pooled fits",
+      "checks": [
+        {
+          "metric": "MICE failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed chain count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed-cell code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE observed-cell difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace mean max abs",
+          "error": 0,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace SD max abs",
+          "error": 6.661338147750939e-16,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 1.844080443902385e-13,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 1.2994287645895497e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 1.686717326920828e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 6.262212970398195e-13,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 1.26405930833684e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 1.5411801523868007e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 59.396625
+    },
+    {
+      "dataset": "skew/polynomial",
+      "method": "MICE chains and pooled fits",
+      "checks": [
+        {
+          "metric": "MICE failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed chain count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE completed-cell code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE observed-cell difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace mean max abs",
+          "error": 0,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE trace SD max abs",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-12,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE fitted completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 9.161560399206792e-13,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 1.2293884132930089e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 1.4469535702943404e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "MICE correlation max abs",
+          "error": 6.442624211899783e-13,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "MICE sign-aligned pattern max abs",
+          "error": 1.0968256969334789e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "MICE communality max abs",
+          "error": 1.2066674659472199e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "MICE replacement code difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 84.52712500000001
+    },
+    {
+      "dataset": "normal",
+      "method": "six saved bootstrap resamples",
+      "checks": [
+        {
+          "metric": "bootstrap failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.0000032369095800399705,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.00000279664763824794,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 1.5534061453825743e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.000004009086177370058,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.000013625846743470227,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.000012177530696821925,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 0.000001748075619978362,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.000018899430440977305,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 6.993242570585423e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 5.978610629897574e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 3.338150850185073e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 8.948721196277987e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 6.042198386069231e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 5.466916559448975e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 8.441008092496816e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 7.666281026108557e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 1.6337423514034555e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 1.4483914156926403e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 1.4736988129815387e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 2.1250303838815654e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.0000031740925432455214,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.0000025167683926907713,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 0.0000010851594163807654,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.000003583851598709664,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap lower percentile abs",
+          "error": 4.773762535131842e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap upper percentile abs",
+          "error": 2.883020781552226e-7,
+          "limit": 0.001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 58.69883400000003
+    },
+    {
+      "dataset": "heavy-tail",
+      "method": "six saved bootstrap resamples",
+      "checks": [
+        {
+          "metric": "bootstrap failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 3.202595703077904e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 3.178832438388568e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 3.047739177697295e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 4.495167207352324e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 1.4405079717949576e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 1.3436481582917992e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 8.227830816665005e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 1.464389622340967e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.0000039587254451189935,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.000003981452732060298,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 0.0000011040541002260706,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.00000525115507560292,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.00000160495708845243,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.0000014647775180565148,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 1.199917004646167e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.0000017391400244370914,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 7.795356112838547e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 7.60481876804775e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 5.9498117654932514e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 8.308877753049337e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 4.658617468455972e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 4.453912290092177e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 1.8238720533858555e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 5.701083617415392e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap lower percentile abs",
+          "error": 1.0866853153435052e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap upper percentile abs",
+          "error": 6.907972309455612e-8,
+          "limit": 0.001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 27.74820900000003
+    },
+    {
+      "dataset": "skew",
+      "method": "six saved bootstrap resamples",
+      "checks": [
+        {
+          "metric": "bootstrap failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.0000017346510483573496,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.0000016504887041524086,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 7.079372186802324e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.0000022790715453191446,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 9.692213303047481e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 8.967293564365875e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 1.5464625718886182e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.0000014020069823983405,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.0000060658084891640485,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.0000056542173305640375,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 2.616008116240742e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.000006452214561969427,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.000005963531100161568,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.00000507005690264517,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 5.247584910494929e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.000007087090154123121,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 0.0000019329997988926095,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 0.000001977249091900113,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 0.0000011324900245357483,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 0.0000029235212979372704,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap pattern max abs",
+          "error": 4.915276782258005e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap structure max abs",
+          "error": 4.7421086601939777e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap phi max abs",
+          "error": 1.2610723815198455e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap communalities max abs",
+          "error": 6.483416758462646e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap lower percentile abs",
+          "error": 9.722516011029247e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "bootstrap upper percentile abs",
+          "error": 1.7310581072044195e-7,
+          "limit": 0.001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 41.72408300000001
+    },
+    {
+      "dataset": "normal",
+      "method": "100 saved parallel-analysis permutations",
+      "checks": [
+        {
+          "metric": "parallel R failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "parallel observed eigenvalues max abs",
+          "error": 2.207260069164718e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.3107053307287453e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.2222411960880493e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.192230590975953e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4940417791819982e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.513958510951824e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.1380472498288015e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.659854197479717e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.2617615114128853e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.369964847119931e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.5922228946706483e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.293005437920442e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.068031161403752e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.9954860803502754e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.91432683225446e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.9518496192391126e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.626906978053789e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2560512629988807e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.4460852648955367e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.9702172367236415e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.914101222637136e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0589949495098949e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0897630329381736e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.252641142537094e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.997803308015968e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.881969521505994e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.259057494517606e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.939179483656517e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.831552651018978e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.2802773101969773e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.3486214629240294e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6341858411503836e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.9018435715167925e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.5445433820815424e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.48513759344804e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.0220741756352134e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.3904571494194329e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.7987623036659386e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.674991062516895e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.808985793440911e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.7639285166136673e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.1907251152031293e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.8212027441677492e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2502493831889616e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.331055849984608e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2640080093717643e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.130138546778241e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.70585825651915e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.983782387833145e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.640670013879912e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.6827739202085468e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2380059200012283e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.537077596429185e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.927628193320601e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1353977757977418e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.5851022933398582e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1630183038846553e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.512085621273144e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.9445998972477128e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.021382532526374e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.430609635784009e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.117667448174986e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2810047839151295e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.895474413681768e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.008816828493522e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.3823192640826107e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.511504947402045e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.9392137612660463e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6163088079632644e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.2541785377482313e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0006115935823345e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.995647451266905e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.0515724119540835e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.745623131628072e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.5239252592356163e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.602674468807578e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.897231426464032e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.090149526206119e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.4504888507248523e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.120594872258909e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2745549199388861e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.554006586918405e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.466077189151484e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.850594453349345e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1242391045884759e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.5477710491615966e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.5601944309293643e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.5709236356187262e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.723312870350769e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.50255862244742e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.6129088268045386e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.015790171038816e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.002595226428653e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.155034011825819e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.824170366101725e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.498194672766573e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0320782084516367e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.182024139152361e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.148656075284805e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6687984317218536e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.9301281817550873e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel 95th percentile max abs",
+          "error": 9.414369062099581e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 286.844416
+    },
+    {
+      "dataset": "heavy-tail",
+      "method": "100 saved parallel-analysis permutations",
+      "checks": [
+        {
+          "metric": "parallel R failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "parallel observed eigenvalues max abs",
+          "error": 3.127737915886719e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.2147892115606e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.204002622687497e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.553884350310682e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.7082708927973478e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.415711929439681e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.507455739354853e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4518217494874364e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.183260017218913e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6198650188445924e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.45254434375164e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0870577771271428e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.466247996437467e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1439491465203844e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4697346152614532e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.052939178185056e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.06608799250219e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.4491727513882324e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.27967535351803e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.679221886014993e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.5234666189977162e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.6644290390388505e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.679841320547439e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.324312125239313e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.899563720544119e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.241933281827869e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.447349017360324e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.6119068302344886e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.7533696716753866e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.978925992662255e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2540280119877067e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.816136993188394e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.542185097632938e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.1718018494709668e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.296827826518525e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.938021046565268e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.603288664283838e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.60809260194317e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.558116925568179e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.1570455277796228e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.371794243811621e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.304636835872344e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.240187607638333e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.094109341105771e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1332177496728435e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.65756147380614e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.940182733534584e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4064906517230469e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.620657975875961e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.205333192786043e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.527941393523861e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.385851626320658e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.5180177205294e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.181301263561643e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.0827044533433536e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.211382603758196e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.211897820985186e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.352859708933181e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.237600012117596e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.010790853268496e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.7859984458311615e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.634877360214617e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4084442293005317e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.657764425733177e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.490160654402331e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0508529740826944e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.0348342733012004e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.321911205498516e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.527588637337487e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.580189978866997e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.7105536015415979e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.035673939808195e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.421807324126668e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.307822108559847e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.151292143899198e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.7196963564856134e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2777949809361644e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.8624131620524906e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.9549535879015423e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.5992647206530819e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.2931783017507996e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.733493736390869e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.5234713629519447e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.152845301501728e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1060162508069737e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.564038759616082e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.6746197740764615e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2078538058624133e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.9076572399810985e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.658156360637378e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.320175467364962e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.5923346519695087e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.021650439391735e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.7769550553214941e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.402613854563974e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.1495841079355316e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2973987995046343e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2619352854348342e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.8477191715836625e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.3315106491046436e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.483480802487202e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel 95th percentile max abs",
+          "error": 4.6881867207804184e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 302.76304200000004
+    },
+    {
+      "dataset": "skew",
+      "method": "100 saved parallel-analysis permutations",
+      "checks": [
+        {
+          "metric": "parallel R failures",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "parallel observed eigenvalues max abs",
+          "error": 3.996416253482238e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.4390161274266973e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.1263029638734e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.23611679867064e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.992609846036055e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.496036916570631e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.985973034386191e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.473711151005034e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.5513162976432682e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.909912920680881e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6291599864179958e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.105709134310075e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.8543266366854994e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.3580614925966525e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.1874857475688856e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4394110348092681e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.597102115117991e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.229047335073787e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.628497904390905e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.828805531102546e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.005710816494371e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.558745185320959e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.808906129052712e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.4769424180070008e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.858458954593026e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.811234455808332e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.005816485655231e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.235770788620698e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.1731157751634385e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.166390188241719e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.297810802216361e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.2475779114526926e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.8661772752115446e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6089235488923066e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.029110544147898e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.321593582463535e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.3437852136588546e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.065657791177177e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.764955378369016e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.292654578336939e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.953610763218762e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.190791475482513e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.23026724523739e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.2838147473744925e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.682097126147312e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.436056935818726e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.2480562272830795e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.537577370453903e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.7862830103965166e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.344384627712031e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.759885346456883e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.340179770081278e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.2091325372741027e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.3337643933741816e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.667088799812589e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.6680774539423737e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.656850874506517e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 7.848570693358425e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.193323923680104e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.1936217639285651e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.332316047572782e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.4450656216655773e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.220468848876614e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.6334524621797186e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.3382051676790194e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 8.692418035360916e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.188567119199014e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 5.082411963508449e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.0308912376522095e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.892683648170191e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.4147820965048084e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.4788767849216455e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.902711231962286e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.9660320038639156e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.3573842248002528e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.2598643239769558e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.641771294775719e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.7490704440348281e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.292493930799999e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.315576872081616e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.745377170158662e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.172039590524037e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.872254419507343e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.6796393159944643e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.355899932944162e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.354514139213393e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 4.5252286751118476e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.057224081843174e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.669607871135654e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.3224552836431656e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.835964245662126e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.0875455045143987e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.0643434040245054e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 6.262132534740061e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 1.8909034338321362e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.791611469239342e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.6746702902767936e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.9483051500189816e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 3.296637607341779e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 9.616951679447538e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel null eigenvalues max abs",
+          "error": 2.3814414572276288e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel 95th percentile max abs",
+          "error": 1.632849241234302e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "parallel completed count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 325.26962500000013
+    }
+  ]
+}

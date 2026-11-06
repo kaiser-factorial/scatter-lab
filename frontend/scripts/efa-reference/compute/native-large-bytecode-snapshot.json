@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-11-01T00:25:09.708116+00:00",
+  "scope": "Source and compiled TraceServer files on the suspended run classpath, captured before any later recompilation. File timestamps precede the native numerical run. Compare bytecode with the exact-bundle R replay.",
+  "files": [
+    {
+      "path": "frontend/scripts/efa-reference/compute/TraceServer.scala",
+      "sha256": "974064b956e8be65db07d36495909236d65968618149591a00c65ee208900295",
+      "modifiedAt": "2026-10-31T22:44:20.613962+00:00",
+      "archive": "frontend/scripts/efa-reference/compute/archives/974064b956e8be65db07d36495909236d65968618149591a00c65ee208900295.scala.gz"
+    },
+    {
+      "path": "/tmp/scatter-efa-scala/classes/TraceServer$.class",
+      "sha256": "58725e03e8ea23b23b17788d86bf98e7c89b4fe3bdfc9a2ed643671d0f65fec3",
+      "modifiedAt": "2026-10-31T22:50:45.371866+00:00",
+      "archive": "frontend/scripts/efa-reference/compute/archives/58725e03e8ea23b23b17788d86bf98e7c89b4fe3bdfc9a2ed643671d0f65fec3.class.gz"
+    },
+    {
+      "path": "/tmp/scatter-efa-scala/classes/TraceServer.class",
+      "sha256": "72de5ec52806af8704247cf19b9ca6a9d82a3a5634630523c45fc6b642819134",
+      "modifiedAt": "2026-10-31T22:50:45.372560+00:00",
+      "archive": "frontend/scripts/efa-reference/compute/archives/72de5ec52806af8704247cf19b9ca6a9d82a3a5634630523c45fc6b642819134.class.gz"
+    }
+  ]
+}

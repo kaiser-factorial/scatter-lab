@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, useMemo, memo, useCallback, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { HardDriveUpload, Play, Square, Download, Pin, Monitor, X, Trash2, Info, Lock, Globe, Settings2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import dynamic from 'next/dynamic';
@@ -25,15 +25,20 @@ import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import type { ConversationBridge } from "@/components/AssistantPanel";
 import { GUIDE_TARGETS, paintYield } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
-import { correlation, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
-import { runPCA, deriveRunLabel, sanitizeLabel, pcaColumnNames, isPCColumn, type MissingReport, type MissingStrategy } from "@/lib/pca";
+import { silhouetteByK, kDistancePercentiles } from "@/lib/stats";
+import { runPCA, sanitizeLabel, isPCColumn, type MissingReport, type MissingStrategy, type PCAResult } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
 import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, subsetTable, scatterBack, type FilterCondition } from "@/lib/rowFilter";
-import { numericTails, correlationAllowed, groupComparisonReport, filterMeetsFloor } from "@/lib/aggregatePolicy";
+import { numericTails, correlationReport, groupComparisonReport, filterMeetsFloor } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
+import { PanelChoiceButton } from "@/components/PanelChoiceButton";
+import { ConvergenceDialog } from "@/components/ConvergenceDialog";
+import type { ConvergenceRetrySettings, IterativePcaSettings } from "@/lib/convergence";
+import { adviceForAssistant } from "@/lib/decomposition-advice";
+import { analyzeItemsAsync } from "@/lib/decomposition-advice-service";
 import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
 import { RecodeDialog } from "@/components/RecodeDialog";
@@ -44,12 +49,29 @@ import { MARK_KINDS, TEST_KINDS, formatFailures, type AnalysisPlan, type ChartPl
 import { analysisProfileOf, validatePlan } from "@/lib/validators";
 import { formatTestResult, runTestPlan, type TestResult } from "@/lib/statTests";
 import { compileChart, type CompiledChart } from "@/lib/chartCompile";
+import { PRIMARY_CHART_COLORS } from "@/lib/chartPalette";
+import { EfaService, type EfaJob } from '@/lib/efa/service';
+import { EfaController } from '@/lib/efa/controller';
+import { ComputeInspector } from '@/components/ComputeInspector';
+import { emptyEfaState, fittingRows } from '@/lib/efa/state';
+import type { EfaState } from '@/lib/efa/types';
+import { commitDatasetAnalysis, type DatasetAnalysisTarget } from '@/lib/datasetAnalysis';
+import { createDatasetPartitions, type DatasetPartition, type DatasetSplitOptions } from '@/lib/datasetSplit';
+import { DatasetSplitControls, DEFAULT_DATASET_SPLIT } from '@/components/DatasetSplitControls';
+import { DatasetDialog } from '@/components/DatasetDialog';
+import { DecompositionSetup, type SharedAnalysisSetup } from '@/components/DecompositionSetup';
+import { runPcaImputations, type PcaImputationBatch, type PcaImputationOptions } from '@/lib/pca-imputation';
+import { createPcaBatchController, type PcaBatchDependencies, type PcaBatchRequest, type PcaBatchSummary } from '@/lib/pca-batch-controller';
+import type { MeasurementChoice } from '@/lib/measurement';
+const EfaPanel = dynamic(() => import('@/components/EfaPanel').then(m => m.EfaPanel), { ssr: false });
 
 
 const Plot = dynamic(() => import('@/components/PlotlyPlot'), { ssr: false });
 
 // Working title — referenced everywhere the app names itself
 const APP_NAME = "Scatter Lab";
+
+class DatasetSplitSetupError extends Error {}
 
 const PrimaryCollapsible = ({ title, mode = 'top', defaultOpen = true, width, buttonPosition = 'right', children }: any) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -131,7 +153,7 @@ const ThemedLegend = ({ view, theme, muted = {}, onToggle }: { view: any, theme:
         }
         return { kind, values: [] };
     }, [view.data, view.colorBy]);
-    const colors = ['#4195DE', '#D23B72', '#FFD600', '#5F4690', '#1D6996', '#38A6A5', '#0F8554', '#73AF48', '#EDAD08', '#E17C05'];
+    const colors = PRIMARY_CHART_COLORS;
     const textClass = theme === 'primary' ? 'text-[10px] font-bold text-[var(--foreground)]' : 'text-[10px] text-gray-300';
 
     // Shape is an independent channel, so it gets its own key below the colours.
@@ -289,13 +311,16 @@ const missingNote = (rep: MissingReport | undefined, nRows: number): string => {
     if (!rep || !rep.byVariable.length) return '';
     const worst = rep.byVariable.slice(0, 3).map(m => `${m.var} ${m.n}/${nRows}`).join(', ');
     const more = rep.byVariable.length > 3 ? `, +${rep.byVariable.length - 3} more` : '';
+    if (rep.strategy === 'pairwise') return ` Pairwise estimates use the observed respondents for each pair; no cells were imputed. ${rep.rowsScored ?? 0} complete respondents received scores.`;
+    if (rep.strategy === 'mice') return ` Scores come from one explicitly selected MICE imputation and its independently fitted PCA; original item cells remain unchanged.`;
     if (rep.strategy === 'complete') {
         return ` Complete cases only: ${rep.rowsDropped} of ${nRows} rows were dropped for having a gap, leaving ${rep.rowsUsed} — ${worst}${more}. Those rows have no score.`;
     }
     const pct = (rep.imputedCells / Math.max(rep.totalCells, 1)) * 100;
+    const hasCategoricalFills = rep.fillRules?.some(rule => rule.measurement === 'ordinal' && rep.byVariable.some(v => v.var === rule.variable));
     const how = rep.strategy === 'iterative'
         ? `reconstructed by iterative PCA (${rep.iterations} iterations${rep.converged ? '' : ', did NOT converge — treat with caution'})`
-        : 'filled with the column median';
+        : `filled using column ${rep.strategy === 'mean' ? 'means' : 'medians'}${hasCategoricalFills ? ' (categorical fills kept within valid categories)' : ''}`;
     return ` ${rep.imputedCells} of ${rep.totalCells} cells (${pct < 0.1 ? '<0.1' : pct.toFixed(1)}%) were missing and ${how} — ${worst}${more}.`;
 };
 
@@ -307,6 +332,8 @@ type Dataset = {
     axes: Axes, labels: AxisLabels,
     axes2d: Axes2D, labels2d: Axes2D,
     pcaRuns?: PcaRun[],
+    efa?: EfaState,
+    samplePartition?: DatasetPartition,
     // What the assistant may see of this dataset. Chosen at upload, changeable
     // from the badge in the datasets list; 'private' is the fail-closed default
     // (asDataMode maps anything unrecognized — including its absence in an
@@ -442,7 +469,7 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
     const shapeAt = (i: number) => (shapeOn ? String(shapeVals[i] ?? 'N/A') : null);
 
     const traces: any[] = [];
-    const colors = ['#4195DE', '#D23B72', '#FFD600', '#5F4690', '#1D6996', '#38A6A5', '#0F8554', '#73AF48', '#EDAD08', '#E17C05'];
+    const colors = PRIMARY_CHART_COLORS;
     const hovertemplate = mode === "3D"
         ? `${labels.x}: %{x:.2f}<br>${labels.y}: %{y:.2f}<br>${labels.z}: %{z:.2f}<extra></extra>`
         : `${labels.x}: %{x:.2f}<br>${labels.y}: %{y:.2f}<extra></extra>`;
@@ -512,7 +539,7 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
         });
     } else {
         // Single trace: the columnar arrays go to Plotly as-is, no reshaping.
-        // Continuous fields get a Viridis colorscale, overflowing categoricals a flat color.
+        // Continuous fields use readable light blue through theme blue; overflowing categoricals use a flat color.
         // A shape variable splits this into one trace per symbol; the colorscale is
         // then pinned to the full range so the split traces stay directly comparable.
         let cmin = Infinity, cmax = -Infinity;
@@ -527,8 +554,8 @@ const buildTraces = (table: DataTable | null, colorField: string, mode: "3D" | "
             size: markerSizeFor(mode, symbol),
             opacity: 0.7,
             ...(kind === "continuous"
-                ? { color: vals, colorscale: 'Viridis', showscale: false, cmin, cmax }
-                : { color: '#4195DE' })
+                ? { color: vals, colorscale: [[0, '#5986CA'], [1, PRIMARY_CHART_COLORS[0]]], showscale: false, cmin, cmax }
+                : { color: PRIMARY_CHART_COLORS[0] })
         });
         const base = {
             mode: 'markers',
@@ -698,7 +725,7 @@ const DEFAULT_CAMERA: SceneCamera = {
   center: { x: 0, y: 0, z: -0.12 },
 };
 
-const CHART_COLORS = ['#4195DE', '#D23B72', '#FFD600', '#5F4690', '#1D6996', '#38A6A5', '#0F8554', '#73AF48', '#EDAD08', '#E17C05'];
+const CHART_COLORS = PRIMARY_CHART_COLORS;
 
 // Inline distribution sparkline for a numeric column
 const MiniHistogram = ({ values, color }: { values: any[], color: string }) => {
@@ -950,100 +977,37 @@ const EmptyState = ({ theme, onLoadDemo, onUpload, busy, dimmed }: { theme: stri
 
 // In-app PCA: pick variables, pick k, run — scores land as PC columns and the
 // scree bars show what each component buys you.
-const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun }: {
+const PCASection = ({ table, theme, lastRun, runs, onRun, externalRun, setup, onImpute, onApplyImputation, contextKey }: {
     table: DataTable,
-    datasetId: number,
     theme: string | undefined,
     lastRun: { varianceExplained: number[]; cumulative: number[]; spectrum?: number[]; eigenvalues?: number[]; standardize?: boolean; k?: number; columns?: string[] } | null,
     runs: PcaRun[],
-    onRun: (vars: string[], k: number, standardize: boolean, label: string, missing: MissingStrategy) => void,
-    // A run started outside this panel — by the assistant or the walkthrough.
-    // `seq` increments per run so a repeat of the same settings still syncs.
-    externalRun?: { vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null,
+    onRun: (vars: string[], k: number, standardize: boolean, label: string, missing: MissingStrategy, measurements: Record<string, MeasurementChoice>, iterative?: IterativePcaSettings) => void,
+    externalRun?: { vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number; iterative?: IterativePcaSettings } | null,
+    setup: Omit<SharedAnalysisSetup, 'missing'> & { missing: MissingStrategy },
+    onImpute: (vars: string[], options: PcaImputationOptions) => Promise<PcaImputationBatch>,
+    onApplyImputation: (batch: PcaImputationBatch, result: PCAResult) => string,
+    contextKey: string,
 }) => {
-    // Component columns (bare or labeled) don't feed new PCAs; COMP_ composites
-    // stay selectable on purpose — feeding composites into a second-order PCA
-    // is a legitimate technique.
-    const numericVars = useMemo(
-        () => numericColumnsOf(table).filter(c => !isPCColumn(c) && c !== 'Cluster'),
-        [table]
-    );
-    const [selected, setSelected] = useState<Set<string>>(() => new Set(numericVars));
-    const [k, setK] = useState(3);
-    const [standardize, setStandardize] = useState(true);
-    const [missing, setMissing] = useState<MissingStrategy>('median');
-    const [label, setLabel] = useState('');
-    // Auto-suggest tracks the selection until the user types a label of their
-    // own; a cleared field re-arms the suggestion.
-    const labelTouched = useRef(false);
-    // Replacement confirm: what's waiting for an OK, and whether the user has
-    // opted out of being asked (persisted).
-    const [pendingRun, setPendingRun] = useState<{ vars: string[]; k: number; standardize: boolean; label: string; missing: MissingStrategy; replaces: string[] } | null>(null);
-    // New dataset → fresh default selection and label. A mere table change
-    // (a run adding columns) must NOT reset — that would wipe the user's
-    // subset selection mid-iteration — it only prunes columns that vanished.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { setSelected(new Set(numericVars)); setLabel(''); labelTouched.current = false; }, [datasetId]);
-    const varsKey = numericVars.join('\u0000');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { setSelected(prev => new Set(Array.from(prev).filter(c => numericVars.includes(c)))); }, [varsKey]);
-    // A run started from the assistant or the walkthrough leaves the panel
-    // showing what it actually ran. Without this the controls kept their
-    // defaults while the run used something else — so the walkthrough could
-    // point at the PCA section, say "Id is excluded", and have Id ticked.
-    const externalSeq = externalRun?.seq ?? 0;
-    useEffect(() => {
-        if (!externalRun) return;
-        setSelected(new Set(externalRun.vars.filter(c => numericVars.includes(c))));
-        setK(externalRun.k);
-        setStandardize(externalRun.standardize);
-        setMissing(externalRun.missing);
-        // The run's own label, and pinned: the auto-suggestion derives a label
-        // from shared affixes in the selection, which on the four Iris columns
-        // is "thCm" — a name for columns the run did not create. The panel is
-        // reporting a finished run here, not composing the next one.
-        setLabel(externalRun.label);
-        labelTouched.current = true;
-        // Keyed on the sequence number alone: this fires per external RUN, not
-        // whenever the object identity or the column list happens to change.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [externalSeq]);
-    useEffect(() => {
-        if (labelTouched.current) return;
-        setLabel(selected.size === numericVars.length ? '' : (deriveRunLabel(Array.from(selected)) ?? ''));
-    }, [selected, numericVars.length]);
-
-    // Per-variable missingness for the picker. methods.ts (pca_workflow) advises
-    // dropping columns above ~50% missing rather than imputing them — at that
-    // level an imputed column is mostly one repeated value, which enters the
-    // correlation matrix as a near-constant.
-    const missingPct = useMemo(() => {
-        const out: Record<string, number> = {};
-        for (const c of numericVars) {
-            const vals = table.data[c] ?? [];
-            let have = 0;
-            for (const v of vals) if (typeof v === 'number') have++;
-            out[c] = table.nRows ? (1 - have / table.nRows) * 100 : 0;
-        }
-        return out;
-    }, [numericVars, table]);
-    const heavilyMissing = Array.from(selected).filter(c => (missingPct[c] ?? 0) > 50);
-    // Rows with no gap across the current selection — what complete-case would keep.
-    const completeRows = useMemo(() => {
-        const sel = Array.from(selected).filter(c => numericVars.includes(c));
-        if (!sel.length) return table.nRows;
-        let count = 0;
-        for (let i = 0; i < table.nRows; i++) {
-            if (sel.every(c => typeof (table.data[c] ?? [])[i] === 'number')) count++;
-        }
-        return count;
-    }, [selected, numericVars, table]);
-
-    const toggle = (c: string) => setSelected(prev => {
-        const next = new Set(prev);
-        if (next.has(c)) next.delete(c); else next.add(c);
-        return next;
-    });
+    const numericVars = useMemo(() => numericColumnsOf(table).filter(c => !isPCColumn(c) && c !== 'Cluster'), [table]);
+    const selected = new Set(setup.selected), label = setup.label, missing = setup.missing;
+    const [k, setK] = useState(externalRun?.k ?? 3);
+    const [standardize, setStandardize] = useState(externalRun?.standardize ?? true);
+    const [iterative, setIterative] = useState<IterativePcaSettings>(externalRun?.iterative ?? { maxIterations: 200, tolerance: 1e-8 });
+    const [externalSeq, setExternalSeq] = useState(externalRun?.seq ?? 0);
+    if (externalRun && externalSeq !== externalRun.seq) {
+        setExternalSeq(externalRun.seq); setK(externalRun.k); setStandardize(externalRun.standardize);
+        setIterative(externalRun.iterative ?? { maxIterations: 200, tolerance: 1e-8 });
+    }
+    const [pendingRun, setPendingRun] = useState<{ vars: string[]; k: number; standardize: boolean; label: string; missing: MissingStrategy; replaces: string[]; measurements: Record<string, MeasurementChoice>; iterative?: IterativePcaSettings } | null>(null);
+    const [imputations, setImputations] = useState(20), [iterations, setIterations] = useState(10), [seed, setSeed] = useState(73021);
+    const [batch, setBatch] = useState<{ result: PcaImputationBatch; key: string; table: DataTable } | null>(null);
+    const [selectedFit, setSelectedFit] = useState(1), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
+    const abort = useRef<AbortController | null>(null);
+    useEffect(() => () => { abort.current?.abort(); abort.current = null; }, []);
+    const setupKey = JSON.stringify({ setup, k, standardize, imputations, iterations, seed, contextKey });
+    const batchCurrent = batch?.key === setupKey && batch.table === table;
+    const completedFit = batch?.result.completed.find(f => f.imputation === selectedFit);
     const maxK = Math.max(1, Math.min(10, selected.size));
     // The full spectrum drives the height, since it is what gets drawn (B4).
     const screeBars = lastRun ? (lastRun.spectrum ?? lastRun.varianceExplained) : [];
@@ -1052,109 +1016,70 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
     // the chart rather than spilling out of a fixed-height bar box.
     const screeHeight = Math.max(56, Math.ceil(screeMaxBarHeight) + 18);
 
-    const submit = () => {
-        const vars = Array.from(selected).filter(c => numericVars.includes(c));
-        const cleanLabel = sanitizeLabel(label);
-        const effK = Math.min(k, maxK);
+    const submit = async () => {
+        const vars = setup.selected;
+        if (vars.some(c => !numericVars.includes(c))) { setMessage('PCA needs numeric items. Deselect text columns or use EFA with an explicit category order.'); return; }
+        const cleanLabel = sanitizeLabel(label), effK = Math.min(k, maxK);
+        setMessage('');
+        if (missing === 'mice') {
+            abort.current?.abort(); const controller = new AbortController(); abort.current = controller;
+            setBatch(null); setBusy(true);
+            try {
+                const result = await onImpute(vars, { k: effK, standardize, label: cleanLabel, imputations, iterations, seed, measurements: setup.measurements, signal: controller.signal,
+                    onProgress: progress => { if (!controller.signal.aborted) setMessage(`${progress.stage}: ${progress.completed}/${progress.total}`); } });
+                if (controller.signal.aborted) return;
+                setBatch({ result, key: setupKey, table }); setSelectedFit(result.completed[0]?.imputation ?? 1);
+                setMessage(`${result.completed.length}/${result.requested} completed fits.`);
+            } catch (error) { if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : String(error)); }
+            finally { if (abort.current === controller) { setBusy(false); abort.current = null; } }
+            return;
+        }
         const existing = runs.find(r => r.label === cleanLabel);
         const suppressed = typeof localStorage !== 'undefined' && localStorage.getItem('scatterlab.pca.confirmReplace') === 'off';
         if (existing && !suppressed) {
-            setPendingRun({ vars, k: effK, standardize, label: cleanLabel, missing, replaces: existing.columns });
-            return;
+            setPendingRun({ vars, k: effK, standardize, label: cleanLabel, missing, replaces: existing.columns, measurements: setup.measurements, iterative: missing === 'iterative' ? iterative : undefined }); return;
         }
-        onRun(vars, effK, standardize, cleanLabel, missing);
+        onRun(vars, effK, standardize, cleanLabel, missing, setup.measurements, missing === 'iterative' ? iterative : undefined);
     };
-
     return (
-        <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-                <span className="opacity-60">{selected.size}/{numericVars.length} variables</span>
-                <span className="flex gap-2">
-                    <button onClick={() => setSelected(new Set(numericVars))} className="underline-offset-2 hover:underline opacity-60 hover:opacity-100 cursor-pointer">all</button>
-                    <button onClick={() => setSelected(new Set())} className="underline-offset-2 hover:underline opacity-60 hover:opacity-100 cursor-pointer">none</button>
-                </span>
-            </div>
-            <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1 border border-[var(--border)]/30 p-1.5">
-                {numericVars.map(c => {
-                    const miss = missingPct[c] ?? 0;
-                    return (
-                        <label key={c} className="flex items-center gap-2 cursor-pointer hover:opacity-80">
-                            <input type="checkbox" checked={selected.has(c)} onChange={() => toggle(c)} />
-                            <span className="truncate flex-1" title={c}>{c}</span>
-                            {miss > 0 && (
-                                <span
-                                    className={`flex-shrink-0 text-[10px] ${miss > 50 ? 'font-bold text-[var(--p-red)]' : 'opacity-50'}`}
-                                    title={`${miss.toFixed(0)}% of rows are missing this variable`}
-                                >
-                                    {miss.toFixed(0)}% NA
-                                </span>
-                            )}
-                        </label>
-                    );
-                })}
-                {numericVars.length === 0 && <div className="opacity-50 p-1">No numeric variables available.</div>}
-            </div>
-            <label className="flex justify-between items-center">
-                <span className="opacity-70">Components: <b>{Math.min(k, maxK)}</b>{Math.min(k, maxK) === 1 ? ' (composite)' : ''}</span>
-                <input type="range" min={1} max={maxK} step={1} value={Math.min(k, maxK)} onChange={e => setK(parseInt(e.target.value))} className="w-32" />
-            </label>
+        <div className="space-y-3 text-xs">
             <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input type="checkbox" checked={standardize} onChange={e => setStandardize(e.target.checked)} />
-                <span className="opacity-80">Standardize variables (correlation PCA)</span>
-                <InfoTip topic="standardize_pca" />
+                <span className="opacity-80">Standardize variables</span><InfoTip topic="standardize_pca" />
             </label>
-            <input
-                type="text"
-                value={label}
-                onChange={e => { labelTouched.current = e.target.value.trim().length > 0; setLabel(e.target.value); }}
-                placeholder={selected.size < numericVars.length ? 'name this run (e.g. openness)' : 'run label (optional)'}
-                title={'Names this run\'s columns: 1 component → COMP_<label>; several → PC1_<label>… Re-running the same label replaces its columns; different labels coexist, so subsets like "openness" and "neuroticism" can each keep their own scores. Empty = plain PC1…PCk.'}
-                className="w-full bg-[var(--input)] border border-[var(--border)] p-1.5 text-xs outline-none"
-            />
-            {label && sanitizeLabel(label) && (
-                <div className="text-[10px] opacity-50">
-                    → {pcaColumnNames(sanitizeLabel(label), Math.min(k, maxK)).join(', ')}
+            {missing === 'iterative' && <details><summary className="cursor-pointer">Iterative PCA settings</summary>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                    <label>Iterations<input aria-label="PCA maximum iterations" type="number" min={1} max={20000} value={iterative.maxIterations ?? 200} onChange={e => setIterative(v => ({ ...v, maxIterations: +e.target.value }))} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                    <label>Tolerance<input aria-label="PCA convergence tolerance" type="number" min={1e-12} max={0.01} step="any" value={iterative.tolerance ?? 1e-8} onChange={e => setIterative(v => ({ ...v, tolerance: +e.target.value }))} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                    <label>Imputation rank<input aria-label="PCA imputation rank" type="number" min={1} max={Math.max(1, selected.size - 1)} placeholder={`Component count (${Math.min(k, maxK)})`} value={iterative.rank ?? ''} onChange={e => setIterative(v => ({ ...v, rank: e.target.value === '' ? undefined : +e.target.value }))} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
                 </div>
-            )}
-            <div className="space-y-1">
-                <span className="opacity-70">Missing values</span>
-                <div className="flex gap-1">
-                    {([['median', 'Median'], ['iterative', 'Iterative PCA'], ['complete', 'Complete cases']] as const).map(([v, lbl]) => (
-                        <button
-                            key={v}
-                            onClick={() => setMissing(v)}
-                            className={`flex-1 py-1 text-[10px] font-bold border ${missing === v
-                                ? 'bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)]'
-                                : 'bg-[var(--input)] border-[var(--border)] opacity-60 hover:opacity-100'}`}
-                        >
-                            {lbl}
-                        </button>
-                    ))}
+            </details>}
+            {missing === 'mice' && <details open><summary className="cursor-pointer">MICE settings</summary>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                    <label>Imputations<input aria-label="PCA MICE imputations" type="number" min={2} max={100} value={imputations} onChange={e => setImputations(+e.target.value)} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                    <label>Sweeps<input aria-label="PCA MICE sweeps" type="number" min={1} max={100} value={iterations} onChange={e => setIterations(+e.target.value)} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                    <label>Seed<input aria-label="PCA MICE seed" type="number" value={seed} onChange={e => setSeed(+e.target.value)} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
                 </div>
-                {missing === 'complete' && (
-                    <div className={`text-[10px] leading-snug ${completeRows < 3 ? 'text-[var(--p-red)]' : 'opacity-60'}`}>
-                        {completeRows} of {table.nRows} rows have no gaps in this selection
-                        {completeRows < table.nRows && ' — the rest will have no score'}.
-                    </div>
-                )}
-            </div>
-            {heavilyMissing.length > 0 && (
-                <div className="text-[10px] leading-snug text-[var(--p-red)]">
-                    ⚠ {heavilyMissing.map(c => `"${c}"`).join(', ')} {heavilyMissing.length === 1 ? 'is' : 'are'} over 50% missing.
-                    Imputing that much makes a column mostly one repeated value; dropping it is usually better than filling it.
-                </div>
-            )}
-            <button
-                onClick={submit}
-                disabled={selected.size < 2}
-                className={`w-full text-sm font-bold py-2 disabled:opacity-40 cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--border)] hover:bg-[var(--border)] text-[var(--mauk)]'}`}
-            >
-                Run PCA
+            </details>}
+            <label className="flex items-center justify-between gap-2"><span className="opacity-70">Components{Math.min(k, maxK) === 1 ? ' (composite)' : ''}</span>
+                <input aria-label="PCA component count" type="number" min={1} max={maxK} step={1} value={Math.min(k, maxK)} onChange={e => setK(+e.target.value)} className="w-16 border border-[var(--border)] bg-[var(--input)] p-1.5" />
+            </label>
+            <button onClick={() => void submit()} disabled={selected.size < 2 || busy}
+                className={`w-full text-sm font-bold py-2 disabled:opacity-40 cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-blue)] text-white' : 'bg-[var(--input)] border border-[var(--border)] hover:bg-[var(--border)] text-[var(--mauk)]'}`}>
+                {busy ? 'Computing…' : missing === 'mice' ? 'Run MICE + PCA' : 'Run PCA'}
             </button>
-            <p className="text-[10px] leading-snug opacity-60">
-                Missing values are filled with the column median before the decomposition.
-                <InfoTip topic="median_imputation" />
-            </p>
+            {busy && <button className="border border-[var(--border)] px-2 py-1" onClick={() => { abort.current?.abort(); setBusy(false); setMessage('Cancelled.'); }}>Cancel</button>}
+            {message && <p role="status" className="text-[11px]">{message}</p>}
+            {batch && <details open><summary>MICE results{!batchCurrent ? ' · settings changed' : ''}</summary>
+                <p className="my-2">Each imputation has its own PCA. Select one completed fit before adding its scores.</p>
+                {!!batch.result.completed.length && <><select aria-label="PCA imputation result" value={selectedFit} onChange={e => setSelectedFit(+e.target.value)} className="border border-[var(--border)] bg-[var(--input)] p-1.5 w-full">
+                    {batch.result.completed.map(f => <option key={f.imputation} value={f.imputation}>Imputation {f.imputation} · {(f.result.cumulative.at(-1)! * 100).toFixed(1)}% retained variance</option>)}
+                </select><button disabled={!batchCurrent || !completedFit} className="border border-[var(--border)] px-2 py-1 my-2 disabled:opacity-40" onClick={() => {
+                    if (!batchCurrent || !completedFit) return;
+                    setMessage(onApplyImputation(batch.result, completedFit.result));
+                }}>Add scores from selected fit</button></>}
+                {!!batch.result.failures.length && <details><summary>{batch.result.failures.length} failed imputations</summary><pre className="whitespace-pre-wrap text-[10px]">{JSON.stringify(batch.result.failures, null, 2)}</pre></details>}
+            </details>}
             {/* Portalled to <body>: the sidebar is a positioned, scrolling
                 stacking context, so a z-100 backdrop rendered inside it still
                 sits BELOW the plot canvas in <main>. elementFromPoint at the
@@ -1189,7 +1114,7 @@ const PCASection = ({ table, datasetId, theme, lastRun, runs, onRun, externalRun
                                 Cancel
                             </button>
                             <button
-                                onClick={() => { onRun(pendingRun.vars, pendingRun.k, pendingRun.standardize, pendingRun.label, pendingRun.missing); setPendingRun(null); }}
+                                onClick={() => { onRun(pendingRun.vars, pendingRun.k, pendingRun.standardize, pendingRun.label, pendingRun.missing, pendingRun.measurements, pendingRun.iterative); setPendingRun(null); }}
                                 className={`px-3 py-1.5 font-bold cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-red)] text-white' : 'bg-[var(--system-green)]/20 border border-[var(--system-green)] text-[var(--system-green)]'}`}
                             >
                                 Replace
@@ -2211,12 +2136,20 @@ export default function Home() {
   // The no-sensitive-data confirmation lives in the ADD dialog now, since
   // upload time is the only moment a dataset can become open.
   const [uploadOpenConfirmed, setUploadOpenConfirmed] = useState(false);
+  const [uploadCreateSplit, setUploadCreateSplit] = useState(true);
+  const [uploadSplitOptions, setUploadSplitOptions] = useState<DatasetSplitOptions>({ ...DEFAULT_DATASET_SPLIT });
+  const [uploadSplitError, setUploadSplitError] = useState("");
+  const [splitDatasetId, setSplitDatasetId] = useState<number | null>(null);
+  const [splitOptions, setSplitOptions] = useState<DatasetSplitOptions>({ ...DEFAULT_DATASET_SPLIT });
+  const [splitError, setSplitError] = useState("");
+  const [unlockDatasetId, setUnlockDatasetId] = useState<number | null>(null);
   // A failed upload opens a dialog instead of relying on the small status
   // line: the error, a local column-shape diagnosis, and — when the culprit is
   // numbers stored as formatted text — an in-app fix.
   const [uploadFailure, setUploadFailure] = useState<{
     message: string; name: string; dataMode: DataMode; recodeAfter: 'configure' | 'skip';
     table: DataTable | null; comp: DataTable | null; diags: ColumnDiagnosis[] | null;
+    splitOptions?: DatasetSplitOptions;
   } | null>(null);
   const [fixCols, setFixCols] = useState<string[]>([]);
   // The add-dataset config modal: opens as soon as a file is dropped/picked,
@@ -2248,6 +2181,7 @@ export default function Home() {
   // Data state: cached datasets (columnar — see DataTable), one active at a time
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const partitionStateKey = JSON.stringify(datasets.filter(d => d.samplePartition).map(d => [d.id, d.samplePartition!.groupId, d.samplePartition!.locked, d.samplePartition!.unlockedAt]));
   // Tool calls in one model turn run before React re-renders, so a
   // switch_dataset (or load_demo_data) followed by set_row_filter must stamp
   // the NEW dataset. The bridge records the switch here together with the
@@ -2258,8 +2192,37 @@ export default function Home() {
   const [colorBy, setColorBy] = useState<string>("");
   // Second categorical channel, rendered as marker symbols. "" = off.
   const [shapeBy, setShapeBy] = useState<string>("");
-  const activeDataset = datasets.find(d => d.id === activeId) ?? null;
+  const activeDataset = datasets.find(d => d.id === activeId && !d.samplePartition?.locked) ?? null;
   const processedData = activeDataset?.table ?? null;
+  // Deferred handlers must read today's selection even if their callback was
+  // created before a React render, and freshTableRef has since been cleared.
+  const activeInputRef = useRef<{ id: number | null; table: DataTable | null }>({ id: null, table: null });
+  useLayoutEffect(() => {
+    activeInputRef.current = { id: activeDataset?.id ?? null, table: processedData };
+  }, [activeDataset?.id, processedData]);
+  const [decomposition, setDecomposition] = useState<'pca' | 'efa'>('pca');
+  const [efaService] = useState(() => new EfaService());
+  const [efaController] = useState(() => new EfaController(efaService));
+  const [efaJob, setEfaJob] = useState<EfaJob | undefined>();
+  const [dismissedConvergenceJob, setDismissedConvergenceJob] = useState('');
+  const [convergenceBusy, setConvergenceBusy] = useState(false);
+  const [recoveredEfaRun, setRecoveredEfaRun] = useState<string | null>(null);
+  const [pendingPcaConvergence, setPendingPcaConvergence] = useState<{
+    vars: string[]; k: number; standardize: boolean; label: string; missing: MissingStrategy;
+    measurements: Record<string, MeasurementChoice>; result: PCAResult;
+    target: DatasetAnalysisTarget; filterKey: string;
+  } | null>(null);
+  const convergenceJobId = efaJob?.id;
+  const dismissConvergence = () => {
+      if (pendingPcaConvergence) setUploadStatus('Unconverged PCA result discarded. No scores were added.');
+      setPendingPcaConvergence(null);
+      if (convergenceJobId) setDismissedConvergenceJob(convergenceJobId);
+  };
+
+  useEffect(() => efaService.subscribe(() => {
+      const job = efaService.listJobs().at(-1);
+      setEfaJob(job ? { ...job } : undefined);
+  }), [efaService]);
   
   // Plot state
   const [viewMode, setViewMode] = useState<"3D" | "2D">("3D");
@@ -2305,6 +2268,7 @@ export default function Home() {
   // undo snapshots and workspaces carry the scope with them for free.
   const [rowFilterState, setRowFilterState] = useState<{ datasetId: number; conditions: FilterCondition[] } | null>(null);
   const rowFilter = rowFilterState && rowFilterState.datasetId === activeId ? rowFilterState.conditions : null;
+
   // Tool calls in one model response run before React re-renders, so a
   // set_row_filter followed by compare_groups in the same turn must not
   // analyse the previous filter. The ref carries the just-set conditions
@@ -2383,7 +2347,7 @@ export default function Home() {
   const [isClustering, setIsClustering] = useState(false);
   const [breakdownBy, setBreakdownBy] = useState<string>("");
   const [breakdownDirection, setBreakdownDirection] = useState<BreakdownDirection>('cluster');
-  const [heatmapPalette, setHeatmapPalette] = useState<HeatmapPalette>('Viridis');
+  const [heatmapPalette, setHeatmapPalette] = useState<HeatmapPalette>('PrimaryBlue');
 
   // The standardize toggle defaults by data regime (PC scores or shared-scale
   // columns → off, mixed scales → on; see suggestStandardize). Recomputed when
@@ -2500,6 +2464,68 @@ export default function Home() {
 
   // Everything happens in the browser: parse → (optionally) project → plot.
   // No network round-trip, no server, no dataset upload.
+  const partitionDataset = (dataset: Dataset, options: DatasetSplitOptions) => {
+    if (dataset.samplePartition) throw new Error('This dataset already belongs to a development/holdout split.');
+    const excluded = dataset.table.columns.filter(c => isDerivedColumn(c, (dataset.efa?.runs ?? []).flatMap(r => r.scoreColumns)));
+    const parts = createDatasetPartitions(dataset.table, dataset.id, {
+      ...options, excludeColumns: excluded,
+      afterFullExploration: !!(dataset.pcaRuns?.length || dataset.efa?.runs.length || dataset.efa?.imputationRuns?.length || excluded.length),
+    });
+    const nextId = Math.max(dataset.id + 1, ...datasets.map(d => d.id + 1));
+    const at = new Date().toISOString();
+    const provenance = [...(dataset.provenance ?? []), { at, action: `Created fixed split: ${parts.development.table.nRows} development / ${parts.holdout.table.nRows} holdout rows${options.sourceColumn ? ` from "${options.sourceColumn}"` : ` (seed ${options.seed ?? 2026})`}.` }];
+    const full: Dataset = { ...dataset, ...parts.full, name: `${dataset.name} · Full`, provenance,
+      efa: { ...(dataset.efa ?? emptyEfaState()), splits: [...(dataset.efa?.splits ?? []), parts.split] } };
+    const child = (role: 'development' | 'holdout', id: number): Dataset => {
+      const part = parts[role];
+      const axes = pickDefaultAxes(part.table);
+      return { ...dataset, ...part, id, name: `${dataset.name} · ${role === 'development' ? 'Development' : 'Holdout'}`,
+        summary: null, pcaRuns: [], efa: emptyEfaState(), axes, labels: defaultLabels(axes),
+        axes2d: { x: axes.x, y: axes.y }, labels2d: { x: axes.x, y: axes.y },
+        provenance: [...provenance, { at, action: `${role === 'development' ? 'Development selected for analysis' : 'Holdout locked'}; ${excluded.length ? 'full-sample derived columns omitted' : 'original input columns retained'}.` }],
+      };
+    };
+    return { full, development: child('development', nextId), holdout: child('holdout', nextId + 1) };
+  };
+
+  const activateDataset = (dataset: Dataset) => {
+    efaController.cancel();
+    activeInputRef.current = { id: dataset.id, table: dataset.table };
+    setActiveId(dataset.id);
+    pendingSwitchRef.current = { id: dataset.id, table: dataset.table };
+    freshTableRef.current = dataset.table;
+    pendingFilterRef.current = null;
+    setRowFilterState(null);
+    setShowTableView(false);
+    setColorBy(pickDefaultColorBy(dataset.table, colorBy));
+    if (!dataset.axes.z) setViewMode('2D');
+  };
+
+  const unlockSelectedDataset = () => {
+    const dataset = datasets.find(d => d.id === unlockDatasetId);
+    if (!dataset?.samplePartition?.locked) return;
+    const at = new Date().toISOString();
+    const updated: Dataset = { ...dataset, samplePartition: { ...dataset.samplePartition, locked: false, unlockedAt: at },
+      provenance: [...(dataset.provenance ?? []), { at, action: `Explicitly unlocked ${dataset.samplePartition.role} dataset for inspection and analysis.` }] };
+    setDatasets(prev => prev.map(d => d.id === updated.id ? updated : d));
+    activateDataset(updated);
+    setUnlockDatasetId(null);
+  };
+
+  const createSplitForDataset = () => {
+    const source = datasets.find(d => d.id === splitDatasetId);
+    if (!source || source.samplePartition) return;
+    try {
+      const parts = partitionDataset(source, splitOptions);
+      setDatasets(prev => prev.flatMap(d => d.id === source.id ? [parts.full, parts.development, parts.holdout] : [d]));
+      // Canvas snapshots can contain the full sample; start the development view fresh.
+      setPinnedViews([]); setAnalysisViews([]);
+      activateDataset(parts.development);
+      setSplitDatasetId(null); setSplitError('');
+      setUploadStatus(`Development selected: ${parts.development.table.nRows} rows. Full and Holdout are locked.`);
+    } catch (error) { setSplitError(error instanceof Error ? error.message : String(error)); }
+  };
+
   // The success half of an upload — project/validate a parsed table and
   // install it as a dataset. Split out of uploadFiles so the upload-error
   // dialog's "fix & add" path can re-enter it with a repaired table.
@@ -2512,6 +2538,7 @@ export default function Home() {
     dataMode: DataMode,
     provenanceNotes: string[] = [],
     recodeAfter: 'configure' | 'skip' = 'skip',
+    requestedSplit?: DatasetSplitOptions,
   ): DataTable => {
     const result = processUpload(dsTable, compTable);
     // Parser warnings describe things that silently changed the data, so they
@@ -2525,7 +2552,7 @@ export default function Home() {
     setUploadStatus(warnings.length
       ? `${warnings.map(w => `⚠ ${w}`).join('\n')}\n${result.message}`
       : result.message);
-    const id = Date.now();
+    const id = Math.max(Date.now(), ...datasets.map(d => d.id + 1));
     const table = result.table;
     const axes = initialView?.axes ?? pickDefaultAxes(table);
     const dataset: Dataset = {
@@ -2544,22 +2571,29 @@ export default function Home() {
         ...provenanceNotes,
       ].map(action => ({ at: new Date().toISOString(), action })),
     };
-    setDatasets(prev => [...prev, dataset]);
-    setActiveId(id);
+    let parts: ReturnType<typeof partitionDataset> | null = null;
+    if (requestedSplit) {
+      try { parts = partitionDataset(dataset, requestedSplit); }
+      catch (error) { throw new DatasetSplitSetupError(error instanceof Error ? error.message : String(error)); }
+    }
+    const selected = parts?.development ?? dataset;
+    setDatasets(prev => [...prev, ...(parts ? [parts.full, parts.development, parts.holdout] : [dataset])]);
+    activateDataset(selected);
+    if (parts) setUploadStatus(`Added ${name}. Development selected: ${parts.development.table.nRows} rows. Full and Holdout are locked.${warnings.length ? `\n${warnings.join('\n')}` : ''}`);
     // A tool that runs before the re-render (load_demo_data → set_row_filter)
     // must see this dataset as the active one.
-    pendingSwitchRef.current = { id, table };
+    pendingSwitchRef.current = { id: selected.id, table: selected.table };
     // The scan-or-not question was answered in the add-dataset config, so the
     // checker either opens straight away or not at all — no second prompt.
     // (The detector still only runs on request: scanning every column on
     // import was measurable latency on wide survey tables.) The demo is
     // curated and known clean — it arrives with an initialView.
     if (!initialView && recodeAfter === 'configure') setShowRecode('configure');
-    setColorBy(initialView?.colorBy ?? pickDefaultColorBy(table, colorBy));
+    setColorBy(initialView?.colorBy ?? pickDefaultColorBy(selected.table, colorBy));
     // Ordinary uploads preserve a compatible shape channel; the demo supplies
     // an initial view specifically so it can start with shape unassigned.
     if (initialView) setShapeBy(initialView.shapeBy ?? "");
-    setViewMode(initialView?.viewMode ?? (axes.z ? viewMode : "2D"));
+    setViewMode(initialView?.viewMode ?? (selected.axes.z ? viewMode : "2D"));
     // Consume the file selections so the slots are free for the next dataset.
     // Mode and scan choices reset too — both are per-file decisions.
     setDatasetFile(null);
@@ -2567,9 +2601,12 @@ export default function Home() {
     setUploadDataMode('private');
     setUploadOpenConfirmed(false);
     setRecodeAfterAdd('configure');
+    setUploadCreateSplit(true);
+    setUploadSplitOptions({ ...DEFAULT_DATASET_SPLIT });
+    setUploadSplitError('');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
-    return table;
+    return selected.table;
   };
 
   const uploadFiles = async (
@@ -2579,6 +2616,7 @@ export default function Home() {
     sheet?: string,
     dataMode: DataMode = 'private',
     recodeAfter: 'configure' | 'skip' = 'skip',
+    requestedSplit?: DatasetSplitOptions,
   ): Promise<DataTable | null> => {
     setIsUploading(true);
     setUploadStatus("Processing…");
@@ -2605,12 +2643,18 @@ export default function Home() {
         dsParsed.table,
         parsedComp,
         [...dsParsed.warnings, ...(compParsed?.warnings ?? []).map(w => `Components file: ${w}`)],
-        name, initialView, dataMode, [], recodeAfter,
+        name, initialView, dataMode, [], recodeAfter, requestedSplit,
       );
       setShowAddConfig(false);
       return table;
     } catch (err: any) {
       const message = String(err?.message ?? err);
+      if (err instanceof DatasetSplitSetupError) {
+        setUploadSplitError(message);
+        setShowAddConfig(true);
+        setUploadStatus('Adjust the split settings to finish adding this dataset.');
+        return null;
+      }
       setUploadStatus(`Error: ${message}`);
       // The prominent path: a dialog with a local, column-shape diagnosis and
       // (when the problem is formatted-text numbers) an in-app fix. Counts and
@@ -2619,7 +2663,7 @@ export default function Home() {
       const diags = parsedTable ? diagnoseTable(parsedTable) : null;
       setFixCols(diags?.filter(d => d.kind === 'fixable').map(d => d.col) ?? []);
       setShowAddConfig(false);
-      setUploadFailure({ message, name, dataMode, recodeAfter, table: parsedTable, comp: parsedComp, diags });
+      setUploadFailure({ message, name, dataMode, recodeAfter, splitOptions: requestedSplit, table: parsedTable, comp: parsedComp, diags });
       return null;
     } finally {
       setIsUploading(false);
@@ -2630,23 +2674,31 @@ export default function Home() {
   // columns to numbers and run the same ingest the upload would have.
   const retryUploadWithFix = async () => {
     if (!uploadFailure?.table || fixCols.length === 0) return;
-    const { table, comp, name, dataMode, recodeAfter } = uploadFailure;
+    const { table, comp, name, dataMode, recodeAfter, splitOptions: requestedSplit } = uploadFailure;
     setUploadFailure(null);
     // Let the dialog-close frame paint before the synchronous coerce+ingest.
     await paintYield();
     try {
       const fixed = applyNumericFix(table, fixCols);
       const note = `Converted ${fixCols.length} formatted-text column${fixCols.length === 1 ? '' : 's'} to numeric: ${fixCols.join(', ')}.`;
-      ingestParsed(fixed, comp, [note], name, undefined, dataMode, [note], recodeAfter);
+      ingestParsed(fixed, comp, [note], name, undefined, dataMode, [note], recodeAfter, requestedSplit);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setUploadStatus(`Error: ${message}`);
-      setUploadFailure({ message, name, dataMode, recodeAfter, table, comp, diags: diagnoseTable(table) });
+      setUploadFailure({ message, name, dataMode, recodeAfter, splitOptions: requestedSplit, table, comp, diags: diagnoseTable(table) });
       setFixCols([]);
     }
   };
 
-  const handleUpload = () => { if (datasetFile) uploadFiles(datasetFile, componentsFile, undefined, selectedSheet || undefined, uploadDataMode, recodeAfterAdd); };
+  const handleUpload = () => {
+    setUploadSplitError('');
+    if (uploadCreateSplit) {
+      const { fraction = 0.7, seed = 2026 } = uploadSplitOptions;
+      if (!Number.isFinite(fraction) || fraction <= 0 || fraction >= 1) { setUploadSplitError('Choose a development percentage between 1 and 99.'); return; }
+      if (!Number.isSafeInteger(seed)) { setUploadSplitError('Use a whole number for the random seed.'); return; }
+    }
+    if (datasetFile) uploadFiles(datasetFile, componentsFile, undefined, selectedSheet || undefined, uploadDataMode, recodeAfterAdd, uploadCreateSplit ? uploadSplitOptions : undefined);
+  };
 
   // Closing the add-config without adding releases the chosen files so the
   // dropzone is ready for the next attempt.
@@ -2658,6 +2710,9 @@ export default function Home() {
     setUploadDataMode('private');
     setUploadOpenConfirmed(false);
     setRecodeAfterAdd('configure');
+    setUploadCreateSplit(true);
+    setUploadSplitOptions({ ...DEFAULT_DATASET_SPLIT });
+    setUploadSplitError('');
     if (dsInputRef.current) dsInputRef.current.value = "";
     if (compInputRef.current) compInputRef.current.value = "";
   };
@@ -2693,11 +2748,10 @@ export default function Home() {
   };
 
   const selectDataset = (id: number) => {
-      setActiveId(id);
       const ds = datasets.find(d => d.id === id);
+      if (ds?.samplePartition?.locked) { setUnlockDatasetId(id); return; }
       if (ds) {
-          setColorBy(pickDefaultColorBy(ds.table, colorBy));
-          if (!ds.axes.z) setViewMode("2D");
+          activateDataset(ds);
       }
   };
 
@@ -2819,6 +2873,7 @@ export default function Home() {
   };
 
   const applyWorkspace = (name: string, ws: any, opts?: { silent?: boolean }) => {
+          efaController.cancel();
           const tables: Record<string, DataTable> = ws.tables ?? {};
           const rehydrate = (ref: any) => (typeof ref === 'string' ? tables[ref] : ref);
           // Restore muted state deliberately — suppress the reset that colorBy/activeId would trigger
@@ -2826,12 +2881,18 @@ export default function Home() {
           setIsRotating(false);
           // dataMode runs through asDataMode: workspaces saved before data
           // modes existed carry none, and must load as private (fail closed).
-          setDatasets((ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode) })));
+          const restored: Dataset[] = (ws.datasets ?? []).map((d: any) => ({ ...d, table: rehydrate(d.table), dataMode: asDataMode(d.dataMode), efa: d.efa ?? emptyEfaState() }));
+          setDatasets(restored);
           setPinnedViews((ws.pinnedViews ?? []).map((v: any) => ({ ...v, data: rehydrate(v.data) })));
           // Analysis views are self-contained (compiled traces / result cards,
           // no table references) — restore verbatim, tolerate their absence.
           setAnalysisViews(Array.isArray(ws.analysisViews) ? ws.analysisViews : []);
-          setActiveId(ws.activeId ?? null);
+          const restoredActive = restored.find(d => d.id === ws.activeId && !d.samplePartition?.locked)
+            ?? restored.find(d => !d.samplePartition?.locked);
+          setActiveId(restoredActive?.id ?? null);
+          activeInputRef.current = { id: restoredActive?.id ?? null, table: restoredActive?.table ?? null };
+          pendingSwitchRef.current = null;
+          freshTableRef.current = null;
           setColorBy(ws.colorBy ?? "");
           setShapeBy(ws.shapeBy ?? "");
           setViewMode(ws.viewMode ?? "3D");
@@ -2856,7 +2917,7 @@ export default function Home() {
           setStandardize(ws.standardize ?? false);
           setBreakdownBy(ws.breakdownBy ?? "");
           setBreakdownDirection(ws.breakdownDirection === 'group' ? 'group' : 'cluster');
-          setHeatmapPalette(HEATMAP_PALETTES.includes(ws.heatmapPalette) ? ws.heatmapPalette : 'Viridis');
+          setHeatmapPalette(HEATMAP_PALETTES.includes(ws.heatmapPalette) ? ws.heatmapPalette : 'PrimaryBlue');
           setExportChrome(ws.exportChrome && typeof ws.exportChrome === 'object'
               ? { title: ws.exportChrome.title !== false, legend: ws.exportChrome.legend !== false }
               : { title: ws.includeExportInfo ?? true, legend: ws.includeExportInfo ?? true });
@@ -2886,6 +2947,8 @@ export default function Home() {
   useEffect(() => { buildPayloadRef.current = buildWorkspacePayload; });
 
   const sessionReady = useRef(false);       // block autosave until the restore attempt settles
+  const applyWorkspaceRef = useRef(applyWorkspace);
+  useEffect(() => { applyWorkspaceRef.current = applyWorkspace; });
   const discardingSession = useRef(false);  // "start fresh" in flight — suppress flushes
   const sessionSaveTimer = useRef<number | null>(null);
   const [sessionNotice, setSessionNotice] = useState<'restored' | 'recovery' | null>(null);
@@ -2946,11 +3009,12 @@ export default function Home() {
               localStorage.setItem(RESTORE_GUARD, '1');
               wsStore.validateWorkspace(s);
               const savedName = (s as { workspaceName?: unknown }).workspaceName;
-              applyWorkspace(typeof savedName === 'string' ? savedName : '', s, { silent: true });
+              applyWorkspaceRef.current(typeof savedName === 'string' ? savedName : '', s, { silent: true });
               setSessionNotice('restored');
-          } catch {
+          } catch (error) {
               // Damaged session record — start blank rather than refuse to load.
               localStorage.removeItem(RESTORE_GUARD);
+              setUploadStatus(`Session restore failed: ${error instanceof Error ? error.message : String(error)}`);
           } finally {
               sessionReady.current = true;
           }
@@ -2997,6 +3061,10 @@ export default function Home() {
       const src = datasets.find(d => d.id === sourceId);
       const tgt = activeDataset;
       if (!src || !tgt) return;
+      if (src.samplePartition?.locked || tgt.samplePartition?.locked) {
+          setUploadStatus('Unlock the dataset in the Data section before transferring columns.');
+          return;
+      }
       const srcColArr = src.table.data[sourceCol];
       let newCol: any[];
       if (mode === 'order') {
@@ -3054,13 +3122,17 @@ export default function Home() {
       const remaining = datasets.filter(d => d.id !== id);
       setDatasets(remaining);
       if (activeId === id) {
-          const next = remaining[0] ?? null;
-          setActiveId(next?.id ?? null);
-          if (next) setColorBy(pickDefaultColorBy(next.table, colorBy));
+          const next = remaining.find(d => !d.samplePartition?.locked) ?? null;
+          if (next) activateDataset(next);
+          else { efaController.cancel(); setActiveId(null); freshTableRef.current = null; pendingSwitchRef.current = null; activeInputRef.current = { id: null, table: null }; }
       }
   };
 
   const handleClearData = () => {
+      efaController.cancel();
+      activeInputRef.current = { id: null, table: null };
+      freshTableRef.current = null;
+      pendingSwitchRef.current = null;
       setDatasets([]);
       setActiveId(null);
       setColorBy("");
@@ -3103,15 +3175,20 @@ export default function Home() {
 
   const handleCluster = async () => {
       if (clusterMethod === "NONE" || !processedData) return;
+      const targetId = liveActiveId(), expectedTable = latestTable();
+      const targetDataset = datasets.find(d => d.id === targetId && !d.samplePartition?.locked);
+      if (targetId == null || !expectedTable || !targetDataset) return;
+      const target: DatasetAnalysisTarget = { datasetId: targetId, table: expectedTable };
       setIsClustering(true);
       // Yield until the busy state has PAINTED before the O(n²) work starts —
       // a plain 30ms timer can fire before the click frame presents.
       await paintYield();
       try {
+          if (liveActiveId() !== targetId || latestTable() !== expectedTable) return;
           const gate = analysisTable();
           if (typeof gate === 'string') { setUploadStatus(gate); return; }
-          const { table: base, mask, filter, note: filterNote } = gate;
-          const ax = effectiveAxes(activeDataset!, viewMode);
+          const { table: base, full: t, mask, filter, note: filterNote } = gate;
+          const ax = effectiveAxes(targetDataset, viewMode);
           const rawCols = [base.data[ax.x], base.data[ax.y]];
           if (ax.z) rawCols.push(base.data[ax.z]);
           const axNames = [ax.x, ax.y, ...(ax.z ? [ax.z] : [])];
@@ -3130,14 +3207,18 @@ export default function Home() {
               : kmeans(cols, k);
           // Rows outside the filter get null (drawn as N/A), not a label they
           // never took part in computing.
-          const fullLabels = mask ? scatterBack(processedData.nRows, mask, labels) : labels;
+          const fullLabels = mask ? scatterBack(t.nRows, mask, labels) : labels;
           const newTable: DataTable = {
-              columns: processedData.columns.includes("Cluster") ? processedData.columns : [...processedData.columns, "Cluster"],
-              data: { ...processedData.data, Cluster: fullLabels },
-              nRows: processedData.nRows
+              columns: t.columns.includes("Cluster") ? t.columns : [...t.columns, "Cluster"],
+              data: { ...t.data, Cluster: fullLabels },
+              nRows: t.nRows
           };
-          setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
-          logProvenance(activeId, `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column`);
+          freshTableRef.current = newTable;
+          pendingSwitchRef.current = { id: targetId, table: newTable };
+          setDatasets(prev => commitDatasetAnalysis(prev, target, d => ({
+              ...d, table: newTable,
+              provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action: `${clusterMethod} clustering on ${axNames.join(' · ')}${standardize ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column` }],
+          })));
           // The pre-cluster coloring is the natural default for composition breakdowns
           if (colorBy !== "Cluster") setBreakdownBy(colorBy);
           setColorBy("Cluster");
@@ -3523,7 +3604,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       if (!activeDataset || !full) return 'No active dataset to export.';
       const filtered = rows === 'visible' && !!rowMask;
       const table = filtered ? subsetTable(full, rowMask) : full;
-      const columns = selectExportColumns(table, includeDerived);
+      const columns = selectExportColumns(table, includeDerived, (activeDataset.efa?.runs ?? []).flatMap(r => r.scoreColumns));
       try {
           if (format === 'xlsx') {
               const XLSX = await import('xlsx');
@@ -3647,13 +3728,24 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       }
   };
 
-  const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median'): string => {
+  const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median', expected?: DatasetAnalysisTarget, measurements: Record<string, MeasurementChoice> = {}, completed?: PCAResult, iterative?: IterativePcaSettings, acceptUnconverged = false, expectedFilterKey?: string): string => {
+      const targetId = liveActiveId();
+      if (expected && (targetId !== expected.datasetId || latestTable() !== expected.table))
+          return 'PCA cancelled because the active dataset changed.';
+      if (expectedFilterKey !== undefined && expectedFilterKey !== JSON.stringify(currentFilter())) return 'PCA retry cancelled because the fitting filter changed.';
       const gate = analysisTable();
       if (typeof gate === 'string') { setUploadStatus(gate); return gate; }
       const { table: base, full: t, mask, filter, note: filterNote } = gate;
-      if (!activeDataset) return 'No dataset loaded.';
+      const targetDataset = datasets.find(d => d.id === targetId && !d.samplePartition?.locked);
+      if (targetId == null || !targetDataset) return 'No unlocked dataset loaded.';
+      const target: DatasetAnalysisTarget = { datasetId: targetId, table: t };
       try {
-          const sub = runPCA(base, vars, { k, standardize, label, missing });
+          const sub = completed ?? runPCA(base, vars, { k, standardize, label, missing, measurements, iterative, minimumPairN: sessionPolicy.rowAccess ? 2 : 5 });
+          if (sub.missing.convergenceIssue && !acceptUnconverged) {
+              setPendingPcaConvergence({ vars: vars.slice(), k, standardize, label, missing, measurements: { ...measurements }, result: sub, target, filterKey: JSON.stringify(filter) });
+              setUploadStatus('Iterative PCA has not converged. Adjust settings and retry, or explicitly keep its current result. No score columns have been added.');
+              return JSON.stringify({ status: 'nonconverged', applied: false, convergence: sub.missing.convergenceIssue, message: 'The recovery dialog is open. Retry run_pca with explicit iterative settings, or let the user keep the unconverged result locally.' });
+          }
           // Under a filter the PCA is fitted on the visible rows only; scores
           // are scattered back into the full table, null for the rest.
           const res = mask
@@ -3666,6 +3758,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               })()
               : sub;
           freshTableRef.current = res.table;
+          pendingSwitchRef.current = { id: targetId, table: res.table };
           const topContributors = Object.fromEntries(
               Object.entries(res.loadings).map(([pc, rows]) => [pc, rows.slice(0, 5)])
           );
@@ -3676,8 +3769,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               missing: res.missing,
               ...(filter ? { filter } : {}),
           };
-          setDatasets(prev => prev.map(d => {
-              if (d.id !== activeId) return d;
+          setDatasets(prev => commitDatasetAnalysis(prev, target, d => {
               // A single kept component (a composite score) lands on the X axis and
               // leaves the rest of the framing alone — the workflow is "build several
               // composites, then plot them against each other", so wiping Y/Z on each
@@ -3696,9 +3788,9 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   axes, labels: { x: axes.x, y: axes.y, z: axes.z ?? 'Z' },
                   axes2d, labels2d: { ...axes2d },
                   pcaRuns: [...(d.pcaRuns ?? []).filter(r => r.label !== res.label), run],
+                  provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action: `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing})${filterSuffix(filter)} added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}` }],
               };
           }));
-          logProvenance(activeId, `PCA${res.label ? ` "${res.label}"` : ''} on ${vars.length} variables (${standardize ? 'standardized' : 'unstandardized'}, missing: ${missing})${filterSuffix(filter)} added column${cols.length === 1 ? '' : 's'} ${cols.join(', ')}${res.replaced.length ? `, replacing ${res.replaced.join(', ')}` : ''}`);
           if (res.k < 3) setViewMode('2D');
           setPcaInfo({ varianceExplained: res.varianceExplained, cumulative: res.cumulative, spectrum: res.spectrum, eigenvalues: res.eigenvalues, standardize, k: res.k, columns: res.columns });
           const pct = res.varianceExplained.map((v, i) => `${cols[i] ?? `PC${i + 1}`} ${(v * 100).toFixed(0)}%`).join(', ');
@@ -3718,16 +3810,35 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       }
   };
 
+  const pcaBatchScopes = useRef(new WeakMap<PcaImputationBatch, { target: DatasetAnalysisTarget; filter: string }>());
+  const handlePcaImputation = async (variables: string[], options: PcaImputationOptions) => {
+      const gate = analysisTable(), id = liveActiveId();
+      if (typeof gate === 'string') throw new Error(gate);
+      if (id === null) throw new Error('No dataset loaded.');
+      const target = { datasetId: id, table: gate.full }, filter = JSON.stringify(gate.filter);
+      const batch = await runPcaImputations(gate.table, variables, { ...options, minimumPairN: sessionPolicy.rowAccess ? 0 : 5 });
+      if (liveActiveId() !== id || latestTable() !== target.table || JSON.stringify(currentFilter()) !== filter)
+          throw new Error('Dataset or fitting rows changed. Run MICE again on the current sample.');
+      pcaBatchScopes.current.set(batch, { target, filter });
+      return batch;
+  };
+  const applyPcaImputation = (batch: PcaImputationBatch, result: PCAResult) => {
+      const scope = pcaBatchScopes.current.get(batch);
+      if (!scope || !batch.completed.some(f => f.result === result) || JSON.stringify(currentFilter()) !== scope.filter)
+          return 'The MICE fit no longer matches the current sample. Run the batch again.';
+      return handleRunPCA(batch.variables, result.k, batch.settings.standardize ?? true, result.label, 'mice', scope.target, {}, result);
+  };
+
   // --- Assistant bridge ------------------------------------------------------
   // Tool calls in one model response run back-to-back, before React re-renders,
   // so a clustering result must be readable by the next tool immediately:
   // freshTableRef carries the just-computed table until the next render.
   const freshTableRef = useRef<DataTable | null>(null);
   useEffect(() => { freshTableRef.current = null; }, [processedData]);
-  const latestTable = (): DataTable | null => freshTableRef.current ?? processedData;
+  const latestTable = (): DataTable | null => freshTableRef.current ?? activeInputRef.current.table;
   const liveActiveId = (): number | null => {
       const p = pendingSwitchRef.current;
-      return p && latestTable() === p.table ? p.id : activeId;
+      return p && latestTable() === p.table ? p.id : activeInputRef.current.id;
   };
 
   // --- The analysis gate -----------------------------------------------------
@@ -3752,6 +3863,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       return pend && pend.datasetId === id && pend.conditions !== committed ? pend.conditions : committed;
   };
   const analysisTable = (): AnalysisInput | string => {
+      if (datasets.find(d => d.id === liveActiveId())?.samplePartition?.locked)
+          return 'This dataset is locked. Unlock it explicitly in the Data section before analysis.';
       const t = latestTable();
       if (!t) return 'No dataset loaded.';
       const conds = currentFilter();
@@ -3777,6 +3890,53 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset?.dataMode],
   );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
+  const liveDisclosureFloor = useRef(sessionPolicy.rowAccess ? 0 : 5);
+  useLayoutEffect(() => { liveDisclosureFloor.current = sessionPolicy.rowAccess ? 0 : 5; }, [sessionPolicy.rowAccess]);
+  const [pcaRecoveryScope, setPcaRecoveryScope] = useState({ datasetId: activeId, table: processedData, filter: JSON.stringify(rowFilterState), floor: sessionPolicy.rowAccess ? 0 : 5 });
+  if (pcaRecoveryScope.datasetId !== activeId || pcaRecoveryScope.table !== processedData || pcaRecoveryScope.filter !== JSON.stringify(rowFilterState) || pcaRecoveryScope.floor !== (sessionPolicy.rowAccess ? 0 : 5)) {
+    setPcaRecoveryScope({ datasetId: activeId, table: processedData, filter: JSON.stringify(rowFilterState), floor: sessionPolicy.rowAccess ? 0 : 5 });
+    setPendingPcaConvergence(null);
+  }
+  // Keep the controller behind the same filter/privacy gate used by PCA. Jobs
+  // own numerical snapshots; this adapter alone publishes to React state.
+  useEffect(() => {
+      efaController.attach({
+          context: () => {
+              const gate = analysisTable();
+              if (typeof gate === 'string') throw new Error(gate);
+              const datasetId = liveActiveId();
+              const dataset = datasets.find(d => d.id === datasetId);
+              if (!dataset || datasetId === null) throw new Error('No dataset loaded.');
+              return {
+                  datasetId, table: gate.full,
+                  eligibleRows: Array.from({ length: gate.full.nRows }, (_, i) => i).filter(i => !gate.mask || gate.mask[i]),
+                  state: dataset.efa ?? emptyEfaState(), privateMode: !sessionPolicy.rowAccess,
+                  filterKey: JSON.stringify(gate.filter),
+                  afterFullExploration: [...(dataset.efa?.runs ?? []), ...(dataset.efa?.imputationRuns ?? [])].some(r => r.spec.sample.partition === 'all') || (dataset.pcaRuns ?? []).some(r => !r.filter?.length),
+              };
+          },
+          state: (datasetId, expectedTable, update) => setDatasets(prev => prev.map(d =>
+              d.id === datasetId && d.table === expectedTable ? { ...d, efa: update(d.efa ?? emptyEfaState()) } : d)),
+          scores: (datasetId, expectedTable, table, runId, columns) => {
+              freshTableRef.current = table;
+              setDatasets(prev => prev.map(d => d.id === datasetId && d.table === expectedTable ? {
+                  ...d, table,
+                  efa: { ...(d.efa ?? emptyEfaState()), runs: (d.efa?.runs ?? []).map(r => r.id === runId ? { ...r, scoreColumns: [...r.scoreColumns, ...columns] } : r) },
+                  provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action: `Added estimated EFA scores: ${columns.join(', ')}` }],
+              } : d));
+          },
+          complete: (datasetId, expectedTable, table, runId, record) => {
+              freshTableRef.current = table;
+              setDatasets(prev => prev.map(d => d.id === datasetId && d.table === expectedTable ? {
+                  ...d, table,
+                  efa: { ...(d.efa ?? emptyEfaState()), runs: (d.efa?.runs ?? []).map(r => r.id === runId ? { ...r, completions: [...(r.completions ?? []), record] } : r) },
+                  provenance: [...(d.provenance ?? []), { at: record.createdAt, action: `Added conditional completed columns from ${runId}: ${Object.values(record.columns).join(', ')}; ${record.filledCells} calculated cells; source fingerprint ${record.sourceFingerprint}` }],
+              } : d));
+          },
+          download: (filename, content, mime) => downloadBlob(new Blob([content], { type: mime }), filename),
+      });
+  });
+  useEffect(() => () => efaController.cancel(), [efaController, activeId, processedData, rowFilterState]);
   // Private mode withholds counts under the rare-value threshold, like the
   // column profiles do — a filter that isolates two people must not say "2".
   const withheldCount = (n: number): number | string =>
@@ -3856,7 +4016,58 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   const exitWalkthroughRef = useRef<(() => void) | null>(null);
   const startWalkthroughRef = useRef<(() => void) | null>(null);
   // Mirrors an assistant/walkthrough PCA back into the PCA panel's controls.
-  const [externalPcaRun, setExternalPcaRun] = useState<{ vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null>(null);
+  const [externalPcaRun, setExternalPcaRun] = useState<{ vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number; iterative?: IterativePcaSettings } | null>(null);
+  const externalAnalysisSequence = useRef(0);
+  const [externalSetup, setExternalSetup] = useState<(SharedAnalysisSetup & { seq: number; datasetId: number; vars: string[] }) | null>(null);
+  const [externalEfaSpec, setExternalEfaSpec] = useState<{ seq: number; datasetId: number; spec: import('@/lib/efa/types').EfaSpec } | null>(null);
+  const adviceEfaSpec = externalEfaSpec?.datasetId === activeId ? externalEfaSpec.spec : null;
+  const adviceSplits = activeDataset?.efa?.splits;
+  const liveAdviceScope = useRef({ spec: adviceEfaSpec, splits: adviceSplits });
+  useLayoutEffect(() => { liveAdviceScope.current = { spec: adviceEfaSpec, splits: adviceSplits }; }, [adviceEfaSpec, adviceSplits]);
+  const adviceTable = useMemo(() => {
+    if (decomposition !== 'efa' || !adviceEfaSpec || !processedData) return analysisData;
+    try {
+      const eligible = Array.from({ length: processedData.nRows }, (_, row) => row).filter(row => !rowMask || rowMask[row]);
+      const rows = new Set(fittingRows(eligible, adviceEfaSpec, adviceSplits ?? []));
+      return subsetTable(processedData, Array.from({ length: processedData.nRows }, (_, row) => rows.has(row)));
+    } catch {
+      // An invalid saved sample must not silently fall back to all respondents.
+      return subsetTable(processedData, Array(processedData.nRows).fill(false));
+    }
+  }, [decomposition, adviceEfaSpec, adviceSplits, processedData, analysisData, rowMask]);
+  const [analysisSetupView, setAnalysisSetupView] = useState<(SharedAnalysisSetup & { datasetId: number }) | null>(null);
+  const rememberAnalysisSetup = useCallback((setup: SharedAnalysisSetup) => {
+    if (activeId === null) return;
+    setAnalysisSetupView(previous => JSON.stringify(previous) === JSON.stringify({ ...setup, datasetId: activeId }) ? previous : { ...setup, datasetId: activeId });
+  }, [activeId]);
+
+  const pcaBatchAdapter = useRef<PcaBatchDependencies>(null as unknown as PcaBatchDependencies);
+  const pcaBatchController = useRef<ReturnType<typeof createPcaBatchController> | null>(null);
+  const [assistantPcaBatches, setAssistantPcaBatches] = useState<Record<string, PcaBatchSummary>>({});
+  useEffect(() => { pcaBatchAdapter.current = {
+    capture: () => {
+      const gate = analysisTable(), id = liveActiveId();
+      if (typeof gate === 'string') throw new Error(gate);
+      if (id === null) throw new Error('No dataset loaded.');
+      return { datasetId: id, table: gate.table, source: gate.full, filterKey: JSON.stringify(gate.filter), minimumPairN: sessionPolicy.rowAccess ? 0 : 5 };
+    },
+    apply: (scope, batch, result) => {
+      if (scope.datasetId !== liveActiveId() || scope.source !== latestTable() || scope.filterKey !== JSON.stringify(currentFilter()))
+        throw new Error('The dataset or fitting filter changed; run the batch again.');
+      const message = handleRunPCA(batch.variables, result.k, batch.settings.standardize ?? true, result.label, 'mice', { datasetId: scope.datasetId as number, table: scope.source }, {}, result);
+      if (latestTable() === scope.source) throw new Error(message);
+      return message;
+    },
+    onChange: summary => setAssistantPcaBatches(previous => ({ ...previous, [summary.jobId]: summary })),
+  }; });
+  useEffect(() => {
+    const controller = createPcaBatchController({ capture: () => pcaBatchAdapter.current.capture(), apply: (...args) => pcaBatchAdapter.current.apply(...args), onChange: summary => pcaBatchAdapter.current.onChange?.(summary) });
+    pcaBatchController.current = controller;
+    return () => { controller.dispose(); pcaBatchController.current = null; };
+  }, []);
+  useEffect(() => {
+    for (const jobId of Object.keys(assistantPcaBatches)) { try { pcaBatchController.current?.inspect(jobId); } catch { /* A prior mounted session may own this summary. */ } }
+  }, [activeId, processedData, rowFilterState, assistantPcaBatches]);
   useEffect(() => {
       const saved = localStorage.getItem('scatterlab.assistant.dock');
       if (saved === 'right' || saved === 'bottom' || saved === 'float') setAssistantDock(saved);
@@ -3880,7 +4091,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   }, []);
   bridgeRef.current = {
       getState: () => ({
-          datasets: datasets.map(d => ({ name: d.name, nRows: d.table.nRows, active: d.id === activeId, dataMode: d.dataMode })),
+          datasets: datasets.map(d => ({ name: d.name, nRows: d.table.nRows, active: d.id === activeId, dataMode: d.dataMode, ...(d.samplePartition ? { partition: d.samplePartition.role, locked: d.samplePartition.locked } : {}) })),
           columns: columnProfiles(),
           axes: activeDataset ? effectiveAxes(activeDataset, viewMode) : { x: '', y: '', z: null },
           colorBy,
@@ -3893,15 +4104,64 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
+          analysisSetup: analysisSetupView?.datasetId === activeId ? { method: decomposition, variables: analysisSetupView.selected, missing: analysisSetupView.missing, measurements: analysisSetupView.measurements } : undefined,
+          efaRuns: (activeDataset?.efa?.runs ?? []).map(r => ({ id:r.id, label:r.spec.label, revision:r.revision, rotation:r.spec.rotation, nFactors:r.spec.nFactors, kind:r.kind })),
           pcaRuns: (activeDataset?.pcaRuns ?? []).map(r => ({
               label: r.label || '(unnamed)', columns: r.columns, variables: r.variables,
               standardize: r.standardize, savedAt: r.savedAt,
               varianceExplained: r.varianceExplained.map(v => Math.round(v * 1000) / 1000),
-              missing: r.missing && { strategy: r.missing.strategy, imputedCells: r.missing.imputedCells, rowsUsed: r.missing.rowsUsed, rowsDropped: r.missing.rowsDropped },
+              missing: r.missing && { strategy: r.missing.strategy, imputedCells: r.missing.imputedCells, rowsUsed: r.missing.rowsUsed, rowsDropped: r.missing.rowsDropped,
+                converged: r.missing.converged, iterations: r.missing.iterations, iterativeSettings: r.missing.iterativeSettings },
               ...(r.filter ? { filter: r.filter } : {}),
           })),
       }),
 
+      efa: async (action, args) => {
+          setDecomposition('efa');
+          // A retry consumes the saved attempt. Capture its display metadata
+          // before dispatch, then mirror it only if the controller accepts it.
+          const recovery = action === 'retry_efa' ? efaController.convergenceRetry(String(args.jobId)) : undefined;
+          const response = await efaController.tool(action, args);
+          const retrySettings = args.settings as ConvergenceRetrySettings | undefined;
+          const displaySpec = recovery && retrySettings ? { ...recovery.spec, likelihood: {
+              maxIterations: retrySettings.maxIterations, tolerance: retrySettings.tolerance,
+              starts: retrySettings.starts ?? recovery.issue.settings.starts,
+              uniquenessFloor: retrySettings.uniquenessFloor ?? recovery.issue.settings.uniquenessFloor,
+          } } : (action === 'run_efa' || action === 'impute_efa') && args.spec && typeof args.spec === 'object'
+              ? args.spec as import('@/lib/efa/types').EfaSpec : undefined;
+          if (displaySpec) {
+              let outcome: { jobId?: string };
+              try { outcome = JSON.parse(response); }
+              catch { return response; } // Preserve actionable controller rejections.
+              const id = liveActiveId();
+              if (outcome.jobId && id !== null) {
+                  const spec = displaySpec, seq = ++externalAnalysisSequence.current;
+                  setExternalEfaSpec({ seq, datasetId: id, spec });
+                  const vars = spec.items.map(item => item.column);
+                  setExternalSetup({ seq, datasetId: id, vars, selected: vars, label: spec.label, missing: action === 'impute_efa' ? 'mice' : spec.missing,
+                    measurements: Object.fromEntries(spec.items.map(item => [item.column, item.measurement ?? 'auto'])) });
+              }
+          }
+          return response;
+      },
+      pcaImputations: async (action, args) => {
+          const controller = pcaBatchController.current;
+          if (!controller) return 'PCA imputation controls are not ready yet.';
+          try {
+              if (action === 'start_pca_imputations') {
+                  const request = args as unknown as PcaBatchRequest;
+                  const summary = controller.start(request), id = liveActiveId(), seq = ++externalAnalysisSequence.current;
+                  setDecomposition('pca');
+                  setExternalPcaRun({ vars: request.variables, k: request.n_components ?? 3, standardize: request.standardize ?? true, missing: 'mice', label: request.label ?? '', seq });
+                  if (id !== null) setExternalSetup({ seq, datasetId: id, vars: request.variables, selected: request.variables, label: request.label ?? '', missing: 'mice', measurements: request.measurements ?? {} });
+                  return JSON.stringify(summary);
+              }
+              if (action === 'pca_imputation_job') return JSON.stringify(controller.inspect(String(args.jobId)));
+              if (action === 'cancel_pca_imputations') return JSON.stringify(controller.cancel(String(args.jobId)));
+              if (action === 'apply_pca_imputation') return JSON.stringify(controller.apply(String(args.jobId), Number(args.imputation)));
+              return 'Unknown PCA imputation action.';
+          } catch (error) { return JSON.stringify({ error: error instanceof Error ? error.message : String(error) }); }
+      },
       setPlot: (opts) => {
           const t = latestTable();
           if (!t) return 'No dataset loaded — the user can load one (or the demo) first.';
@@ -3954,11 +4214,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       runClustering: (method, opts) => {
+          const targetId = liveActiveId();
           const gate = analysisTable();
           if (typeof gate === 'string') return gate;
           const { table: base, full: t, mask, filter, note: filterNote } = gate;
-          if (!activeDataset) return 'No dataset loaded.';
-          const ax = effectiveAxes(activeDataset, viewMode);
+          const targetDataset = datasets.find(d => d.id === targetId && !d.samplePartition?.locked);
+          if (targetId == null || !targetDataset) return 'No unlocked dataset loaded.';
+          const target: DatasetAnalysisTarget = { datasetId: targetId, table: t };
+          const ax = effectiveAxes(targetDataset, viewMode);
           const rawCols = [base.data[ax.x], base.data[ax.y]];
           if (ax.z) rawCols.push(base.data[ax.z]);
           const useEps = opts.eps ?? eps, useMin = opts.min_samples ?? minSamples, useK = opts.k ?? k;
@@ -3978,8 +4241,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               nRows: t.nRows,
           };
           freshTableRef.current = newTable;
-          setDatasets(prev => prev.map(d => d.id === activeId ? { ...d, table: newTable } : d));
-          logProvenance(activeId, `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column`);
+          pendingSwitchRef.current = { id: targetId, table: newTable };
+          setDatasets(prev => commitDatasetAnalysis(prev, target, d => ({
+              ...d, table: newTable,
+              provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action: `${method} clustering (assistant) on ${axNames.join(' · ')}${useStd ? ' (z-scored)' : ''}${filterSuffix(filter)} wrote the "Cluster" column` }],
+          })));
           setClusterMethod(method);
           if (opts.eps != null) setEps(opts.eps);
           if (opts.min_samples != null) setMinSamples(opts.min_samples);
@@ -4094,6 +4360,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       loadDemoData: async (mode) => {
           const existing = datasets.find(d => d.name === 'iris');
           if (existing) {
+              if (existing.samplePartition?.locked) return 'The demo dataset is locked. Unlock it in the Data section to open it.';
               if (existing.id !== activeId) selectDataset(existing.id);
               pendingSwitchRef.current = { id: existing.id, table: existing.table };
               freshTableRef.current = existing.table;
@@ -4103,6 +4370,30 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (!table) return 'Demo data failed to load.';
           freshTableRef.current = table;
           return `Iris demo loaded: ${table.nRows} flowers, columns: ${table.columns.join(', ')}. It is now active in 3D: petal length × petal width × sepal length, colored by species. Marker shape is available for the tour to demonstrate.`;
+      },
+
+      analyzeDecomposition: async (opts) => {
+          const gate = analysisTable(), id = liveActiveId();
+          if (typeof gate === 'string') return JSON.stringify({ error: gate });
+          const variables = opts.variables ?? (analysisSetupView?.datasetId === id ? analysisSetupView.selected : []);
+          if (variables.length < 2) return JSON.stringify({ error: 'Select at least two items or provide their variable names.' });
+          try {
+              const method = opts.method ?? decomposition;
+              const sampleSpec = method === 'efa' ? adviceEfaSpec : null, splits = adviceSplits;
+              let input = gate.table;
+              if (sampleSpec) {
+                  const eligible = Array.from({ length: gate.full.nRows }, (_, row) => row).filter(row => !gate.mask || gate.mask[row]);
+                  const rows = new Set(fittingRows(eligible, sampleSpec, splits ?? []));
+                  input = subsetTable(gate.full, Array.from({ length: gate.full.nRows }, (_, row) => rows.has(row)));
+              }
+              const report = await analyzeItemsAsync(input, variables, { method,
+                  measurements: opts.measurements ?? (analysisSetupView?.datasetId === id ? analysisSetupView.measurements : {}),
+                  orders: opts.orders ?? (analysisSetupView?.datasetId === id ? analysisSetupView.orders : undefined), missing: opts.missing ?? (analysisSetupView?.datasetId === id ? analysisSetupView.missing : undefined), minimumPairN: sessionPolicy.rowAccess ? 0 : 5 });
+              if (liveActiveId() !== id || latestTable() !== gate.full || JSON.stringify(currentFilter()) !== JSON.stringify(gate.filter) || liveDisclosureFloor.current !== (sessionPolicy.rowAccess ? 0 : 5) ||
+                  (method === 'efa' && (liveAdviceScope.current.spec !== sampleSpec || liveAdviceScope.current.splits !== splits)))
+                  return JSON.stringify({ error: 'The fitting dataset, filter or access policy changed. Analyze the current items again.' });
+              return JSON.stringify(adviceForAssistant(report, sessionPolicy.rowAccess ? 0 : 5, opts.offset, opts.limit));
+          } catch { return JSON.stringify({ error: 'The selected items could not be assessed. Review their names, types and declared category orders.' }); }
       },
 
       runPCA: (opts) => {
@@ -4115,11 +4406,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const label = sanitizeLabel(opts.label ?? '');
           if (opts.label && !label) return `"${opts.label}" is not usable as a run label — use letters, digits, _ or -.`;
           const missing: MissingStrategy =
-              opts.missing === 'complete' ? 'complete' : opts.missing === 'iterative' ? 'iterative' : 'median';
+              opts.missing === 'complete' ? 'complete' : opts.missing === 'iterative' ? 'iterative' : opts.missing === 'mean' ? 'mean' : opts.missing === 'pairwise' ? 'pairwise' : opts.missing === 'mice' ? 'mice' : 'median';
           const k = Math.min(Math.max(opts.n_components ?? 3, 1), 10);
           const standardizePCA = opts.standardize ?? true;
-          setExternalPcaRun(prev => ({ vars, k, standardize: standardizePCA, missing, label, seq: (prev?.seq ?? 0) + 1 }));
-          return handleRunPCA(vars, k, standardizePCA, label, missing);
+          setDecomposition('pca');
+          const seq = ++externalAnalysisSequence.current, id = liveActiveId();
+          setExternalPcaRun({ vars, k, standardize: standardizePCA, missing, label, seq, iterative: opts.iterative });
+          if (id !== null) setExternalSetup({ seq, datasetId: id, vars, selected: vars, label, missing, measurements: opts.measurements ?? {} });
+          return handleRunPCA(vars, k, standardizePCA, label, missing, undefined, opts.measurements, undefined, opts.iterative);
       },
 
       correlate: (colA, colB) => {
@@ -4128,9 +4422,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const { table: t, note } = gate;
           const bad = [colA, colB].filter(c => !c || !numericColumns(t).includes(c));
           if (bad.length) return `Not numeric columns: ${bad.join(', ')}. Numeric: ${numericColumns(t).join(', ')}.`;
-          const { n, pearson, spearman } = correlation(t.data[colA], t.data[colB]);
-          if (pearson == null || !correlationAllowed(n, activePolicy)) return `Not enough complete pairs to correlate ${colA} and ${colB}${activePolicy.fullCategories ? ` (n=${n})` : ' (fewer than 5 in private mode)'}.`;
-          return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).${note}`;
+          const report = correlationReport(colA, colB, t.data[colA], t.data[colB], activePolicy);
+          return report.ok ? report.message + note : report.message;
       },
 
       // Both go through the ONE analysis gate (validator → executor → pane →
@@ -4189,6 +4482,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       switchDataset: (name) => {
           const ds = datasets.find(d => d.name === name) ?? datasets.find(d => d.name.toLowerCase() === String(name).toLowerCase());
           if (!ds) return `No dataset named "${name}". Loaded: ${datasets.map(d => d.name).join(', ') || 'none'}.`;
+          if (ds.samplePartition?.locked) return `"${ds.name}" is locked. The user can explicitly unlock it in the Data section. Development remains available for exploration.`;
           if (ds.id === activeId) return `"${ds.name}" is already active.`;
           selectDataset(ds.id);
           pendingSwitchRef.current = { id: ds.id, table: ds.table };
@@ -4250,6 +4544,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           if (!tgt) return 'No dataset loaded.';
           const src = datasets.find(d => d.name === source_dataset) ?? datasets.find(d => d.name.toLowerCase() === String(source_dataset).toLowerCase());
           if (!src) return `No dataset named "${source_dataset}". Loaded: ${datasets.map(d => d.name).join(', ')}.`;
+          if (src.samplePartition?.locked || tgt.samplePartition?.locked) return 'Unlock the dataset in the Data section before transferring columns.';
           if (src.id === tgt.id) return 'Source and target are the same dataset.';
           if (!src.table.columns.includes(column)) return `"${column}" is not a column of ${src.name}. Its columns: ${src.table.columns.join(', ')}.`;
           if (mode === 'order' && src.table.nRows !== tgt.table.nRows) {
@@ -4421,15 +4716,23 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       },
 
       snapshot: () => ({
-          datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews,
+          datasets, activeId, colorBy, shapeBy, viewMode, showAxes, aspect, pinnedViews, analysisViews, partitionStateKey,
           clusterMethod, eps, minSamples, k, standardize, breakdownBy, breakdownDirection, heatmapPalette, mutedMap, rowFilter: rowFilterState,
       }),
 
       restore: (snap: any) => {
           if (!snap) return;
+          if ((snap.partitionStateKey ?? '[]') !== partitionStateKey) {
+              setUploadStatus('This undo snapshot predates a dataset split or unlock. The current datasets and locks were kept.');
+              return;
+          }
+          efaController.cancel();
           skipMuteReset.current = true;
           setDatasets(snap.datasets);
-          setActiveId(snap.activeId);
+          const restoredActive = snap.datasets.find((d: Dataset) => d.id === snap.activeId && !d.samplePartition?.locked)
+              ?? snap.datasets.find((d: Dataset) => !d.samplePartition?.locked);
+          setActiveId(restoredActive?.id ?? null);
+          activeInputRef.current = { id: restoredActive?.id ?? null, table: restoredActive?.table ?? null };
           setColorBy(snap.colorBy);
           setShapeBy(snap.shapeBy ?? "");
           setViewMode(snap.viewMode);
@@ -4445,11 +4748,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           setStandardize(snap.standardize ?? false);
           setBreakdownBy(snap.breakdownBy);
           setBreakdownDirection(snap.breakdownDirection === 'group' ? 'group' : 'cluster');
-          setHeatmapPalette(HEATMAP_PALETTES.includes(snap.heatmapPalette) ? snap.heatmapPalette : 'Viridis');
+          setHeatmapPalette(HEATMAP_PALETTES.includes(snap.heatmapPalette) ? snap.heatmapPalette : 'PrimaryBlue');
           setMutedMap(snap.mutedMap);
           pendingFilterRef.current = null;
           setRowFilterState(asRowFilterState(snap.rowFilter));
           freshTableRef.current = null;
+          pendingSwitchRef.current = null;
       },
   };
   // Console/testing access to the assistant bridge (local state only).
@@ -4581,6 +4885,40 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       );
   }
 
+  const efaRecovery = efaJob && efaJob.id !== dismissedConvergenceJob ? efaController.convergenceRetry(efaJob.id) : undefined;
+  const recoveryIssue = pendingPcaConvergence?.result.missing.convergenceIssue ?? efaRecovery?.issue ?? null;
+  const retryConvergence = async (settings: ConvergenceRetrySettings) => {
+    setConvergenceBusy(true);
+    try {
+      if (pendingPcaConvergence) {
+        const pending = pendingPcaConvergence; setPendingPcaConvergence(null);
+        setDecomposition('pca');
+        const seq = ++externalAnalysisSequence.current;
+        setExternalPcaRun({ vars: pending.vars, k: pending.k, standardize: pending.standardize, missing: pending.missing, label: pending.label, seq, iterative: settings });
+        setExternalSetup({ seq, datasetId: pending.target.datasetId, vars: pending.vars, selected: pending.vars,
+          label: pending.label, missing: pending.missing, measurements: pending.measurements });
+        await paintYield();
+        const message = handleRunPCA(pending.vars, pending.k, pending.standardize, pending.label, pending.missing,
+          pending.target, pending.measurements, undefined, settings, false, pending.filterKey);
+        if (!message.startsWith('{')) setUploadStatus(message);
+      } else if (efaJob && efaRecovery) {
+        const spec = { ...efaRecovery.spec, likelihood: { maxIterations: settings.maxIterations, tolerance: settings.tolerance,
+          starts: settings.starts ?? efaRecovery.issue.settings.starts, uniquenessFloor: settings.uniquenessFloor ?? efaRecovery.issue.settings.uniquenessFloor } };
+        const seq = ++externalAnalysisSequence.current, id = liveActiveId();
+        const retried = efaController.retryNonconverged(efaJob.id, settings);
+        setDecomposition('efa');
+        if (id !== null) {
+          setExternalEfaSpec({ datasetId: id, seq, spec });
+          const vars = spec.items.map(item => item.column);
+          setExternalSetup({ seq, datasetId: id, vars, selected: vars, label: spec.label, missing: spec.missing,
+            measurements: Object.fromEntries(spec.items.map(item => [item.column, item.measurement ?? 'auto'])) });
+        }
+        setRecoveredEfaRun(await retried.completion);
+      }
+    } catch (error) { setUploadStatus(error instanceof Error ? error.message : 'Retry failed.'); }
+    finally { setConvergenceBusy(false); }
+  };
+
   // We construct the views array for TmuxGrid: active view is always first, then pinned views
 
   return (
@@ -4605,6 +4943,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           >
             {APP_NAME}
           </span>
+          <ComputeInspector service={efaService} compact />
         </aside>
       ) : (
       <aside className="w-[320px] h-full bg-[var(--card)] border-r border-[var(--border)] flex flex-col p-6 overflow-y-auto relative z-10 flex-shrink-0">
@@ -4650,7 +4989,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         {/* The privacy story lives in the info dialog and the per-dataset
             lock/globe badges now — the always-on headline banner here was
             retired as sidebar noise (owner's call). */}
-        <div className="mb-4" />
+        <div className="mb-4"><ComputeInspector service={efaService} /></div>
 
         <SidebarGroup theme={theme}>
 
@@ -4776,11 +5115,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
             {datasets.length > 0 && (
               <div className="space-y-1.5 pt-1" data-guide="datasets-list">
                 {datasets.map(d => (
-                  <div key={d.id} onClick={() => selectDataset(d.id)}
+                  <div key={d.id}
                     className={`flex items-center justify-between gap-2 px-2 py-1.5 cursor-pointer border text-xs ${d.id === activeId
                       ? (theme === 'primary' ? 'border-[3px] border-[var(--border)] bg-[var(--p-yellow)] font-bold' : 'border-[var(--primary)] text-[var(--primary)] bg-[var(--border)]')
                       : 'border-[var(--border)] bg-[var(--input)] opacity-70 hover:opacity-100'}`}>
-                    <span className="truncate" title={d.name}>{d.name}</span>
+                    <button type="button" onClick={() => selectDataset(d.id)} aria-current={d.id === activeId ? 'true' : undefined}
+                      className="min-w-0 flex-1 truncate text-left cursor-pointer" title={d.samplePartition?.locked ? `${d.name} is locked. Open unlock options.` : d.name}>
+                      {d.samplePartition?.locked && <Lock className="inline w-3 h-3 mr-1" aria-hidden="true" />}{d.name}
+                      {d.samplePartition?.locked && <span className="block text-[10px] opacity-60">Locked</span>}
+                    </button>
                     <span className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="opacity-60">{d.table.nRows} rows</span>
                       <button
@@ -4803,6 +5146,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 ))}
               </div>
             )}
+            {activeDataset && !activeDataset.samplePartition && <button type="button"
+              onClick={() => { setSplitDatasetId(activeDataset.id); setSplitOptions({ ...DEFAULT_DATASET_SPLIT }); setSplitError(''); }}
+              className="scatterlab-action-button w-full border border-[var(--border)] bg-[var(--input)] py-2 text-xs font-bold text-left px-2">
+              Create development / holdout sets
+            </button>}
+            {activeDataset?.samplePartition && <p className="text-[11px] leading-snug opacity-65">
+              {activeDataset.samplePartition.role === 'development' ? 'Working in Development.' : `${activeDataset.samplePartition.role === 'holdout' ? 'Holdout' : 'Full dataset'} explicitly unlocked.`}
+              {' '}Split membership stays fixed across PCA, EFA and plots.
+            </p>}
             {activeDataset && (
               <button
                 onClick={() => setShowTableView(true)}
@@ -4842,7 +5194,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               </details>
             )}
             {datasets.length >= 2 && (
-              <ColumnTransfer datasets={datasets} activeId={activeId} onTransfer={handleTransfer} />
+              <ColumnTransfer datasets={datasets.filter(d => !d.samplePartition?.locked)} activeId={activeId} onTransfer={handleTransfer} />
             )}
           </SidebarSection>
 
@@ -4887,27 +5239,32 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 )}
               </SidebarSection>
 
-              <SidebarSection title="PCA" step={3} hasBorder theme={theme} guide="pca" order={3}>
-                {processedData && (
-                  <PCASection
-                    table={processedData}
-                    datasetId={activeId ?? -1}
-                    theme={theme}
-                    lastRun={pcaInfo}
-                    runs={activeDataset?.pcaRuns ?? []}
-                    // Yield to paint before the synchronous PCA so the Run
-                    // button's pressed frame commits first (same INP pattern
-                    // as clustering's 30ms yield and the walkthrough steps).
-                    onRun={async (vars, k, std, label, missing) => { await paintYield(); handleRunPCA(vars, k, std, label, missing); }}
-                    externalRun={externalPcaRun}
-                  />
-                )}
+              <SidebarSection title="PCA / EFA" step={3} hasBorder theme={theme} guide="pca" order={3}>
+                <DecompositionSetup key={activeId} table={processedData} fittingTable={adviceTable ?? processedData}
+                  method={decomposition} onMethodChange={setDecomposition} externalRun={externalSetup?.datasetId === activeId ? externalSetup : null}
+                  ownedScores={(activeDataset?.efa?.runs ?? []).flatMap(r => r.scoreColumns)}
+                  completedItems={(activeDataset?.efa?.runs ?? []).flatMap(r => (r.completions ?? []).flatMap(c => Object.values(c.columns)))}
+                  contextKey={JSON.stringify(rowFilter)} minimumPairN={sessionPolicy.rowAccess ? 0 : 5} onSetupChange={rememberAnalysisSetup}>
+                  {(setup, bindings) => decomposition === 'efa'
+                    ? <EfaPanel service={efaService} table={processedData} itemTable={adviceTable ?? processedData}
+                        state={activeDataset?.efa ?? emptyEfaState()} actions={efaController} job={efaJob} onOrdersChange={bindings.onOrdersChange}
+                        contextKey={JSON.stringify(rowFilter)} recoveredRunId={recoveredEfaRun} externalSpec={externalEfaSpec?.datasetId === activeId ? externalEfaSpec : null} setup={{ ...setup, missing: setup.missing === 'iterative' ? 'median' : setup.missing }} />
+                    : <PCASection table={processedData} theme={theme} lastRun={pcaInfo} runs={activeDataset?.pcaRuns ?? []}
+                        setup={{ ...setup, missing: setup.missing === 'fiml' ? 'median' : setup.missing }} contextKey={JSON.stringify(rowFilter)} externalRun={externalPcaRun}
+                        onImpute={handlePcaImputation} onApplyImputation={applyPcaImputation}
+                        onRun={async (vars, k, std, label, missing, measurements, iterative) => {
+                          const id = liveActiveId(), table = latestTable();
+                          if (id === null || !table) return;
+                          const expected = { datasetId: id, table };
+                          await paintYield(); handleRunPCA(vars, k, std, label, missing, expected, measurements, undefined, iterative);
+                        }} />}
+                </DecompositionSetup>
               </SidebarSection>
 
               <SidebarSection title="View" step={5} hasBorder theme={theme} guide="view" order={5}>
-                <div className="flex gap-2 mb-2">
-                    <button onClick={() => setViewMode("2D")} className={`scatterlab-action-button flex-1 py-1 text-xs font-bold border ${viewMode === "2D" ? (theme==='primary'?'bg-[var(--p-yellow)] border-[var(--p-black)] border-[3px]':'bg-[var(--primary)] border-[var(--primary)] text-white') : 'border-[var(--border)] bg-[var(--input)] opacity-60'}`}>2D</button>
-                    <button onClick={() => setViewMode("3D")} className={`scatterlab-action-button flex-1 py-1 text-xs font-bold border ${viewMode === "3D" ? (theme==='primary'?'bg-[var(--p-yellow)] border-[var(--p-black)] border-[3px]':'bg-[var(--primary)] border-[var(--primary)] text-white') : 'border-[var(--border)] bg-[var(--input)] opacity-60'}`}>3D</button>
+                <div className="flex gap-2 mb-2" role="group" aria-label="View dimensions">
+                    <PanelChoiceButton selected={viewMode === "2D"} onClick={() => setViewMode("2D")}>2D</PanelChoiceButton>
+                    <PanelChoiceButton selected={viewMode === "3D"} onClick={() => setViewMode("3D")}>3D</PanelChoiceButton>
                 </div>
 
                 <button
@@ -5160,6 +5517,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           )}
         </div>
         <AssistantPanel
+          undoScopeKey={partitionStateKey}
           accessMode={datasets.length > 0 && datasets.every(d => d.dataMode === 'open') ? 'open'
             : datasets.some(d => d.dataMode === 'open') ? 'mixed' : 'private'}
           onAccessClick={activeDatasetId != null ? openActiveAccessInfo : undefined}
@@ -5192,6 +5550,33 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           <button onClick={() => setSessionNotice(null)} title="Dismiss" className="opacity-60 hover:opacity-100 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
+      {splitDatasetId !== null && (() => {
+        const dataset = datasets.find(d => d.id === splitDatasetId);
+        if (!dataset || dataset.samplePartition) return null;
+        return <DatasetDialog title="Create development / holdout sets" onClose={() => setSplitDatasetId(null)}>
+          <p className="font-bold">{dataset.name} · {dataset.table.nRows.toLocaleString()} rows</p>
+          <DatasetSplitControls value={splitOptions} onChange={setSplitOptions} columns={dataset.table.columns} nRows={dataset.table.nRows} />
+          <p className="opacity-65">Uses all rows in this dataset. Open canvas snapshots are cleared when Development becomes active.</p>
+          {!!(dataset.pcaRuns?.length || dataset.efa?.runs.length || dataset.efa?.imputationRuns?.length) && <p className="opacity-65">Existing fits stay with Full. Development and Holdout start with the original input columns and their own analysis histories.</p>}
+          {splitError && <p role="alert" className="text-[var(--p-red)]">{splitError}</p>}
+          <div className="flex justify-end gap-2">
+            <button className="scatterlab-action-button border border-[var(--border)] px-3 py-2" onClick={() => setSplitDatasetId(null)}>Cancel</button>
+            <button className="scatterlab-action-button border border-[var(--border)] px-3 py-2 bg-[var(--p-blue)] text-white font-bold" onClick={createSplitForDataset}>Create & use Development</button>
+          </div>
+        </DatasetDialog>;
+      })()}
+      {unlockDatasetId !== null && (() => {
+        const dataset = datasets.find(d => d.id === unlockDatasetId);
+        if (!dataset?.samplePartition?.locked) return null;
+        return <DatasetDialog title={`Unlock ${dataset.samplePartition.role === 'holdout' ? 'Holdout' : 'Full dataset'}`} onClose={() => setUnlockDatasetId(null)}>
+          <p className="font-bold">{dataset.name}</p>
+          <p className="leading-relaxed">{dataset.samplePartition.role === 'holdout' ? 'Open the reserved holdout rows for inspection and analysis.' : 'Open all original rows, including the reserved holdout rows.'} This unlock is recorded in the data history.</p>
+          <div className="flex justify-end gap-2">
+            <button className="scatterlab-action-button border border-[var(--border)] px-3 py-2" onClick={() => setUnlockDatasetId(null)}>Keep locked</button>
+            <button className="scatterlab-action-button border border-[var(--border)] px-3 py-2 bg-[var(--p-blue)] text-white font-bold" onClick={unlockSelectedDataset}>Unlock & open</button>
+          </div>
+        </DatasetDialog>;
+      })()}
       {showAddConfig && datasetFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={cancelAddConfig}>
           <div
@@ -5270,6 +5655,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 </label>
               ))}
             </fieldset>
+            <fieldset className="space-y-2 border-t border-[var(--border)] pt-3">
+              <legend className="font-bold">Create development / holdout sets?</legend>
+              <label className="flex gap-2 items-center cursor-pointer"><input type="radio" name="upload-split" checked={uploadCreateSplit} onChange={() => setUploadCreateSplit(true)} />Yes — start in Development</label>
+              <label className="flex gap-2 items-center cursor-pointer"><input type="radio" name="upload-split" checked={!uploadCreateSplit} onChange={() => setUploadCreateSplit(false)} />No — use the full dataset</label>
+              {uploadCreateSplit && <DatasetSplitControls value={uploadSplitOptions} onChange={value => { setUploadSplitOptions(value); setUploadSplitError(''); }} />}
+              {uploadCreateSplit && uploadSplitError && <p role="alert" className="text-[var(--p-red)]">{uploadSplitError}</p>}
+            </fieldset>
             <div className="flex flex-col gap-1">
               <button
                 data-guide="components-toggle"
@@ -5300,7 +5692,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   ? 'bauhaus-btn bg-[var(--p-blue)] text-white'
                   : 'border border-[var(--system-green)]/55 bg-[var(--input)] hover:bg-[var(--system-green)]/10'}`}
               >
-                {isUploading ? 'Processing…' : 'Add dataset'}
+                {isUploading ? 'Processing…' : uploadCreateSplit ? 'Add & use Development' : 'Add dataset'}
               </button>
             </div>
           </div>
@@ -5327,11 +5719,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                 </span>
               </div>
               <button
-                onClick={() => { selectDataset(ds.id); setDatasetSettings(null); setShowRecode('configure'); }}
+                onClick={() => { selectDataset(ds.id); setDatasetSettings(null); if (!ds.samplePartition?.locked) setShowRecode('configure'); }}
                 title="Declare missing-value codes (9, -99, 999...) and blank them, choosing per column."
                 className={`scatterlab-action-button w-full text-xs font-bold py-1.5 border ${theme === 'primary' ? 'border-[var(--border)] bg-[var(--input)] hover:bg-[var(--p-yellow)]' : 'border-[var(--system-green)]/40 bg-[var(--input)] hover:bg-[var(--system-green)]/10'} cursor-pointer`}
               >
-                Missing value codes…
+                {ds.samplePartition?.locked ? 'Unlock to edit missing-value codes…' : 'Missing value codes…'}
               </button>
               <div className="flex justify-between gap-2 pt-1">
                 <button
@@ -5498,6 +5890,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           </div>
         );
       })()}
+      <ConvergenceDialog issue={recoveryIssue} theme={theme} disabled={convergenceBusy}
+        onRetry={settings => void retryConvergence(settings)}
+        onDismiss={dismissConvergence}
+        onKeep={pendingPcaConvergence ? () => {
+          const pending = pendingPcaConvergence; setPendingPcaConvergence(null);
+          setUploadStatus(handleRunPCA(pending.vars, pending.k, pending.standardize, pending.label, pending.missing,
+            pending.target, pending.measurements, pending.result, pending.result.missing.iterativeSettings, true, pending.filterKey));
+        } : undefined} />
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} theme={theme} />
 
       {/* Blanking declared missing-value codes. Replaces the active dataset's
@@ -5515,7 +5915,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         renderPreview={renderExportPreview}
         nRows={processedData?.nRows ?? 0}
         filter={rowMask && rowFilter ? { description: describeConditions(rowFilter), shown: countMask(rowMask) } : null}
-        hasDerived={!!processedData?.columns.some(isDerivedColumn)}
+        hasDerived={!!processedData?.columns.some(c => isDerivedColumn(c, (activeDataset?.efa?.runs ?? []).flatMap(r => r.scoreColumns)))}
         busy={!!isExporting}
         // Close first, in the same batch as the export's own state change: the
         // GIF loop must not see a re-render mid-capture (see exportGIF).
@@ -5531,13 +5931,22 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
         onApply={(plan) => {
           if (!activeDataset) return ['No dataset loaded.'];
           const result = applyRecode(activeDataset.table, plan);
-          setDatasets(prev => prev.map(d => d.id === activeDataset.id ? { ...d, table: result.table } : d));
-          logProvenance(activeDataset.id, `Missing-value codes blanked ${result.totalReplaced} cell${result.totalReplaced === 1 ? '' : 's'} in ${result.effects.filter(e => e.replaced).length} column(s)`);
+          const groupId = activeDataset.samplePartition?.groupId;
+          const at = new Date().toISOString();
+          setDatasets(prev => prev.map(d => {
+            if (d.id !== activeDataset.id && (!groupId || d.samplePartition?.groupId !== groupId)) return d;
+            const recoded = d.id === activeDataset.id ? result : applyRecode(d.table, plan);
+            return { ...d, table: recoded.table, provenance: [...(d.provenance ?? []), { at,
+              action: `Applied missing-value codes${groupId ? ' consistently across the split' : ''}: blanked ${recoded.totalReplaced} cells.`,
+            }] };
+          }));
+          freshTableRef.current = result.table;
           const lines = describeRecode(result);
           setUploadStatus([
             `Blanked ${result.totalReplaced} cell${result.totalReplaced === 1 ? '' : 's'} in ${result.effects.filter(e => e.replaced).length} column(s).`,
             ...lines,
-            'Re-run PCA or clustering to use the updated values.',
+            ...(groupId ? ['The same code map was applied to Full, Development and Holdout. Membership and locks are unchanged.'] : []),
+            'Re-run analyses to use the updated values.',
           ].join('\n'));
           return lines;
         }}

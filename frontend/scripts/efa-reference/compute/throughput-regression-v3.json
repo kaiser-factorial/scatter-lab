@@ -1,0 +1,149 @@
+{
+  "status": "passed",
+  "startedAt": "2026-11-04T01:48:38.903Z",
+  "checks": [
+    {
+      "name": "typescript",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-typescript-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:48:38.915Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:48:45.012Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy-build-source",
+      "command": "rsync",
+      "args": [
+        "-a",
+        "--exclude=node_modules",
+        "--exclude=.next",
+        "--exclude=public/efa-qualification",
+        "--exclude=.env*",
+        "--exclude=*.tsbuildinfo",
+        "./",
+        "/tmp/scatter-throughput-build-IG7yoA/"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-copy-build-source-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:48:45.028Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:48:46.427Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy-build-dependencies",
+      "command": "cp",
+      "args": [
+        "-cR",
+        "node_modules",
+        "/tmp/scatter-throughput-build-IG7yoA/node_modules"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-copy-build-dependencies-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:48:46.428Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:48:56.625Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "production-build",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/scatter-throughput-build-IG7yoA",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-production-build-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:48:56.635Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:49:13.805Z",
+      "logSha256": "ce39c12ee02cc07db407bd319de75955a2f1963abecd0e137c8a1463774f07c5"
+    },
+    {
+      "name": "dev-readiness",
+      "command": "/Users/corinakaiser/.local/bin/dev",
+      "args": [
+        "start",
+        "frontend",
+        "--detach",
+        "--json",
+        "--yes"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-dev-readiness-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:49:13.807Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:49:14.187Z",
+      "logSha256": "c22ebf489cc8496055ba30d012584657204a38281fdd43c661acedebd9a7c52b"
+    },
+    {
+      "name": "weighted-ui",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "scripts/efa-reference/check-weighted-ui.mjs",
+        "http://localhost:3000",
+        "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-ui-v3"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-weighted-ui-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:49:14.187Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:49:33.773Z",
+      "logSha256": "a2643782ee3379221730aa8c690b749b83a4b3c52ddd096ad51a7d7146addb8d"
+    },
+    {
+      "name": "inspector-ui",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "scripts/efa-reference/check-inspector-ui.mjs",
+        "http://localhost:3000",
+        "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-ui-v3"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/throughput-inspector-ui-v3.log",
+      "status": "passed",
+      "startedAt": "2026-11-04T01:49:33.775Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T01:49:39.251Z",
+      "logSha256": "3f54da2821b5333ff0d59efbdc609d373bf3b554a8678277a06e033c9bc74124"
+    }
+  ],
+  "unitCommand": "npx vitest run --maxWorkers=2 --reporter=json --outputFile=scripts/efa-reference/compute/throughput-unit-v3b.json",
+  "units": {
+    "passed": 637,
+    "failed": 0,
+    "skipped": 4,
+    "reportSha256": "7ba397699380a404c20f5e5f5bdbf1438da8ddabea38ee263a7be23726905ebf"
+  },
+  "lint": {
+    "baselineSha256": "2a7a06d5cfcc13fd35febf21e207531aa168797a6376c0a837176eeed9903016",
+    "currentSha256": "a4a087b736caa3b9902460134ad455ea8d4e94b9fe250ecd4aeff2302ab33a46",
+    "errors": 117,
+    "warnings": 6,
+    "increased": [],
+    "status": "passed"
+  },
+  "buildDirectory": "/tmp/scatter-throughput-build-IG7yoA",
+  "buildExclusions": [
+    "node_modules (copied separately)",
+    ".next",
+    "public/efa-qualification",
+    ".env*",
+    "*.tsbuildinfo"
+  ],
+  "completedAt": "2026-11-04T01:49:39.252Z"
+}

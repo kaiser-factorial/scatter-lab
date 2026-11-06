@@ -1,0 +1,359 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-04T08:42:10.125Z",
+  "cancellationMs": 133.2312920000004,
+  "report": {
+    "schema": "scatter-compute/1",
+    "jobId": "08d01649-93d8-4d73-a5c5-03c4258816ce",
+    "startedAt": "2026-11-04T08:42:09.558Z",
+    "elapsedMs": 468,
+    "status": "cancelled",
+    "publication": "discarded",
+    "backend": "webgpu",
+    "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+    "context": {
+      "operation": "fit",
+      "items": 8,
+      "eligibleRows": 12000,
+      "factors": 2,
+      "extraction": "wlsmv",
+      "rotation": "oblimin",
+      "missing": "pairwise",
+      "partition": "all",
+      "fittingRows": 12000,
+      "inputSha256": "87408c7ab072af231961c4454a446242b8dd780199338f59fbd319c132da49ab"
+    },
+    "workersCreated": 1,
+    "activeWorkers": 0,
+    "requests": {
+      "prepare": {
+        "count": 1,
+        "roundTripMs": 86.20000004768372,
+        "workerMs": 8.5,
+        "postMessageMs": 1.399999976158142
+      },
+      "pairs": {
+        "count": 1,
+        "roundTripMs": 24.200000047683716,
+        "workerMs": 5.900000095367432,
+        "postMessageMs": 0
+      }
+    },
+    "workerStages": {
+      "prepare": 8.5,
+      "Correlations": 5.900000095367432
+    },
+    "transport": {
+      "sentTypedBufferBytes": 0,
+      "receivedTypedBufferBytes": 288000,
+      "description": "Cumulative typed-array payload bytes copied or transferred by messages; excludes ordinary arrays/objects. Not resident or peak memory. Round-trip time includes queuing and communication; postMessage time is measured on the sender."
+    },
+    "stages": [
+      {
+        "stage": "Preparing",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 86.79999995231628
+      },
+      {
+        "stage": "Correlations",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 179.70000004768372
+      },
+      {
+        "stage": "Backend numerical self-check",
+        "completed": 5,
+        "total": 5,
+        "durationMs": 0.20000004768371582
+      },
+      {
+        "stage": "Ordinal uncertainty",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 0
+      },
+      {
+        "stage": "DWLS",
+        "completed": 21,
+        "total": 2000,
+        "durationMs": 0.2999999523162842
+      },
+      {
+        "stage": "Rotation",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 9.399999976158142
+      },
+      {
+        "stage": "Weighted information matrix",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 0.10000002384185791
+      },
+      {
+        "stage": "Information factorization",
+        "completed": 1,
+        "total": 1,
+        "durationMs": 0
+      },
+      {
+        "stage": "Robust case projections",
+        "completed": 12000,
+        "total": 12000,
+        "durationMs": 36.200000047683716
+      },
+      {
+        "stage": "Robust parameter covariance",
+        "completed": 12000,
+        "total": 12000,
+        "durationMs": 1.399999976158142
+      },
+      {
+        "stage": "Covariance inverse transform",
+        "completed": 15,
+        "total": 15,
+        "durationMs": 0
+      },
+      {
+        "stage": "Covariance matrix products",
+        "completed": 2,
+        "total": 2,
+        "durationMs": 0.10000002384185791
+      },
+      {
+        "stage": "Exact robust trace blocks",
+        "completed": 20,
+        "total": 1128,
+        "durationMs": 153.79999995231628
+      }
+    ],
+    "events": [
+      {
+        "sequence": 1,
+        "elapsedMs": 0,
+        "kind": "job",
+        "action": "started"
+      },
+      {
+        "sequence": 2,
+        "elapsedMs": 0,
+        "kind": "stage",
+        "action": "Preparing"
+      },
+      {
+        "sequence": 3,
+        "elapsedMs": 0.2999999523162842,
+        "kind": "worker",
+        "action": "created",
+        "worker": 1
+      },
+      {
+        "sequence": 4,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "cache",
+        "action": "correlations miss"
+      },
+      {
+        "sequence": 5,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "request",
+        "action": "prepare started",
+        "worker": 1,
+        "request": 1
+      },
+      {
+        "sequence": 6,
+        "elapsedMs": 1.7999999523162842,
+        "kind": "publication",
+        "action": "pending"
+      },
+      {
+        "sequence": 7,
+        "elapsedMs": 86.70000004768372,
+        "kind": "request",
+        "action": "prepare completed",
+        "worker": 1,
+        "request": 1,
+        "durationMs": 86.20000004768372,
+        "workerMs": 8.5
+      },
+      {
+        "sequence": 8,
+        "elapsedMs": 86.79999995231628,
+        "kind": "stage",
+        "action": "Correlations"
+      },
+      {
+        "sequence": 9,
+        "elapsedMs": 86.79999995231628,
+        "kind": "request",
+        "action": "pairs started",
+        "worker": 1,
+        "request": 2,
+        "count": 28
+      },
+      {
+        "sequence": 10,
+        "elapsedMs": 111,
+        "kind": "request",
+        "action": "pairs completed",
+        "worker": 1,
+        "request": 2,
+        "durationMs": 24.200000047683716,
+        "workerMs": 5.900000095367432
+      },
+      {
+        "sequence": 11,
+        "elapsedMs": 111.29999995231628,
+        "kind": "cache",
+        "action": "WLSMV inference miss"
+      },
+      {
+        "sequence": 12,
+        "elapsedMs": 111.29999995231628,
+        "kind": "request",
+        "action": "fit started",
+        "worker": 1,
+        "request": 3
+      },
+      {
+        "sequence": 13,
+        "elapsedMs": 266.5,
+        "kind": "stage",
+        "action": "Backend numerical self-check"
+      },
+      {
+        "sequence": 14,
+        "elapsedMs": 266.7000000476837,
+        "kind": "stage",
+        "action": "Ordinal uncertainty"
+      },
+      {
+        "sequence": 15,
+        "elapsedMs": 266.7999999523163,
+        "kind": "stage",
+        "action": "DWLS"
+      },
+      {
+        "sequence": 16,
+        "elapsedMs": 267,
+        "kind": "stage",
+        "action": "Rotation"
+      },
+      {
+        "sequence": 17,
+        "elapsedMs": 276.39999997615814,
+        "kind": "stage",
+        "action": "Weighted information matrix"
+      },
+      {
+        "sequence": 18,
+        "elapsedMs": 276.5,
+        "kind": "stage",
+        "action": "Information factorization"
+      },
+      {
+        "sequence": 19,
+        "elapsedMs": 276.5,
+        "kind": "stage",
+        "action": "Robust case projections"
+      },
+      {
+        "sequence": 20,
+        "elapsedMs": 312.7000000476837,
+        "kind": "stage",
+        "action": "Robust parameter covariance"
+      },
+      {
+        "sequence": 21,
+        "elapsedMs": 314.10000002384186,
+        "kind": "stage",
+        "action": "Covariance inverse transform"
+      },
+      {
+        "sequence": 22,
+        "elapsedMs": 314.10000002384186,
+        "kind": "stage",
+        "action": "Covariance matrix products"
+      },
+      {
+        "sequence": 23,
+        "elapsedMs": 314.2000000476837,
+        "kind": "stage",
+        "action": "Exact robust trace blocks"
+      },
+      {
+        "sequence": 24,
+        "elapsedMs": 467.60000002384186,
+        "kind": "job",
+        "action": "Cancellation: requested"
+      },
+      {
+        "sequence": 25,
+        "elapsedMs": 467.60000002384186,
+        "kind": "worker",
+        "action": "terminated",
+        "worker": 1
+      },
+      {
+        "sequence": 26,
+        "elapsedMs": 468,
+        "kind": "job",
+        "action": "Cancellation: workers-terminated"
+      },
+      {
+        "sequence": 27,
+        "elapsedMs": 468,
+        "kind": "job",
+        "action": "cancelled"
+      },
+      {
+        "sequence": 28,
+        "elapsedMs": 478,
+        "kind": "publication",
+        "action": "discarded"
+      }
+    ],
+    "droppedEvents": 0,
+    "droppedStages": 0,
+    "execution": {
+      "backend": "webgpu",
+      "blockSize": 256,
+      "budgetBytes": 1610612736,
+      "state": "ready",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "kernelVersion": "ordinal-trace/1",
+      "adapter": "apple / metal-3 /  / ",
+      "kernelSha256": "039bf58f761980069126ee86323e0d5ce4b3a1176219b368bdd2e225cc641862",
+      "timings": {
+        "startupMs": 56.699999928474426,
+        "packMs": 1.7999999523162842,
+        "uploadSubmitMs": 1.8000000715255737,
+        "dispatchReadbackMs": 31.800000190734863,
+        "readMapWaitMs": 27.200000047683716,
+        "hostReductionMs": 3.5,
+        "gpuMs": 15.925248,
+        "reductionGpuMs": 14.680064,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 263936,
+        "readbackBytes": 2104416,
+        "peakOwnedGpuBufferBytes": 3402280,
+        "sourceInitializations": 2,
+        "bindGroupCacheHits": 2
+      },
+      "selfCheck": {
+        "version": "ordinal-trace/1",
+        "passed": true,
+        "checks": 98750,
+        "tolerance": 1e-10,
+        "maxScaledError": 4.512834550496336e-12,
+        "elapsedMs": 65
+      }
+    },
+    "cancellation": "workers-terminated"
+  }
+}

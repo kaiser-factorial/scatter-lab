@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-06T01:03:15.850Z",
+  "browser": "156.0.8078.81",
+  "checks": [
+    "exact CPU default",
+    "each runtime info button",
+    "exact and estimated GPU explanations differ",
+    "probe and memory help",
+    "Escape focus return",
+    "preview-based advice",
+    "stale preview hides advice",
+    "estimated preview label",
+    "CPU and Scala availability restored with exact",
+    "both themes",
+    "390px tooltip bounds"
+  ],
+  "errors": []
+}

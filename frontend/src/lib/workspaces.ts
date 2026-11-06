@@ -2,6 +2,8 @@
 // with embedded tables can exceed that easily). Same four operations the old
 // backend REST endpoints exposed, plus file export/import for sharing.
 
+import { validateEfaState } from './efa/persistence';
+import { validateDatasetPartition, validatePartitionGroups, type DatasetPartition } from './datasetSplit';
 export type WorkspaceMeta = { name: string; saved_at: string; bytes: number };
 
 const DB_NAME = 'scatter-lab';
@@ -114,7 +116,7 @@ export const exportWorkspaceFile = (name: string, payload: any) => {
 };
 
 /** The payload shape this build knows how to apply. */
-export const WORKSPACE_VERSION = 1;
+export const WORKSPACE_VERSION = 2;
 
 // `unknown` rather than `any` throughout: this is the one place in the app that
 // handles a value nobody typed, so the narrowing has to be real.
@@ -168,6 +170,7 @@ export const validateWorkspace = (parsed: unknown): void => {
   }
   // The failure that actually white-screened the app: a dataset naming a table
   // that is not in the file.
+  const partitions: DatasetPartition[] = [];
   (Array.isArray(parsed.datasets) ? parsed.datasets : []).forEach((d: unknown, i: number) => {
     if (!isRecord(d)) throw new Error(`Workspace file is damaged: dataset #${i + 1} is not an object.`);
     const where = typeof d.name === 'string' && d.name ? `"${d.name}"` : `#${i + 1}`;
@@ -176,7 +179,19 @@ export const validateWorkspace = (parsed: unknown): void => {
       throw new Error(`Workspace file is damaged: dataset ${where} refers to a table ("${String(d.table)}") that the file does not contain.`);
     }
     if (!isTable(t)) throw new Error(`Workspace file is damaged: dataset ${where} has no usable table.`);
+    try {
+      validateDatasetPartition(d.samplePartition, (t as { nRows: number }).nRows);
+      if (d.samplePartition != null) partitions.push(d.samplePartition as DatasetPartition);
+    } catch (error) {
+      throw new Error(`Workspace file is damaged: dataset ${where}. ${error instanceof Error ? error.message : String(error)}`);
+    }
+    validateEfaState(d.efa, (t as { nRows: number }).nRows);
   });
+  try {
+    validatePartitionGroups(partitions);
+  } catch (error) {
+    throw new Error(`Workspace file is damaged: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   if (parsed.pinnedViews != null && !Array.isArray(parsed.pinnedViews)) {
     throw new Error('Workspace file is damaged: its "pinnedViews" section is not a list.');

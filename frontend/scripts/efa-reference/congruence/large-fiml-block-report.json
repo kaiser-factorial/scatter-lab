@@ -1,0 +1,103 @@
+{
+  "recordedAt": "2026-11-06T12:19:53.401Z",
+  "status": "passed",
+  "method": "fiml-block",
+  "runtime": "v26.8.1",
+  "dimensions": {
+    "respondents": 20000,
+    "items": 500,
+    "factors": 5
+  },
+  "dataSeed": 8801,
+  "timingsMs": {
+    "generation": 1404.484083,
+    "preparation": 3093.7792500000005,
+    "correlation": 13886.42425,
+    "ML extraction and Promax": 8949.342167000003,
+    "oblimin rotation": 86.64216699999815,
+    "varimax rotation": 27.160916000000725
+  },
+  "qualification": "Single isolated Node CPU run; runtime and execution qualification only. Not browser responsiveness, R speed comparison, or full-size cross-implementation accuracy proof.",
+  "stage": "varimax rotation",
+  "peakRssKiB": 381760,
+  "missingCells": 666650,
+  "missingness": "3 fixed patterns: complete, first50 missing, last50 missing; i mod3",
+  "settings": {
+    "extraction": "ml",
+    "correlation": "pearson",
+    "missing": "fiml",
+    "rotation": "promax",
+    "seed": 8801,
+    "likelihood": {
+      "starts": 3,
+      "maxIterations": 2000,
+      "tolerance": 1e-7,
+      "uniquenessFloor": 0.000001
+    }
+  },
+  "progress": {
+    "stage": "Start 3/3: ML · gradient 4.100e-3",
+    "completed": 10,
+    "total": 2000
+  },
+  "convergence": {
+    "converged": true,
+    "iterations": 46,
+    "objective": 558.8584110897776,
+    "gradient": 7.427634531538274e-8,
+    "maxIterations": 2000
+  },
+  "rotations": {
+    "promax": {
+      "converged": true,
+      "iterations": 14,
+      "objective": 116.00434751461191,
+      "gradient": 0
+    },
+    "oblimin": {
+      "converged": true,
+      "iterations": 26,
+      "objective": 0.014544288684870987,
+      "gradient": 2.360261051490971e-9,
+      "maxIterations": 4000
+    },
+    "varimax": {
+      "converged": true,
+      "iterations": 13,
+      "objective": -368.1079998823101,
+      "gradient": 0
+    }
+  },
+  "likelihood": {
+    "logLikelihood": -13691208.068598542,
+    "nRows": 20000,
+    "patternCount": 3,
+    "selectedStart": 2,
+    "starts": [
+      {
+        "converged": true,
+        "iterations": 35,
+        "objective": 558.8584110897782,
+        "gradient": 6.056258008975136e-8
+      },
+      {
+        "converged": true,
+        "iterations": 46,
+        "objective": 558.8584110897776,
+        "gradient": 7.427634531538274e-8
+      },
+      {
+        "converged": true,
+        "iterations": 37,
+        "objective": 558.8584110897868,
+        "gradient": 6.734239589061275e-8
+      }
+    ],
+    "settings": {
+      "maxIterations": 2000,
+      "tolerance": 1e-7,
+      "starts": 3,
+      "uniquenessFloor": 0.000001
+    }
+  }
+}

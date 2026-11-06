@@ -1,0 +1,22 @@
+{
+  "status": "failed",
+  "error": "Error: 'meta' is a reserved keyword",
+  "results": [],
+  "recordedAt": "2026-10-31T22:49:43.065Z",
+  "url": "http://localhost:3000/efa-qualification/compute/index.html?pipeline=true&backend=gpu-resident",
+  "browser": "156.0.8078.76",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "memoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 0,
+    "method": "One-second RSS samples summed over isolated Chrome processes; shared pages may be counted more than once"
+  },
+  "heartbeat": {
+    "count": 4,
+    "maxGapMs": 67.5
+  },
+  "workerSha256": "74c346bb909e49c94641a0f535b17382a25cdb9b843dc028b2669668634c2125"
+}

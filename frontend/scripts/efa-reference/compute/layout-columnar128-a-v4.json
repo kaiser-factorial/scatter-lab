@@ -1,0 +1,641 @@
+{
+  "status": "passed",
+  "mode": "resident",
+  "strictMathRequested": false,
+  "developerOnly": false,
+  "scope": "Targeted precision/readback experiments. Neither a completed full fit nor default-browser qualification when developer flags are required.",
+  "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+  "metadata": [
+    {
+      "backend": "webgpu",
+      "loading": "columnar",
+      "dotChunkSize": 1024,
+      "materializePanels": false,
+      "preSplit": false,
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "strictMathRequested": null,
+      "strictMathRecognized": null,
+      "developerOnly": false,
+      "transport": "Resident ordinal source and projections; per-block row ranges only",
+      "ownedGpuBufferBudgetBytes": 1073741824,
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "timestamps": true,
+      "shader": "\nstruct Shape { rows: u32, cols: u32, pairs: u32, parameters: u32, leftStart: u32, rightStart: u32, roundingMask: u32 }\n@group(0) @binding(0) var<storage, read> codes: array<u32>;\n@group(0) @binding(1) var<storage, read> pairs: array<vec4<u32>>;\n@group(0) @binding(2) var<storage, read> lookup: array<vec2<f32>>;\n@group(0) @binding(3) var<storage, read> projection: array<vec2<f32>>;\n@group(0) @binding(4) var<storage, read_write> out: array<vec4<f32>>;\n@group(0) @binding(5) var<uniform> shape: Shape;\nvar<workgroup> tileA: array<vec2<f32>, 256>;\nvar<workgroup> tileB: array<vec2<f32>, 256>;\n@compute @workgroup_size(16, 16)\nfn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation_id) lid: vec3<u32>, @builtin(workgroup_id) group: vec3<u32>) {\n  let row = gid.y; let col = gid.x; let t = lid.y * 16u + lid.x;\n  let begin = group.z * 1024u;\n  var hi = 0.0; var lo = 0.0;\n  for (var offset = begin; offset < min(begin + 1024u, shape.pairs); offset += 16u) {\n    tileA[t] = vec2<f32>(0.0); tileB[t] = vec2<f32>(0.0);\n    if (row < shape.rows && offset + lid.x < shape.pairs) { tileA[t] = ordinal(shape.leftStart + row, offset + lid.x); }\n    let bRow = group.x * 16u + lid.y;\n    if (bRow < shape.cols && offset + lid.x < shape.pairs) { tileB[t] = ordinal(shape.rightStart + bRow, offset + lid.x); }\n    workgroupBarrier();\n    for (var k = 0u; k < 16u; k++) {\n      let av = tileA[lid.y * 16u + k]; let bv = tileB[lid.x * 16u + k];\n      let product = fpMul(av.x, bv.x);\n      let residual = fpAdd(fpAdd(fpAdd(productError(av.x, bv.x, product), fpMul(av.x, bv.y)), fpMul(av.y, bv.x)), fpMul(av.y, bv.y));\n      let next = fpAdd(hi, product);\n      if (abs(hi) >= abs(product)) { lo = fpAdd(lo, fpAdd(fpSub(hi, next), product)); }\n      else { lo = fpAdd(lo, fpAdd(fpSub(product, next), hi)); }\n      lo = fpAdd(lo, residual);\n      hi = next;\n    }\n    workgroupBarrier();\n  }\n  let aHi = hi; let aLo = lo; hi = 0.0; lo = 0.0;\n  for (var offset = begin; offset < min(begin + 1024u, shape.parameters); offset += 16u) {\n    tileA[t] = vec2<f32>(0.0); tileB[t] = vec2<f32>(0.0);\n    if (row < shape.rows && offset + lid.x < shape.parameters) { tileA[t] = projection[(shape.leftStart + row) * shape.parameters + offset + lid.x]; }\n    let bRow = group.x * 16u + lid.y;\n    if (bRow < shape.cols && offset + lid.x < shape.parameters) { tileB[t] = projection[(shape.rightStart + bRow) * shape.parameters + offset + lid.x]; }\n    workgroupBarrier();\n    for (var k = 0u; k < 16u; k++) {\n      let av = tileA[lid.y * 16u + k]; let bv = tileB[lid.x * 16u + k];\n      let product = fpMul(av.x, bv.x);\n      let residual = fpAdd(fpAdd(fpAdd(productError(av.x, bv.x, product), fpMul(av.x, bv.y)), fpMul(av.y, bv.x)), fpMul(av.y, bv.y));\n      let next = fpAdd(hi, product);\n      if (abs(hi) >= abs(product)) { lo = fpAdd(lo, fpAdd(fpSub(hi, next), product)); }\n      else { lo = fpAdd(lo, fpAdd(fpSub(product, next), hi)); }\n      lo = fpAdd(lo, residual);\n      hi = next;\n    }\n    workgroupBarrier();\n  }\n  let chunks = (max(shape.pairs, shape.parameters) + 1023u) / 1024u;\n  if (row < shape.rows && col < shape.cols) { out[(row * shape.cols + col) * chunks + group.z] = vec4<f32>(aHi, aLo, hi, lo); }\n}\nfn rank(index: u32) -> u32 { return (codes[index / 2u] >> ((index % 2u) * 16u)) & 65535u; }\nfn ordinal(row: u32, pair: u32) -> vec2<f32> {\n  let pairInfo = pairs[pair]; let x = rank(pairInfo.x + row); let y = rank(pairInfo.y + row);\n  if (x == 65535u || y == 65535u) { return vec2<f32>(0.0); }\n  return lookup[pairInfo.w + x * pairInfo.z + y];\n}\nfn rounded(value: f32) -> f32 {\n  return bitcast<f32>(bitcast<u32>(value) ^ shape.roundingMask);\n}\nfn fpAdd(a: f32, b: f32) -> f32 { return rounded(a + b); }\nfn fpSub(a: f32, b: f32) -> f32 { return rounded(a - b); }\nfn fpMul(a: f32, b: f32) -> f32 { return rounded(a * b); }\nfn productError(a: f32, b: f32, product: f32) -> f32 {\n  // Split each 24-bit significand into two <=12-bit pieces. Every component\n  // product is representable in f32 in the normal range. Unlike fma(), these\n  // error-recovery operations do not depend on optional fused evaluation.\n  let ah = bitcast<f32>(bitcast<u32>(a) & 0xfffff000u);\n  let bh = bitcast<f32>(bitcast<u32>(b) & 0xfffff000u);\n  let al = fpSub(a, ah); let bl = fpSub(b, bh);\n  let first = fpSub(fpMul(ah, bh), product);\n  return fpAdd(fpAdd(fpAdd(first, fpMul(ah, bl)), fpMul(al, bh)), fpMul(al, bl));\n}\n",
+      "reductionShader": "\nstruct Shape { outputs: u32, chunks: u32, roundingMask: u32, dispatchWidth: u32 }\n@group(0) @binding(0) var<storage, read> partials: array<vec4<f32>>;\n@group(0) @binding(1) var<storage, read_write> result: array<vec4<f32>>;\n@group(0) @binding(2) var<uniform> shape: Shape;\nvar<workgroup> sums: array<vec4<f32>, 256>;\nfn pairAdd(a: vec2<f32>, b: vec2<f32>) -> vec2<f32> {\n  let sum = fpAdd(a.x, b.x);\n  let delta = fpSub(sum, a.x);\n  let error = fpAdd(fpAdd(fpAdd(fpSub(a.x, fpSub(sum, delta)), fpSub(b.x, delta)), a.y), b.y);\n  let hi = fpAdd(sum, error);\n  return vec2<f32>(hi, fpSub(error, fpSub(hi, sum)));\n}\nfn add(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {\n  return vec4<f32>(pairAdd(a.xy, b.xy), pairAdd(a.zw, b.zw));\n}\n@compute @workgroup_size(256)\nfn main(@builtin(local_invocation_id) local: vec3<u32>, @builtin(workgroup_id) group: vec3<u32>) {\n  let output = group.y * shape.dispatchWidth + group.x;\n  if (output >= shape.outputs) { return; }\n  var value = vec4<f32>(0.0);\n  for (var chunk = local.x; chunk < shape.chunks; chunk += 256u) {\n    value = add(value, partials[output * shape.chunks + chunk]);\n  }\n  sums[local.x] = value;\n  workgroupBarrier();\n  for (var stride = 128u; stride > 0u; stride /= 2u) {\n    if (local.x < stride) { sums[local.x] = add(sums[local.x], sums[local.x + stride]); }\n    workgroupBarrier();\n  }\n  if (local.x == 0u) { result[output] = sums[0]; }\n}\nfn rounded(value: f32) -> f32 {\n  return bitcast<f32>(bitcast<u32>(value) ^ shape.roundingMask);\n}\nfn fpAdd(a: f32, b: f32) -> f32 { return rounded(a + b); }\nfn fpSub(a: f32, b: f32) -> f32 { return rounded(a - b); }\nfn fpMul(a: f32, b: f32) -> f32 { return rounded(a * b); }\nfn productError(a: f32, b: f32, product: f32) -> f32 {\n  // Split each 24-bit significand into two <=12-bit pieces. Every component\n  // product is representable in f32 in the normal range. Unlike fma(), these\n  // error-recovery operations do not depend on optional fused evaluation.\n  let ah = bitcast<f32>(bitcast<u32>(a) & 0xfffff000u);\n  let bh = bitcast<f32>(bitcast<u32>(b) & 0xfffff000u);\n  let al = fpSub(a, ah); let bl = fpSub(b, bh);\n  let first = fpSub(fpMul(ah, bh), product);\n  return fpAdd(fpAdd(fpAdd(first, fpMul(ah, bl)), fpMul(al, bh)), fpMul(al, bl));\n}\n",
+      "variant": "gpu-portable-reduced"
+    }
+  ],
+  "results": [
+    {
+      "fixture": "resident-range-0",
+      "range": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        1979.5999999046326,
+        347.10000002384186,
+        114.89999997615814,
+        130.80000007152557,
+        119.39999997615814
+      ],
+      "errors": {
+        "maxAbs": 1.3278267374516872e-13,
+        "maxScaled": 6.114968455688894e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.3278267374516872e-13,
+        "maxScaled": 6.114968455688894e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 640.8000000715256,
+        "uploadSubmitMs": 263.5,
+        "dispatchReadbackMs": 1772.1999998092651,
+        "readMapWaitMs": 1686.1000000238419,
+        "hostReductionMs": 57.99999976158142,
+        "gpuMs": 566.8208639999999,
+        "reductionGpuMs": 7.340032000000001,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 445346240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 1
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1.f64le.gz",
+        "sha256": "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-1",
+      "range": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        114.19999992847443,
+        120,
+        119.80000007152557,
+        118.59999990463257,
+        120.40000009536743
+      ],
+      "errors": {
+        "maxAbs": 1.441902153231922e-14,
+        "maxScaled": 1.441902153231922e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.441902153231922e-14,
+        "maxScaled": 1.441902153231922e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 13.299999952316284,
+        "uploadSubmitMs": 0.8000000715255737,
+        "dispatchReadbackMs": 578.8999999761581,
+        "readMapWaitMs": 575.7000000476837,
+        "hostReductionMs": 1.2999999523162842,
+        "gpuMs": 569.2456959999998,
+        "reductionGpuMs": 8.716288000000002,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0.f64le.gz",
+        "sha256": "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-2",
+      "range": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        130.39999997615814,
+        128.79999995231628,
+        121.5,
+        114.10000002384186,
+        117.30000007152557
+      ],
+      "errors": {
+        "maxAbs": 1.2301271112846734e-13,
+        "maxScaled": 5.707182257370678e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.2301271112846734e-13,
+        "maxScaled": 5.707182257370678e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 9.100000143051147,
+        "uploadSubmitMs": 0.5999999046325684,
+        "dispatchReadbackMs": 602.3999999761581,
+        "readMapWaitMs": 600.9000000953674,
+        "hostReductionMs": 0.6999999284744263,
+        "gpuMs": 595.001344,
+        "reductionGpuMs": 7.536639999999995,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75.f64le.gz",
+        "sha256": "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-3",
+      "range": [
+        128,
+        256,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        116.90000009536743,
+        112.79999995231628,
+        116.60000002384186,
+        112.29999995231628,
+        112.10000002384186
+      ],
+      "errors": {
+        "maxAbs": 1.5251688800788088e-14,
+        "maxScaled": 1.5251688800788088e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.5251688800788088e-14,
+        "maxScaled": 1.5251688800788088e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 8.49999988079071,
+        "uploadSubmitMs": 0.30000007152557373,
+        "dispatchReadbackMs": 561.9000000953674,
+        "readMapWaitMs": 557.3000000715256,
+        "hostReductionMs": 0.6999999284744263,
+        "gpuMs": 550.8956160000009,
+        "reductionGpuMs": 7.929855999999994,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205.f64le.gz",
+        "sha256": "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-4",
+      "range": [
+        128,
+        384,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        112.79999995231628,
+        113.90000009536743,
+        118.39999997615814,
+        115.60000002384186,
+        116.69999992847443
+      ],
+      "errors": {
+        "maxAbs": 1.5001888620247428e-14,
+        "maxScaled": 1.5001888620247428e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.5001888620247428e-14,
+        "maxScaled": 1.5001888620247428e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 11.399999976158142,
+        "uploadSubmitMs": 0.40000009536743164,
+        "dispatchReadbackMs": 564.7000000476837,
+        "readMapWaitMs": 560.1999999284744,
+        "hostReductionMs": 2.100000023841858,
+        "gpuMs": 553.2549120000003,
+        "reductionGpuMs": 5.636095999999995,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e.f64le.gz",
+        "sha256": "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-5",
+      "range": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        114,
+        115.39999997615814,
+        116.30000007152557,
+        115.09999990463257,
+        113.10000002384186
+      ],
+      "errors": {
+        "maxAbs": 1.4752088439706768e-14,
+        "maxScaled": 1.4752088439706768e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.4752088439706768e-14,
+        "maxScaled": 1.4752088439706768e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 15.299999952316284,
+        "uploadSubmitMs": 0.8000000715255737,
+        "dispatchReadbackMs": 557.6999999284744,
+        "readMapWaitMs": 553.6000000238419,
+        "hostReductionMs": 2.0999999046325684,
+        "gpuMs": 546.2425600000006,
+        "reductionGpuMs": 5.636095999999995,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79.f64le.gz",
+        "sha256": "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-6",
+      "range": [
+        19969,
+        19872,
+        31,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        33.300000071525574,
+        31.799999952316284,
+        32.299999952316284,
+        33,
+        32.5
+      ],
+      "errors": {
+        "maxAbs": 8.659739592076221e-14,
+        "maxScaled": 4.0503627513794865e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 8.659739592076221e-14,
+        "maxScaled": 4.0503627513794865e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 10.700000166893005,
+        "uploadSubmitMs": 1,
+        "dispatchReadbackMs": 151.09999978542328,
+        "readMapWaitMs": 134.89999973773956,
+        "hostReductionMs": 14.700000166893005,
+        "gpuMs": 130.1544959999992,
+        "reductionGpuMs": 1.376255999999998,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 317440,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba.f64le.gz",
+        "sha256": "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "length": 3968,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-7",
+      "range": [
+        19969,
+        19969,
+        31,
+        31
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        11.299999952316284,
+        10,
+        10.300000071525574,
+        11.699999928474426,
+        9.399999976158142
+      ],
+      "errors": {
+        "maxAbs": 6.750155989720952e-14,
+        "maxScaled": 3.164019093111828e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 6.750155989720952e-14,
+        "maxScaled": 3.164019093111828e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 9.300000190734863,
+        "uploadSubmitMs": 0.3999999761581421,
+        "dispatchReadbackMs": 42.69999980926514,
+        "readMapWaitMs": 37.699999928474426,
+        "hostReductionMs": 4.199999928474426,
+        "gpuMs": 32.76800000000003,
+        "reductionGpuMs": 0.32768000000000796,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 76880,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695.f64le.gz",
+        "sha256": "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "length": 961,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-8",
+      "range": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        111,
+        114.10000002384186,
+        112.69999992847443,
+        115.20000004768372,
+        119.60000002384186
+      ],
+      "errors": {
+        "maxAbs": 1.441902153231922e-14,
+        "maxScaled": 1.441902153231922e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.441902153231922e-14,
+        "maxScaled": 1.441902153231922e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 9.599999785423279,
+        "uploadSubmitMs": 0.3999999761581421,
+        "dispatchReadbackMs": 562.0000002384186,
+        "readMapWaitMs": 559.9000000953674,
+        "hostReductionMs": 1,
+        "gpuMs": 554.3034880000009,
+        "reductionGpuMs": 6.6191359999999975,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0.f64le.gz",
+        "sha256": "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    },
+    {
+      "fixture": "resident-range-9",
+      "range": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "backend": "gpu-portable-reduced",
+      "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+      "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "iterationMs": [
+        124.89999997615814,
+        114.39999997615814,
+        104.39999997615814,
+        112,
+        119.10000002384186
+      ],
+      "errors": {
+        "maxAbs": 1.4641066137244252e-14,
+        "maxScaled": 1.4641066137244252e-14,
+        "failures": 0,
+        "tolerance": 1e-10,
+        "passed": true
+      },
+      "baselineToleranceErrors": {
+        "maxAbs": 1.4641066137244252e-14,
+        "maxScaled": 1.4641066137244252e-14,
+        "failures": 0,
+        "tolerance": 0.00001,
+        "passed": true
+      },
+      "passed": true,
+      "measurements": {
+        "packMs": 13.300000071525574,
+        "uploadSubmitMs": 0.5000001192092896,
+        "dispatchReadbackMs": 560.799999833107,
+        "readMapWaitMs": 558.8999998569489,
+        "hostReductionMs": 0.8000001907348633,
+        "gpuMs": 553.1238400000011,
+        "reductionGpuMs": 8.060927999999997,
+        "panelExpansions": 0,
+        "panelCacheHits": 0,
+        "panelGpuMs": null,
+        "calls": 5,
+        "uploadedBytes": 240,
+        "readbackBytes": 1310720,
+        "sourceInitializations": 0
+      },
+      "ownedGpuBufferBytes": 477851968,
+      "outputSha256": "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5",
+      "outputArtifact": {
+        "path": "scripts/efa-reference/compute/archives/1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5.f64le.gz",
+        "sha256": "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5",
+        "length": 16384,
+        "encoding": "gzip-compressed little-endian Float64"
+      }
+    }
+  ],
+  "recordedAt": "2026-11-04T08:25:48.141Z",
+  "url": "http://localhost:3000/efa-qualification/compute/index.html?optimization=true&mode=resident&backend=gpu-portable-reduced&loading=columnar&chunk=1024",
+  "browser": "156.0.8078.80",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "memoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 1240088576,
+    "method": "One-second RSS samples summed over isolated Chrome processes; shared pages may be counted more than once",
+    "samples": 12,
+    "samplingErrors": 0
+  },
+  "heartbeat": {
+    "count": 234,
+    "maxGapMs": 246.60000002384186
+  },
+  "workerSha256": "61bc9d401227d237ba07d87603b081f7cda6ab5d032c1b0024e8e20f372316ae",
+  "workerDelivery": "Immutable bytes captured at launch and fulfilled by the benchmark harness",
+  "workerSnapshotsServed": 1,
+  "runtimeLimitMinutes": 2880,
+  "workerArchive": "scripts/efa-reference/compute/archives/61bc9d401227d237ba07d87603b081f7cda6ab5d032c1b0024e8e20f372316ae.js.gz",
+  "workerSource": "public/efa-qualification/compute/optimization-worker.js",
+  "browserArguments": [],
+  "webgpuRuntimeFlags": []
+}

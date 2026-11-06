@@ -1,0 +1,8 @@
+module NumericCellContract where
+
+// Source-derived conditional cell update; Number payloads are uninterpreted bits.
+cellWrite : [8] -> [64] -> [64] -> [64]
+cellWrite mask original replacement = if mask == 0 then replacement else original
+
+property preservesObserved mask original replacement = (mask != 0) ==> (cellWrite mask original replacement == original)
+property fillsMissing mask original replacement = (mask == 0) ==> (cellWrite mask original replacement == replacement)

@@ -1,0 +1,24 @@
+// Bundle with esbuild using frontend/ as resolveDir; execute from frontend/.
+import { readFileSync, writeFileSync } from 'node:fs';
+import { imputeIterativePCA } from './src/lib/pca';
+const lines = readFileSync('public/demo/iris.csv', 'utf8').trim().split('\n'), header = lines[0].split(',');
+const truth = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm'].map(name => lines.slice(1).map(line => Number(line.split(',')[header.indexOf(name)])));
+const inputs = [], reports = [];
+for (const seed of [20260805, 7, 42, 20260806]) for (const rate of [.05, .2, .35]) {
+  let s = seed;
+  const random = () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const holes = [], columns = truth.map((column, j) => column.map((value, i) => random() < rate ? (holes.push([j, i]), null) : value));
+  const med = columns.map(column => { const observed = column.filter(v => v !== null).sort((a, b) => a - b); return observed[Math.floor(observed.length / 2)]; });
+  const mae = get => holes.reduce((sum, [j, i]) => sum + Math.abs(get(j, i) - truth[j][i]), 0) / holes.length;
+  inputs.push({ seed, rate, columns, rank: 2, standardize: true, tol: 1e-8 });
+  const results = [200, 1000, 5000].map(maxIter => {
+    const result = imputeIterativePCA(columns, { rank: 2, standardize: true, maxIter });
+    return { maxIter, ...result, mae: mae((j, i) => result.columns[j][i]), medianMae: mae(j => med[j]) };
+  });
+  reports.push({ seed, rate, holes: holes.length, results: results.map(({ columns, ...result }) => result),
+    boundedToEventualMaxAbs: Math.max(...holes.map(([j, i]) => Math.abs(results[0].columns[j][i] - results[2].columns[j][i]))),
+    completions: results.map(result => result.columns) });
+}
+writeFileSync('/private/tmp/pca-iris-probe-input.json', JSON.stringify(inputs));
+writeFileSync('/private/tmp/pca-iris-probe-ts.json', JSON.stringify(reports));
+console.log(JSON.stringify(reports.map(({ completions, ...r }) => r), null, 2));

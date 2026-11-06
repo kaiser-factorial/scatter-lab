@@ -1,10 +1,10 @@
 // Curated methods reference the assistant retrieves from when users ask for
 // help interpreting results. Ships with the app: retrieval is topic + keyword
-// match (the corpus is small and vetted — no embeddings needed). The assistant
+// match over a small authored corpus. The assistant
 // is instructed to ground interpretation answers in these chunks and to name
 // the cited sources, rather than answering from model memory alone.
 
-export type MethodsChunk = { title: string; text: string };
+export type MethodsChunk = { title: string; text: string; sourcePaths?: readonly string[] };
 
 export const METHODS: Record<string, MethodsChunk> = {
   pca_interpretation: {
@@ -25,7 +25,8 @@ export const METHODS: Record<string, MethodsChunk> = {
   },
   pca_caveats: {
     title: 'PCA caveats and limitations',
-    text: 'PCA finds directions of maximal variance, not directions of maximal meaning: it is linear, sensitive to outliers (a few extreme respondents can rotate the components), and affected by how missing data were handled — median imputation (used here) shrinks variance and can attenuate correlations, so with substantial missingness the components should be checked against complete cases. PCA is also not factor analysis: PCA summarizes total variance; exploratory factor analysis models shared variance and is usually the better fit when the goal is measuring latent constructs. Rotations (e.g. varimax) that aid interpretability in EFA are not applied here — components are unrotated. Finally, component structure is sample-dependent; expect loadings to wobble across samples, especially with n below a few hundred (Fabrigar, Wegener, MacCallum & Strahan, 1999).',
+    text: 'PCA finds directions of maximal variance, not directions of maximal meaning: it is linear, sensitive to outliers (a few extreme respondents can rotate the components), and affected by how missing data were handled. Scatter Lab offers column mean/median, complete cases, pairwise covariance, iterative PCA completion, and separate ordinal MICE fits; inspect the actual run rather than assuming median imputation. Single-completion methods do not propagate uncertainty in filled cells, and sensitivity to plausible missing-data choices deserves investigation. PCA is also not factor analysis: PCA summarizes total variance; exploratory factor analysis models shared variance and is usually the better fit when the goal is measuring latent constructs. The PCA components here are unrotated; the separate EFA workflow offers Promax, Oblimin and Varimax. Finally, component structure is sample-dependent; expect loadings to wobble across samples, especially with n below a few hundred (Fabrigar, Wegener, MacCallum & Strahan, 1999; implementation reference: packages/statistics/PCA.md and docs/EFA.md).',
+    sourcePaths: ['packages/statistics/PCA.md', 'docs/EFA.md'],
   },
   standardize_clustering: {
     title: 'Standardizing before clustering (and when not to)',
@@ -53,7 +54,12 @@ export const METHODS: Record<string, MethodsChunk> = {
   },
   pca_workflow: {
     title: 'A sound PCA workflow',
-    text: 'The preprocessing order matters: (1) handle missing data — columns that are mostly missing (a common cutoff: more than ~50%) are better dropped than imputed, and remaining gaps filled by a simple imputer (this app uses medians) with the caveat that imputation shrinks variance; (2) keep numeric variables only, and exclude identifiers (IDs, names, fold numbers) — they are numbers but not measurements; (3) standardize, because PCA and distance-based clustering are sensitive to scale; verify the transform (means ≈ 0, sd ≈ 1) rather than trusting it. When plotting components, label axes with the variance explained (e.g. "PC1 (24%)") so readers can weight what they see. When reading loadings, translate variable codes into plain language before interpreting — components are only as interpretable as their variables\' names (workflow after NYU CDS Intro to Data Science, Lab 13, J. Yang).',
+    text: 'The preprocessing choices matter: (1) inspect missingness and choose an explicit policy — Scatter Lab supports column mean/median, complete cases, pairwise covariance and iterative PCA for single fits, plus separate ordinal MICE fits. The appropriate choice depends on measurement, support and assumptions; no missing-percentage cutoff alone establishes that an item should be discarded. Replacements and preprocessing use the fitting sample. Pairwise covariance can be indefinite and leaves incomplete rows unscored; a finite unconverged iterative completion stays pending explicit acceptance. (2) Keep numeric measurements and exclude identifiers (IDs, names, fold numbers) — they are numbers but not measurements. (3) Decide whether scales should contribute equally through standardization, then inspect the transformation. When plotting components, label axes with the variance explained (e.g. "PC1 (24%)") so readers can weight what they see. When reading loadings, translate variable codes into plain language before interpreting — components are only as interpretable as their variables\' names (workflow after NYU CDS Intro to Data Science, Lab 13, J. Yang; current implementation: packages/statistics/PCA.md and docs/DECOMPOSITION-GUIDANCE.md).',
+    sourcePaths: ['packages/statistics/PCA.md', 'docs/DECOMPOSITION-GUIDANCE.md'],
+  },
+  chatterjee_correlation: {
+    title: 'Chatterjee correlation (xi): nonlinear dependence',
+    text: 'Chatterjee\'s rank correlation xi detects nonlinear dependence beyond monotonic association. Xi(X → Y) describes how well Y is determined by X; xi(Y → X) can differ. The correlate tool reports both directions on the same pairwise-complete numeric observations under the active row filter. This is dependence, not causation. Population xi lies in [0, 1], with 0 for independence and 1 for a functional relationship; finite-sample estimates can be negative and need not reach 1 even for a perfect function. Do not use Pearson\'s small/medium/large benchmarks. The implementation uses the tied-response formula and exactly averages over uniform predictor-tie orderings (the averaging proposal in section 1, remark 8), so results are reproducible and independent of row order. A constant response makes that direction undefined; a constant predictor gives an averaged estimate of 0 when the response varies. At least three complete pairs are required, and private mode requires five. No p-value or confidence interval is computed. Source: Chatterjee, A New Coefficient of Correlation (2021; preprint v4, 2020), https://arxiv.org/abs/1909.10140v4.',
   },
   correlation_notes: {
     title: 'Reading correlations',
@@ -73,7 +79,27 @@ export const METHODS: Record<string, MethodsChunk> = {
   },
   missing_data_tradeoffs: {
     title: 'Choosing between the imputation strategies',
-    text: 'Median imputation is simple, but it ignores the correlation structure and shrinks variance. Iterative PCA (regularized, the missMDA imputePCA method; Josse & Husson 2016) is better when variables are correlated, but it can be biased when there are many gaps — on this app\'s own test it recovers punched-out iris values with about half the error of the median, though it is marginally worse on noise (uncorrelated variables). Complete cases keeps the covariance honest but reduces n and can bias the sample when missingness is not random (Little & Rubin, Statistical Analysis with Missing Data). All three are single imputation, so none of them carry the uncertainty of the filled values into what follows; with substantial missingness, run more than one and compare — divergent results mean the missing-data handling is driving the conclusion.',
+    text: 'Column mean and median fills ignore relationships between items and can shrink variance. Iterative PCA uses a regularized low-rank reconstruction following missMDA imputePCA (Josse & Husson 2016); its usefulness depends on that structure fitting the data. These single-completion methods do not propagate uncertainty in filled cells. Complete cases reduces the sample and can introduce selection bias; pairwise deletion uses different respondents for different pairs and may produce an indefinite matrix. FIML fits the numeric Gaussian factor model to observed cells without filling them first. Separately saved conditional predictions are point estimates. MICE produces separate completed fits; this app does not pool their standard errors. Compare plausible missing-data models and inspect their assumptions rather than treating one strategy as universally best.',
+  },
+  efa_estimators_and_rotation: {
+    title: 'EFA estimators, pattern and structure in Scatter Lab',
+    text: 'Scatter Lab supports numeric Pearson MINRES/ML and ordinal polychoric MINRES/DWLS/WLSMV. Text categories require an explicit order; automatic measurement detection is a heuristic. Use analyze_decomposition_items before recommending settings, and confirm substantive assumptions. Promax and Oblimin allow correlated factors; Varimax is orthogonal. Pattern is Lambda; structure is Lambda times Phi. Communalities come from the diagonal of Lambda Phi Lambda-transpose, so correlated factors do not receive a PCA-style additive variance breakdown. Item review metrics and holdout replication help investigate structure but do not establish measurement validity. Implementation reference: docs/EFA.md and docs/DECOMPOSITION-GUIDANCE.md.',
+    sourcePaths: ['docs/EFA.md', 'docs/DECOMPOSITION-GUIDANCE.md'],
+  },
+  efa_parallel_analysis: {
+    title: 'Factor parallel analysis as implemented here',
+    text: 'The EFA parallel-analysis implementation uses reduced correlation matrices: one-factor MINRES communalities replace the diagonal for both the observed and null spectra. Observed responses are independently permuted within each item while missingness stays fixed. The reference uses the interpolated 95th percentile of null eigenvalues. Seeds, actual replicate counts and failures remain recorded; any failed null replicate suppresses the definitive factor-count suggestion. This is a factor-analysis procedure, not PCA eigenvalue parallel analysis. Inspect the actual result and interpretability rather than treating its suggestion as proof of a true dimensionality. Implementation reference: packages/statistics/EFA.md and docs/EFA.md.',
+    sourcePaths: ['packages/statistics/EFA.md', 'docs/EFA.md'],
+  },
+  fiml_and_completion: {
+    title: 'Gaussian FIML versus completed values',
+    text: 'In this implementation, observed-data FIML requires extraction=ml, correlation=pearson and missing=fiml. It fits a numeric Gaussian factor model to each respondent\'s observed subvector without filling cells first. It is not ordinal threshold-model FIML, and the local item adviser cannot infer MCAR, MAR or MNAR. Conditional completion is a separately requested point-prediction output, preserves observed cells and does not propagate multiple-imputation uncertainty. Failed ML/FIML optimization publishes no usable partial likelihood fit. Check the saved fit and its diagnostics before explaining what happened. Implementation reference: packages/statistics/EFA.md and docs/DECOMPOSITION-GUIDANCE.md.',
+    sourcePaths: ['packages/statistics/EFA.md', 'docs/DECOMPOSITION-GUIDANCE.md'],
+  },
+  mice_and_stability: {
+    title: 'MICE and bootstrap uncertainty in Scatter Lab',
+    text: 'The MICE workflow fits ordered-category conditional models and retains separate completed fits, traces and failures. Fixed sweeps do not establish chain convergence. PCA requires an explicit selection of one completed fit before adding its scores. EFA alignment and between-imputation dispersion are descriptive, not Rubin-pooled standard errors or confidence intervals; WLSMV standard errors belong to individual completed fits. Pooled MICE factor scores and nested MICE/bootstrap pooling are unsupported. Bootstrap stability refits the saved settings and aligns factors by signs/permutation; WLSMV baselines use DWLS point fits in replicates without recalculating robust inference. Failures remain recorded and make bootstrap summaries provisional. Implementation reference: docs/EFA.md, packages/statistics/EFA.md and packages/statistics/README.md.',
+    sourcePaths: ['docs/EFA.md', 'packages/statistics/EFA.md', 'packages/statistics/README.md'],
   },
   statistical_tests: {
     title: 'The built-in statistical tests',
@@ -88,14 +114,17 @@ export const METHODS: Record<string, MethodsChunk> = {
 export const METHODS_TOPICS = Object.keys(METHODS);
 
 // Retrieval: exact topics win; otherwise a keyword score over title + text.
-// The corpus is tiny and curated, so lexical matching is exact, free, and
-// debuggable — embeddings would add machinery without adding recall.
+// This local baseline stays deterministic and free. Semantic retrieval should
+// be evaluated against it when a larger reference corpus is introduced.
 export const searchMethods = (opts: { topics?: string[]; query?: string }): MethodsChunk[] => {
   const picked = new Map<string, MethodsChunk>();
   for (const t of opts.topics ?? []) {
     if (METHODS[t]) picked.set(t, METHODS[t]);
   }
-  const q = (opts.query ?? '').toLowerCase().trim();
+  // Xi is a two-letter name (or one Greek symbol), below the general keyword
+  // length floor. Normalize that exact alias rather than matching "xi" inside
+  // unrelated words such as "maximum".
+  const q = (opts.query ?? '').toLowerCase().trim().replace(/\bxi\b|ξ/g, 'chatterjee');
   if (q) {
     const terms = q.split(/[^a-z0-9²]+/).filter(w => w.length > 2);
     const scored = Object.entries(METHODS)

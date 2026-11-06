@@ -1,0 +1,7 @@
+{
+  "recordedAt": "2026-11-01T04:52:41.357Z",
+  "backend": "gpu-portable-reduced",
+  "stage": "{\"stage\":\"varimax: Rotated standard errors\",\"completed\":2382,\"total\":2490}",
+  "peakBrowserRssBytes": 1047986176,
+  "completedFits": 0
+}

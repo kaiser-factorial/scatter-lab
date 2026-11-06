@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "directory": "/tmp/scatter-compute-build-final.t8zec6kn",
+  "excluded": [
+    "node_modules (copied separately)",
+    "public/efa-qualification",
+    ".env*",
+    ".next",
+    "*.tsbuildinfo"
+  ],
+  "startedAt": "2026-11-01T02:43:38.266977+00:00",
+  "exitCode": 0,
+  "completedAt": "2026-11-01T02:43:53.776152+00:00",
+  "log": "production-build-final.log"
+}

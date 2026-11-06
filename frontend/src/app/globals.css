@@ -22,6 +22,7 @@
   --p-red: #EB1A26;
   --p-blue: #0045AD;
   --p-yellow: #FFD600;
+  --p-green: #1A7A1A;
   --p-black: #111111;
   --p-white: #FFFFFF;
 
@@ -50,6 +51,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+.compute-inspector { border-color: var(--p-blue, var(--system-green)); }
+.compute-inspector-header { border-color: currentColor; }
+.compute-duration { background: var(--p-blue, var(--system-green)); }
+.compute-selected { background: var(--p-blue, var(--system-green)); color: var(--p-white, #000); }
+.compute-inspector th, .compute-inspector td { padding: 0.5rem 0.35rem; }
 
 /* Keyboard focus is always visible, themed per side of the app */
 :focus-visible {
@@ -157,6 +164,58 @@ body {
 
 .scatterlab-action-button:disabled {
   cursor: not-allowed;
+}
+
+/* PCA/EFA and 2D/3D use the same compact, filled selection control. */
+.panel-choice-button {
+  --choice-fill: var(--p-yellow, var(--primary, #FFD600));
+  --choice-ink: var(--p-black, #111111);
+  flex: 1 1 0;
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border, #111111);
+  background-color: var(--input, #FFFFFF);
+  color: var(--foreground, #111111);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 700;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, opacity 120ms ease;
+}
+.panel-choice-button[aria-pressed='true'] {
+  background-color: var(--choice-fill);
+  border-color: var(--p-black, var(--primary, #111111));
+  color: var(--choice-ink);
+  opacity: 1;
+}
+[data-theme='primary'] .panel-choice-button[aria-pressed='true'] {
+  border-width: 3px;
+}
+[data-theme='terminal'] .panel-choice-button { --choice-ink: #FFFFFF; }
+.panel-choice-button:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 0 var(--border, #111111);
+}
+.panel-choice-button[aria-pressed='false']:hover {
+  background-color: color-mix(in srgb, var(--choice-fill) 25%, var(--input, #FFFFFF));
+}
+.panel-choice-button:active {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: none;
+}
+.panel-choice-button:focus-visible {
+  outline: 2px solid var(--foreground, #111111);
+  outline-offset: 2px;
+}
+[data-theme='primary'] .dataset-dialog {
+  border-width: 3px;
+  box-shadow: 6px 6px 0 var(--p-black);
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-choice-button { transition: none; }
+  .panel-choice-button:hover, .panel-choice-button:active { transform: none; }
 }
 
 .scatterlab-action-button:not(.bauhaus-btn):not(:disabled):hover {
@@ -420,4 +479,93 @@ body {
   border: 3px solid var(--p-black);
   box-shadow: 4px 4px 0 color-mix(in srgb, var(--p-black) 35%, transparent);
   font-weight: 600;
+}
+
+/* EFA feedback borrows the primary theme's compact alert and progress forms.
+   All progress comes from the active numerical stage; no simulated percentage. */
+.efa-fit-summary {
+  border-block: 1px solid var(--border);
+  padding: 0.5rem 0;
+}
+.efa-fit-value { color: var(--p-blue, var(--system-green, currentColor)); }
+.efa-action {
+  cursor: pointer;
+  transition: background-color 100ms ease, box-shadow 100ms ease, transform 100ms ease;
+}
+[data-theme='primary'] .efa-action:not(:disabled):hover { background: var(--p-yellow); }
+[data-theme='primary'] .efa-action:not(:disabled):active {
+  transform: translate(1px, 1px);
+  box-shadow: inset 1px 1px 0 var(--p-black);
+}
+[data-theme='primary'] .efa-action[aria-pressed='true'] {
+  background: var(--p-blue);
+  color: var(--p-white);
+}
+[data-theme='terminal'] .efa-action { border-color: color-mix(in srgb, var(--system-green) 58%, transparent); }
+[data-theme='terminal'] .efa-action:not(:disabled):hover,
+[data-theme='terminal'] .efa-action[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--system-green) 15%, var(--background));
+  color: var(--system-green);
+}
+[data-theme='terminal'] .efa-action:not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: inset 0 0 0 1px var(--system-green);
+}
+.efa-results table > thead > tr > th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 30;
+  background: var(--background);
+}
+.efa-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--p-black, var(--system-green, var(--border)));
+  background: color-mix(in srgb, var(--foreground) 10%, var(--background));
+}
+.efa-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--p-blue, var(--system-green, currentColor));
+}
+.efa-progress-fill[data-indeterminate] {
+  width: 28%;
+  animation: efa-progress-sweep 1.3s ease-in-out infinite alternate;
+}
+@keyframes efa-progress-sweep {
+  from { transform: translateX(0); }
+  to { transform: translateX(255%); }
+}
+.efa-toast {
+  --efa-feedback-accent: var(--p-blue, var(--mauk, currentColor));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--efa-feedback-accent);
+  background: var(--card, var(--background));
+  color: var(--foreground);
+}
+.efa-toast[data-tone='success'] { --efa-feedback-accent: var(--p-green, var(--system-green, currentColor)); }
+.efa-toast[data-tone='error'] { --efa-feedback-accent: var(--p-red, var(--primary, currentColor)); }
+.efa-toast-icon { color: var(--efa-feedback-accent); }
+.efa-toast-dismiss {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  cursor: pointer;
+}
+.efa-toast-dismiss:hover { background: color-mix(in srgb, var(--efa-feedback-accent) 12%, transparent); }
+[data-theme='primary'] .efa-toast {
+  border-width: 2px;
+  border-inline-start-width: 5px;
+  box-shadow: 2px 2px 0 var(--p-black);
+}
+[data-theme='primary'] .efa-progress-track { border-width: 2px; height: 10px; }
+[data-theme='terminal'] .efa-toast { border-color: color-mix(in srgb, var(--efa-feedback-accent) 65%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .efa-action { transition: none; }
+  .efa-progress-fill[data-indeterminate] { animation: none; width: 100%; opacity: 0.45; }
 }

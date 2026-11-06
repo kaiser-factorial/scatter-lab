@@ -1,0 +1,66 @@
+{
+  "status": "passed",
+  "scope": "Two isolated MINRES fits from shared native correlation matrices; not a complete parallel-analysis batch or independent R polychoric estimation",
+  "tolerance": {
+    "communalities": 0.0001,
+    "nativeProjectedGradient": 1e-8
+  },
+  "cases": [
+    {
+      "seed": 8801,
+      "convergence": {
+        "converged": true,
+        "iterations": 183,
+        "objective": 7.449355496798396,
+        "gradient": 7.48224644482451e-9
+      },
+      "nativeObjective": 7.449355496798396,
+      "rObjective": 7.449355507187387,
+      "objectiveDifference": -1.0388991000809256e-8,
+      "maxCommunalityDifference": 0.000002827784844726053,
+      "reference": "src/lib/__tests__/fixtures/efa-extensions/parallel-large-r.reference.json",
+      "referenceProvenance": {
+        "R": "R version 4.5.1 (2025-06-13)",
+        "psych": "2.5.6",
+        "inputSha256": "0e71ae0cfe58aa4f603b097446aa544f2af3015178dd01a1a33f195a3ee3651e",
+        "scope": "MINRES extraction from the saved native polychoric matrix; not independent large polychoric estimation",
+        "input": "500 items, 20000 synthetic respondents; benchmark-data.ts seed 8801; first fixed-mask permutation seed 8801",
+        "settings": {
+          "nfactors": 1,
+          "fm": "minres",
+          "rotate": "none",
+          "SMC": true,
+          "smooth": false
+        }
+      }
+    },
+    {
+      "seed": 8802,
+      "convergence": {
+        "converged": true,
+        "iterations": 582,
+        "objective": 7.421307491582435,
+        "gradient": 9.189587087767149e-9
+      },
+      "nativeObjective": 7.421307491582435,
+      "rObjective": 7.421307502173512,
+      "objectiveDifference": -1.0591077348465205e-8,
+      "maxCommunalityDifference": 0.000003784230693304469,
+      "reference": "src/lib/__tests__/fixtures/efa-extensions/parallel-large-8802-r.reference.json",
+      "referenceProvenance": {
+        "R": "R version 4.5.1 (2025-06-13)",
+        "psych": "2.5.6",
+        "inputSha256": "6ffb32cc64f186bc35bbd79a452afa52ee0ef37fc7ae7eed0b888491ee166617",
+        "scope": "MINRES extraction from the saved native polychoric matrix; not independent large polychoric estimation",
+        "input": "500 items, 20000 synthetic respondents; benchmark-data.ts seed 8801; fixed-mask permutation seed 8802",
+        "settings": {
+          "nfactors": 1,
+          "fm": "minres",
+          "rotate": "none",
+          "SMC": true,
+          "smooth": false
+        }
+      }
+    }
+  ]
+}

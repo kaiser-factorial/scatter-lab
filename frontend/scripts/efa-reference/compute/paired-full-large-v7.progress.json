@@ -1,0 +1,13 @@
+{
+  "correction": "estimated",
+  "recordedAt": "2026-11-06T01:00:44.196Z",
+  "progress": {
+    "stage": "Completed",
+    "completed": 1,
+    "total": 1,
+    "jobStatus": "completed",
+    "rotation": "varimax",
+    "elapsedMs": 598805.2999999523
+  },
+  "peakRss": 1207615488
+}

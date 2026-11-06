@@ -1,0 +1,166 @@
+{
+  "status": "passed-with-existing-lint-baseline",
+  "recordedAt": "2026-11-05T23:45:56.813771+00:00",
+  "git": {
+    "branch": "codex/efa-mice-stability-wls",
+    "baseCommit": "525a50d3b930ecc024f960ccc75616face29a882",
+    "worktree": "uncommitted; includes preceding authorized work"
+  },
+  "unit": {
+    "command": "npm test -- --maxWorkers=1",
+    "exitCode": 0,
+    "passed": 688,
+    "skipped": 4,
+    "passingFiles": 56,
+    "skippedFiles": 2,
+    "durationSeconds": 30.75,
+    "qualification": "Earlier concurrent browser/GPU workload caused one existing 5-second test timeout; complete isolated rerun passed without numerical-tolerance or timeout changes."
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "productionBuild": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "directory": "/var/folders/85/7f4sb4p97r35n0xbn_gw1pmw0000gn/T/scatter-efa-estimated-build-v6-oumbwr03",
+    "applicationSourcesIdentical": true,
+    "networkUse": "existing next/font downloads"
+  },
+  "lint": {
+    "errors": 117,
+    "warnings": 6,
+    "newFileRuleSeverityCounts": 0,
+    "baseline": "frontend/scripts/efa-reference/compute/throughput-eslint-v3b.json"
+  },
+  "productionService": {
+    "fits": 30,
+    "comparisons": 20,
+    "status": "passed",
+    "workerArchiveVerified": true
+  },
+  "ui": {
+    "status": "passed",
+    "checks": [
+      "exact default",
+      "explicit estimated selection",
+      "editable probes and seed",
+      "live uncertainty",
+      "dashboard view switches while inspector and job remain active",
+      "cancel discards partial estimate",
+      "completion and immutable saved provenance",
+      "no automatic score columns",
+      "both themes",
+      "nonmodal Tab navigation",
+      "Escape and focus return",
+      "390px viewport"
+    ],
+    "cancellationMs": 336.6086670000004
+  },
+  "plot": {
+    "points": 126,
+    "freshCases": 4,
+    "freshSeedsPerCase": 10,
+    "probeBudgets": [
+      32,
+      64,
+      128
+    ],
+    "largeCase": "historical matching inputs; two seeds; not a new paired full fit",
+    "sourceHashesVerified": true
+  },
+  "workerArchives": [
+    {
+      "report": "estimated-workflow-v6.json",
+      "archive": "frontend/scripts/efa-reference/compute/archives/f5e4329128630f0275df7068454c76fc90977011b5db8dec5e177a4b1e8a2981.js.gz",
+      "uncompressedSha256": "f5e4329128630f0275df7068454c76fc90977011b5db8dec5e177a4b1e8a2981"
+    },
+    {
+      "report": "trace-tradeoff-v6.json",
+      "archive": "frontend/scripts/efa-reference/compute/archives/6aaab95744ca40e87fb4a41bff1273dc4fec4ff8a9276e42fa97eb1f0c9d4af8.js.gz",
+      "uncompressedSha256": "6aaab95744ca40e87fb4a41bff1273dc4fec4ff8a9276e42fa97eb1f0c9d4af8"
+    },
+    {
+      "report": "trace-estimation-large-v5.json",
+      "archive": "frontend/scripts/efa-reference/compute/archives/da192164c4d882cdc4c3aa79a5117d31370ae7c622fb75195794e2757404ea30.js.gz",
+      "uncompressedSha256": "da192164c4d882cdc4c3aa79a5117d31370ae7c622fb75195794e2757404ea30"
+    }
+  ],
+  "evidenceSha256": {
+    "frontend/scripts/efa-reference/compute/estimated-workflow-v6.json": "2932b00982563a18b986aec6697f640ac1b1b7717105242101b1deae4c88066a",
+    "frontend/scripts/efa-reference/compute/estimated-ui-v6/report.json": "9ab30ec14c8df1ecfc77db98646120cdcce41339c13d08feed5066301be862f8",
+    "frontend/scripts/efa-reference/compute/trace-tradeoff-v6.json": "118780ceb9c9afa3ad12c3ddb21aa8ba8eadd45b5a36bb847d22de11464e358d",
+    "frontend/scripts/efa-reference/compute/trace-estimation-large-v5.json": "cf018c54210179ae003825455ec4d69dadb32ef6f18719d1a1f75cd684bdee4b",
+    "docs/EFA-ESTIMATED-MV.md": "9959200403816f66bf6bb2ebeefc7a18abaddc853e522dd2225fa6a498ade060",
+    "docs/figures/efa-mv-tradeoff-v6.pdf": "27158ba4e87077d0ea1f68270f6467a3b79d5097846ad93068965fa0f9c9223f",
+    "docs/figures/efa-mv-tradeoff-v6.png": "71445166af69d9db1bb34c72f0de41c7cc21289e6c95b12655ae41291da55be1",
+    "docs/figures/efa-mv-tradeoff-v6.svg": "40cb1a07c98405a33da10e24ead980db76f1590bd39ff8cad0829417a9e77ca8",
+    "docs/figures/efa-mv-tradeoff-v6.json": "68e78b7c6973cbee5f7aa63db816d69bea54a531aab3c190f13af570625ce7a9",
+    "docs/figures/efa-mv-tradeoff-v6.csv": "1ddc6a11d14c78976c01a19b5a76028e1ceeef67e4850b97ca2713285a95f482",
+    "frontend/scripts/efa-reference/compute/estimated-verification-v6/production-build.log": "491269002c635058939204d52f721fb2e6913bb5f4130833290068800ac47488",
+    "frontend/scripts/efa-reference/compute/estimated-verification-v6/eslint.json": "b89392bfd5be36b8ff00da2b2bdf89be19a94181f6e06c9076f8038ff5711e5f"
+  },
+  "applicationSourceSha256": {
+    "frontend/src/components/EfaBackendControls.tsx": "0cafe0a3cedb8778dd86393f5109ca22a52bb4bf8bf70fa82377839bf4bbc1b5",
+    "frontend/src/components/EfaTraceEstimate.tsx": "b36843755998bf764b8c5d55f8a1c898d48a58d7c2aedf98ff8be45bb8822142",
+    "frontend/src/components/ComputeInspector.tsx": "7dffe5a7a131d81a676c494dee8b4d6d67728f5c959aae8b6ca4f615e520f049",
+    "frontend/src/components/EfaWeightedSummary.tsx": "38343b60fdbe51e0b36b7088b07517d39a13c0e6f25c06453d2ae412559dd126",
+    "frontend/src/lib/efa/mice.ts": "12562a773db1fbe6599573c31a97fcfeace075315717046237b808fc904f8691",
+    "frontend/src/lib/efa/state.ts": "b0eaa92523b1367795c99ab43a9fd4b3dae6fd93b09ecf746399242878c85692",
+    "frontend/src/lib/efa/compare.ts": "082cf9bdc5d01da940e21f18b14ef63ff5fddf4a7ed8458455594f0bbe250e2c",
+    "frontend/src/lib/efa/prepare.ts": "0fc77bb80bcb676e66db94cb7ccef88adc28d8f11f16c66c0985e88f8f358015",
+    "frontend/src/lib/efa/ordinal-regression.ts": "598ab395649a8619c34502a78b3e19c42f7d2c1575ee8c7ed0e8958a8d406ad8",
+    "frontend/src/lib/efa/correlation.ts": "5db36d809d801dd795e72293d6697a6a7c2c17b7adc8ad2dff15a5708522d798",
+    "frontend/src/lib/efa/rotation.ts": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+    "frontend/src/lib/efa/prepared-sample.ts": "fb3402fa11e819e4d4241b33c93af79293af23a7a556462f3d3adb9e329895fa",
+    "frontend/src/lib/efa/parallel.ts": "a26dfe429efce69dfa2b53e56ee2460b387c214d4161a70377c66f73e53f0952",
+    "frontend/src/lib/efa/math.ts": "a1d66b7069257658579f084d27ae8f5147cbb24625b6d5f2d08f298bd61d7d18",
+    "frontend/src/lib/efa/weighted-linalg.ts": "87a1e36aad146717eab5d1470e1b4cffbb2fe1c1cd40ff72760798893109ebae",
+    "frontend/src/lib/efa/weighted-moments.ts": "c7ad567d394971dd5d0d3fa83c0a978b01611affb1eb879aaf9b09a1cabe6612",
+    "frontend/src/lib/efa/dwls.ts": "960dac0dddc140b222abf323c7494586916f9b784cb6c483644ab24ad158ef37",
+    "frontend/src/lib/efa/extraction.ts": "3f41195de95cf8781985ac8449a68385e4b50b22a25bb61eefed6d0280cd1df2",
+    "frontend/src/lib/efa/weighted-inference.ts": "1f8f567943e2aeccc923720f0597e9182b8ca8122f38b3bbffd8ede06d6a2bf7",
+    "frontend/src/lib/efa/inspection.ts": "7bd9d79426124aac6fc868c96de70621ce5da4281f05ad269af60452cc1a4b49",
+    "frontend/src/lib/efa/types.ts": "6c939b446e3e3b6177f1d39bc01939a216488a661bf6f5882472981ddc1a0b0c",
+    "frontend/src/lib/efa/telemetry.ts": "fd9b73c43401fe91a6e67d95e6d8bada0b5e82da760e6b0da1ebab163add04b4",
+    "frontend/src/lib/efa/trace-estimation.ts": "d928cc155c53ad5cf42d29da660a58a3ff21f2786b941e64ef27b0cf9b28cdc5",
+    "frontend/src/lib/efa/tools.ts": "7a429e11e6f20089b9df1a30959a47b06fcb407448fee0d5a7018afdec2c4767",
+    "frontend/src/lib/efa/imputation-analysis.ts": "194f55f2c0803da38068cdfd41e96d38a0bad09a154bb5ccc8b3b75f49aa215a",
+    "frontend/src/lib/efa/fingerprint.ts": "affb3faf3f6a4c6e114555991286dd15ae8e3d1fa524341d52b9947eeb667d77",
+    "frontend/src/lib/efa/efa.worker.ts": "82967c6aba8dfc307f5b7d65f4a737e175736c191d57e7201e379c0e2c7db986",
+    "frontend/src/lib/efa/persistence.ts": "933c513b9e5864247666bfceb7f5d2b88c20ae9be606355fe5f729c3835dfece",
+    "frontend/src/lib/efa/fit.ts": "1a3d34397344c145452b20cff42acdf1e22ad82f518d589080411b4f14516cec",
+    "frontend/src/lib/efa/controller.ts": "662c39f8791a20615576377a51fb81a79a563e73a10752388fff3ec2f4248d8f",
+    "frontend/src/lib/efa/fit-cache.ts": "5ae0084e4c1406704e72f101e816b3d77fb492cae58808cd12e36438520b7928",
+    "frontend/src/lib/efa/service.ts": "731bd80b4c240b1b0aabf903bc2b4d428ae95d31e57e9fc7269709e9bef32a5d",
+    "frontend/src/lib/efa/stability.ts": "0eb28d5db13e164b1be19623c579f520eccebd2eb7e78eaf5c3300f80237d844",
+    "frontend/src/lib/efa/trace-kernel.ts": "a7d589ebe02159f23a4a768a7017ee11bc403884b0cc48c1ef896b9b8703cb58",
+    "frontend/src/lib/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+    "frontend/src/lib/efa/weighted-rotation.ts": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+    "frontend/src/lib/efa/backends/self-check.ts": "41e216e33faa51875b6aaa61f60a29f7a7336587ec6a94a65f2672ce99df74e1",
+    "frontend/src/lib/efa/backends/portable-shader.mjs": "2655d0a1eddb5dd4f15c8a19b65e653cde7969ec27f828009eff2818a10e35d0",
+    "frontend/src/lib/efa/backends/reduce-shader.mjs": "93db510fb1df1848952378c41fcb316828c887f059a9794f7ef285a122f61133",
+    "frontend/src/lib/efa/backends/native-protocol.ts": "1083a54e17d9b74f6b776022d6a269c0b51a8a83c80df7a73b66495f3fa00d7c",
+    "frontend/src/lib/efa/backends/split-shader.mjs": "e63f06eeb52e619086da336c07297d70d8a58d3303c1b6718d20a92c938f3e39",
+    "frontend/src/lib/efa/backends/panel-shader.mjs": "c26f6ce42debcd6ebd7913c3088f045689e8c5187fbd783e9589db4e7c51f79a",
+    "frontend/src/lib/efa/backends/webgpu-kernel.d.mts": "4735a9e6592c3969981a417e77932170e74166a7d82e32072c741d24cce27e9b",
+    "frontend/src/lib/efa/backends/trace-operator.d.mts": "8c12d6e0ec30e6a7518f4e4078d0654d77423f588a18ec1e81bc1425ea6fdcd7",
+    "frontend/src/lib/efa/backends/runtime.ts": "cb8926c681beeb5e004b3da5dea3efcb38e5014aeb011f2c88cdf155dc79446e",
+    "frontend/src/lib/efa/backends/types.ts": "8b416f53e05548b98712ff7adbe3077dc8a5e4d33774678af3cf0ba20a5d8574",
+    "frontend/src/lib/efa/backends/estimated.ts": "a70a0e7180f73e24194022e0b80fa0f61c5d8114a5a73ac70222573e01ef362a",
+    "frontend/src/lib/efa/backends/webgpu-kernel.mjs": "0b8a09af6691ff4fdb062d5ad6b2ad8a8fb2042d12c352dfa02929445467b9b3",
+    "frontend/src/lib/efa/backends/companion.ts": "18fdd825df66af18cfd84de56a1e8747d9c30fc65f2159a210167af85ec07769",
+    "frontend/src/lib/efa/backends/trace-operator.mjs": "74161341f27ba86a00b8ebaeefa418be013ac3a8d0538f1bb3aac65c411baadd",
+    "frontend/src/lib/__tests__/fixtures/efa/mixed.reference.json": "5f8dfb824ec775639fcb68ed5f271dbd5002809bdb1dd3aa275b5ca9a7c63a27",
+    "frontend/src/lib/__tests__/fixtures/efa/skew-pairwise.input.json": "267fd9c218cce1e5bd2e9b8c3d659b67b6f3bdfcdbd69a27c8a594430b24b32c",
+    "frontend/src/lib/__tests__/fixtures/efa/skew-pairwise.reference.json": "a75ae9cfb3996beed48410e2b460e4b3e0457a64fbbf244d2b923bebd80398de",
+    "frontend/src/lib/__tests__/fixtures/efa/mixed.input.json": "5f476601a261a99d713f3028469524a0828505db47fb59d30849000d41865f3c",
+    "frontend/src/lib/__tests__/fixtures/efa/skew-complete.reference.json": "08cab12cb7608f6c8fe1ca974396c7acd369f01ab3043b736e3b2e89feadd3f0",
+    "frontend/src/lib/__tests__/fixtures/efa/binary.input.json": "a57919682df88727be9d2aed100937416c9171629ab463c03aa9932e345b61cb",
+    "frontend/src/lib/__tests__/fixtures/efa/skew-complete.input.json": "36991c7fee7f08a23a0906d7710453bdcf39e0f991a9784b4e0662a530638d41",
+    "frontend/src/lib/__tests__/fixtures/efa/binary.reference.json": "bc85177a22999c559ca7e69f8e90bdd2591d6b128bdd9d7fefb22db5014238c8",
+    "frontend/src/lib/__tests__/fixtures/efa/public-bfi.reference.json": "595f531196e2c96a771630b1ceb2d73e8358491e391d5325f8d9440eaffceedb",
+    "frontend/src/lib/__tests__/fixtures/efa/public-bfi.input.json": "efbfa6ec212ba551f043957b3aca696b4c10d0dbfa376d3a6a5c86adb3e79a5e",
+    "frontend/src/lib/__tests__/fixtures/efa/parallel.reference.json": "d4127e53ad276be62c42671a5bf41fd1cf8fd6d9ccb3d7b83d63e761089d057f"
+  }
+}

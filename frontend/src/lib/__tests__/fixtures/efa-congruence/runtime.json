@@ -1,0 +1,14 @@
+{
+  "R": "R version 4.5.1 (2025-06-13)",
+  "packages": {
+    "lavaan": "0.6.21",
+    "psych": "2.5.6",
+    "GPArotation": "2025.3.1",
+    "jsonlite": "2.0.0",
+    "polycor": "0.8.1",
+    "numDeriv": "2016.8.1.1"
+  },
+  "platform": "aarch64-unknown-linux-gnu",
+  "image": "sha256:5cd875ebc7ed97cce3e09bca0794e233e5e0d4e5c0252bbbb3c98258dd6c4c6c",
+  "sourceSha256": "a5b7d964ebde22a8e21b6cbcf0d34e3cecbbf322fd62656bc68bcbf08475af1b"
+}

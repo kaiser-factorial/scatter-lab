@@ -1,0 +1,24 @@
+Loading file "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/negative-gaussian.saw"
+Warning: [warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:48:19--48:21
+    `-s01 Cryptol::/. det` is now parsed as `-(s01 Cryptol::/. det)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:33--49:34
+    `-l Cryptol::@ 0` is now parsed as `-(l Cryptol::@ 0)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:35--49:36
+    `-(l Cryptol::@ 0) Cryptol::* l` is now parsed as
+    `-(l Cryptol::@ 0 Cryptol::* l)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:37--49:38
+    `-(l Cryptol::@ 0 Cryptol::* l) Cryptol::@ 1` is now parsed as
+    `-(l Cryptol::@ 0 Cryptol::* l Cryptol::@ 1)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:39--49:41
+    `-(l Cryptol::@ 0 Cryptol::* l Cryptol::@ 1) Cryptol::/. (d0 Cryptol::* d1 Cryptol::* h)`
+    is now parsed as
+    `-(l Cryptol::@ 0 Cryptol::* l Cryptol::@ 1 Cryptol::/. (d0 Cryptol::* d1 Cryptol::* h))`
+Stack trace:
+   (builtin) in z3
+   /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/negative-gaussian.saw:6:24-6:26 in (callback)
+   (builtin) in prove_print
+   /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/negative-gaussian.saw:6:12-6:95 in main
+   [internal:call-to-main] (at top level)
+prove: 1 unsolved subgoal(s)
+Invalid: []
+

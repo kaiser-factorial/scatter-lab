@@ -1,0 +1,16 @@
+{
+  "nativeProcessGroup": 80874,
+  "requestedAt": "2026-10-31T23:47:40.366Z",
+  "resumedAt": "2026-11-01T00:41:55.216344+00:00",
+  "reason": "User requested WebGPU before native and skipping the original JavaScript CPU baseline",
+  "progressAtSuspension": {
+    "recordedAt": "2026-10-31T23:47:36.087Z",
+    "stage": "Exact robust trace blocks",
+    "completed": 11548,
+    "total": 12403
+  },
+  "timingScope": "Native elapsed and in-flight request timings include this suspension until separately annotated; do not report them as uninterrupted compute time",
+  "coordinatorStopped": 21944,
+  "resumeRequestedAt": "2026-11-01T00:41:55.215984+00:00",
+  "suspensionMs": 3254850.344
+}

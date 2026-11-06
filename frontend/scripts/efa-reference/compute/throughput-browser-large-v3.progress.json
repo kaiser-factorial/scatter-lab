@@ -1,0 +1,7 @@
+{
+  "recordedAt": "2026-11-04T02:21:10.845Z",
+  "backend": "gpu-portable-reduced",
+  "stage": "{\"stage\":\"varimax: Rotated covariance propagation\",\"completed\":2497,\"total\":5525}",
+  "peakBrowserRssBytes": 1262305280,
+  "completedFits": 0
+}

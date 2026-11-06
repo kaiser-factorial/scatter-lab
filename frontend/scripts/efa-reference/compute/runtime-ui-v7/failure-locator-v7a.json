@@ -1,0 +1,5 @@
+{
+  "status": "failed",
+  "error": "Error: locator._expect: Error: strict mode violation: getByLabel('Runtime guidance') resolved to 2 elements:\n    1) <div aria-label=\"Runtime guidance\" class=\"my-2 border p-2 text-xs\">…</div> aka getByLabel('Runtime guidance', { exact: true })\n    2) <button type=\"button\" aria-expanded=\"false\" aria-label=\"About runtime guidance\" class=\"inline-flex align-middle ml-1 opacity-50 hover:opacity-100 focus-visible:opacity-100 cursor-help\" title=\"Uses the preview's fitting rows, item pairs, factors, probe count and memory plan. Arithmetic estimates are not device benchmarks. The choice remains yours; no backend or correction is changed automatically. Matrix structure determines estimation error, so there is no reliable rows × items accuracy cutoff.\">…</button> aka getByRole('button', { name: 'About runtime guidance' })\n\nCall log:\n\u001b[2m  - Expect \"to.have.text\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Runtime guidance')\u001b[22m\n",
+  "errors": []
+}

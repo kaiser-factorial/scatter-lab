@@ -1,0 +1,48 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T08:33:45.487760+00:00",
+  "scope": "Isolated synthetic null-8804 extraction from a shared native polychoric matrix; independent R psych fit. Not full 100-replicate qualification.",
+  "initialization": "unit uniqueness; selected by lower initial same-objective loss than SMC",
+  "startingObjectives": {
+    "smc": 7.428937629818281,
+    "unitUniqueness": 7.428542035946005
+  },
+  "nativeConvergence": {
+    "converged": true,
+    "iterations": 196,
+    "objective": 7.428532600315984,
+    "gradient": 8.588846591166377e-09,
+    "maxIterations": 2000
+  },
+  "referenceObjective": 7.4285326109038,
+  "maxCommunalityDifference": 4.183479053724258e-06,
+  "candidateSavedNullParity": [
+    {
+      "name": "normal",
+      "maximum": 4.008816828493522e-07,
+      "failures": []
+    },
+    {
+      "name": "heavy-tail",
+      "maximum": 8.237600012117596e-07,
+      "failures": []
+    },
+    {
+      "name": "skew",
+      "maximum": 6.745377170158662e-07,
+      "failures": []
+    }
+  ],
+  "otherReferenceChecks": {
+    "status": "passed",
+    "tests": 24,
+    "files": [
+      "efa.test.ts",
+      "efa-mice.test.ts",
+      "efa-stability.test.ts",
+      "efa-parallel-batches.test.ts"
+    ],
+    "method": "Isolated candidate copy; existing assertions and tolerances unchanged"
+  },
+  "originalSmcPath": "Slow objective descent and near-coalescing retained/discarded eigenvalues reproduced; stopped when superseded by the qualified numerical revision, not declared converged or failed."
+}

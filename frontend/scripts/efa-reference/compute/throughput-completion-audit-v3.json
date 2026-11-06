@@ -1,0 +1,807 @@
+{
+  "status": "qualified-and-regression-passed",
+  "recordedAt": "2026-11-04T02:55:42.150Z",
+  "checkpoint": "d8bf5db",
+  "engine": "scatter-efa/6",
+  "executableChecks": [
+    {
+      "entry": "pipeline.worker.mjs",
+      "platform": "browser",
+      "sha256": "7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8"
+    },
+    {
+      "entry": "pipeline.worker.mjs",
+      "platform": "node",
+      "sha256": "7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8"
+    },
+    {
+      "entry": "rotation-worker.mjs",
+      "platform": "browser",
+      "sha256": "b719d4a92bd0b370d4398256506cc0cf333aeff8c6325b3d2cb41da1492c7248"
+    },
+    {
+      "entry": "rotation-node-worker.mjs",
+      "platform": "node",
+      "sha256": "76e86ada3dd453fc2b2b2bc5dd9f39ff602a05780ca97cdb9fdc66466a15a1e3"
+    },
+    {
+      "entry": "rotation-pool.mjs",
+      "platform": "node",
+      "sha256": "91ee26830639dbf490a6a0e8d9d2567ae1e9312f14e0bcb56d65c58f68675d96"
+    }
+  ],
+  "productionChecks": [
+    {
+      "path": "src/lib/efa/weighted-rotation.ts",
+      "sourceSha256": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+      "emittedSha256": "cda560e521c0817a7f1b255edee9a898001ec731d7a7a761ef308f0fb0169dfd",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "src/lib/efa/weighted-inference.ts",
+      "sourceSha256": "cceef0df27211fbe760a116b5da9df26c9f1e29842a2a46fd9a1f9f04dda9ae1",
+      "emittedSha256": "ec95d474494e1a275e2b548b998f07987ce6f573898eff71bd0cfca7a4f2b5ff",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "src/lib/efa/fit.ts",
+      "sourceSha256": "51c26ab7533b000063277a129c453f3d4a5c41b7dd7cb40f4e7636e0dd2567f7",
+      "emittedSha256": "1e5113a2afc9040b97cda0d1a6e6160dc083d434f1adecbef834133edc7b437f",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "src/lib/efa/efa.worker.ts",
+      "sourceSha256": "4d92ea56839a02e2177189c70470efbc12c5267e963ea180d2a35d7282afd2ff",
+      "emittedSha256": "ac1f2c43f18bd1dfb5a191e8eefce60c85ab28826db7ecc08ead4a83b5c6dafb",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "src/lib/efa/service.ts",
+      "sourceSha256": "afdcb834a3415db4e05f63877389f1edf0037ebff929506d1b5e8e9cc73f2eda",
+      "emittedSha256": "037e9b0ae41e2b74edca5810934f83693ae86cb06689a9fa5b765bcdfbb1acbc",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "src/lib/efa/telemetry.ts",
+      "sourceSha256": "f4ae40f96fddd78e7cb6624c2e789615b4a5392be03f2a9656ddb53815f9e7c9",
+      "emittedSha256": "07a376a858950a8a715b339e0efc0a32fb77159042162f7874b83618652abd67",
+      "matchesTestedBuild": true
+    },
+    {
+      "path": "src/lib/efa/types.ts",
+      "sourceSha256": "404f9d1e2ad190a704cb429b3f9a345e1a5ad971538280d53da1b477364b7cbb",
+      "emittedSha256": "3b4479509d8ca67d9dc10ce317889d3b5ea12753a48b8c5b12dccdf0bee21344",
+      "matchesTestedBuild": true
+    }
+  ],
+  "archiveChecks": [
+    {
+      "path": "scripts/efa-reference/compute/archives/7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8.js.gz",
+      "sha256": "7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/archives/b719d4a92bd0b370d4398256506cc0cf333aeff8c6325b3d2cb41da1492c7248.js.gz",
+      "sha256": "b719d4a92bd0b370d4398256506cc0cf333aeff8c6325b3d2cb41da1492c7248"
+    },
+    {
+      "path": "scripts/efa-reference/compute/archives/76e86ada3dd453fc2b2b2bc5dd9f39ff602a05780ca97cdb9fdc66466a15a1e3.mjs.gz",
+      "sha256": "76e86ada3dd453fc2b2b2bc5dd9f39ff602a05780ca97cdb9fdc66466a15a1e3"
+    },
+    {
+      "path": "scripts/efa-reference/compute/archives/91ee26830639dbf490a6a0e8d9d2567ae1e9312f14e0bcb56d65c58f68675d96.mjs.gz",
+      "sha256": "91ee26830639dbf490a6a0e8d9d2567ae1e9312f14e0bcb56d65c58f68675d96"
+    },
+    {
+      "path": "scripts/efa-reference/compute/archives/7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8.mjs.gz",
+      "sha256": "7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/archives/8ef8921a9ebf1a7ace28c2eb8e7a5091ad6c69e3c01955e4f54dbb4158bc60df.mjs.gz",
+      "sha256": "8ef8921a9ebf1a7ace28c2eb8e7a5091ad6c69e3c01955e4f54dbb4158bc60df"
+    },
+    {
+      "path": "scripts/efa-reference/compute/archives/21136cac2832c38efd222afa1da3d4828427590785dca5d270f00543c5554ed9.scala.gz",
+      "sha256": "21136cac2832c38efd222afa1da3d4828427590785dca5d270f00543c5554ed9"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/throughput-regression-v3.json",
+      "sha256": "2231f67e27859a1da35062c76a1c576cb9ffd97f21ae34371bbc719ffb4f34ed"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-sequence-v3.json",
+      "sha256": "2777fdf721be564798a56897e27956554d9fa55ab5e1c6f693ebc5e497fc66e8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-browser-r-v3c.json",
+      "sha256": "16992822fc11b879a6bfbf799d1dff662904591ed05655b35a77b7d51893772c"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-r-v3.json",
+      "sha256": "e2157ef01d9859120c226e54d88bfb2830b886b0186a17944ccf023bf3480afb"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-guards-v3.json",
+      "sha256": "0f39f3b9672b7071187b0b8e4e94b4c8e2442cfbfe9e6cd8857429b7db6e593a"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-comparison-guards-v3.json",
+      "sha256": "074ac7cfd5c5e46a5574d66f0232388879672cd39f3475e5a2399b4b8012ec63"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-kernels-v3.json",
+      "sha256": "d40b8b1e537d7f402b080c3b5c6816fbeadbb7a9c2526cca6b1c4f39bb90bb36"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-native128-paired-v3.json",
+      "sha256": "6dd558f3c3b06ac05f0e89369c98104d906e32b0a4fab7a540ffb38db659869a"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-native256-paired-v3.json",
+      "sha256": "edeb0228d867aaa029d064ee4e15e76fd672b8fdf09cccd9132c46e284caffa2"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-browser-large-v3.json",
+      "sha256": "4ee6b82274e8d7502b9b3f2bfc3269874aee985d0a280cd6a41bba4ec7a20de2"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-browser-large-comparison-v3.json",
+      "sha256": "ce7a99a6db0595a03f2a28db009ff11cb37ab1a714a573ed0b70b4356588ef2e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-browser-large-holdout-v3.json",
+      "sha256": "e68f8ce7112ab71ce839436c9a84a4c07e7c6b332b8661f8f88105ab5099a63b"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-browser-large-holdout-comparison-v3.json",
+      "sha256": "56cb719bb86aedaa0ad6e4ff2038282adb720c1dc0db589c18906e07343a69f3"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-large-v3.json",
+      "sha256": "b0deb6d60fb7eb018c6e73e885a34e79d8f2dad36df01aaac3da82e8a05a916e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-large-comparison-v3.json",
+      "sha256": "8da5a2e8a3630a3b9ad3bab278041b3224f12abdc0230e65679084b0c3fb3dfc"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-large-holdout-v3.json",
+      "sha256": "38f3ae764c3964b2230af698e380dceab5550998bd5abdf9ae3352d33e738902"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-large-holdout-comparison-v3.json",
+      "sha256": "f5fc3d2568cf35d3727815d2b891983c0df415ad5e321f29507baedde2ce9e84"
+    }
+  ],
+  "sourceHashes": {
+    "src/lib/efa/weighted-rotation.ts": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+    "src/lib/efa/weighted-inference.ts": "cceef0df27211fbe760a116b5da9df26c9f1e29842a2a46fd9a1f9f04dda9ae1",
+    "src/lib/efa/fit.ts": "51c26ab7533b000063277a129c453f3d4a5c41b7dd7cb40f4e7636e0dd2567f7",
+    "src/lib/efa/efa.worker.ts": "4d92ea56839a02e2177189c70470efbc12c5267e963ea180d2a35d7282afd2ff",
+    "src/lib/efa/service.ts": "afdcb834a3415db4e05f63877389f1edf0037ebff929506d1b5e8e9cc73f2eda",
+    "src/lib/efa/telemetry.ts": "f4ae40f96fddd78e7cb6624c2e789615b4a5392be03f2a9656ddb53815f9e7c9",
+    "src/lib/efa/types.ts": "404f9d1e2ad190a704cb429b3f9a345e1a5ad971538280d53da1b477364b7cbb",
+    "scripts/efa-reference/compute/TraceServerPanel.scala": "21136cac2832c38efd222afa1da3d4828427590785dca5d270f00543c5554ed9",
+    "scripts/efa-reference/compute/webgpu-kernel.mjs": "d0b60ff88051d07fabd4cb36c0329c7ffe701ac26b9032de7c2b925ca823bb4a",
+    "scripts/efa-reference/compute/split-shader.mjs": "e63f06eeb52e619086da336c07297d70d8a58d3303c1b6718d20a92c938f3e39",
+    "scripts/efa-reference/compute/portable-shader.mjs": "36fd6e3a77ae036ebe852b112ce035af3422018ff5c74ca1f2fafc3b44f099ad",
+    "scripts/efa-reference/compute/panel-shader.mjs": "c26f6ce42debcd6ebd7913c3088f045689e8c5187fbd783e9589db4e7c51f79a",
+    "scripts/efa-reference/compute/rotation-pool.mjs": "c3fb5d5f7338e1a75896b7ae648876ecc0fc46e6079bcfec807d8c27dee53cfa",
+    "scripts/efa-reference/compute/rotation-worker.mjs": "2a5d78ecc2e180427a7bdbc83902ddee5b5b6ce9343291f5790eeadc54e0ab72",
+    "scripts/efa-reference/compute/rotation-node-worker.mjs": "1693f94aad1062040ce647167985c196aebb55cc4e76e7239f7be1fa524b1684",
+    "scripts/efa-reference/compute/pipeline.worker.mjs": "6db403c187b1a5d37e122ae3f90ec7566c548f824903152697869c9329caa053",
+    "scripts/efa-reference/compute/check-pipeline.mjs": "406b8d946156b6e55d5885123602e9221e8ecfed86553063d8c702f9f5f28348",
+    "scripts/efa-reference/compute/check-scala-pipeline.mjs": "61a9f70c6bc3b751ee0582d7ad09621eefcc4579c888aae95f3bed76dc46b1d9",
+    "scripts/efa-reference/compute/compare-candidate.mjs": "f9ab1d142bc779ea240b4327f4a8c224227e956c089be755e184630dce0ff86a",
+    "scripts/efa-reference/compute/qualify-throughput.mjs": "3427e55f564fd7fce1584e626ddb695107d508d8c2a2a02f0e85f4e1311f25a1",
+    "scripts/efa-reference/compute/audit-throughput.mjs": "cb36b9a086599455c60f609fd1147a29fecafd25831ca62b378d9e4d93dbdcd6"
+  },
+  "benchmarks": [
+    {
+      "backend": "browser",
+      "fixture": "large",
+      "dimensions": {
+        "rows": 20000,
+        "items": 500,
+        "factors": 5
+      },
+      "beforeMs": 2384696.7000000477,
+      "afterMs": 1863894,
+      "observedRatio": 1.2794164796925402,
+      "traceBeforeMs": 1481568.6000000238,
+      "traceAfterMs": 1376886.5,
+      "derivativeBeforeMs": 580359.2999999523,
+      "derivativeAfterMs": 162633.39999997616,
+      "peakRssBeforeBytes": 1047986176,
+      "peakRssAfterBytes": 1262305280,
+      "gpuOwnedBufferBytes": 477851968,
+      "versionBefore": "156.0.8078.76",
+      "versionAfter": "156.0.8078.80",
+      "heartbeat": {
+        "count": 37312,
+        "maxGapMs": 387.2000000476837
+      },
+      "cancellation": {
+        "acknowledgedMs": 0,
+        "passed": true,
+        "dimensions": {
+          "rows": 20000,
+          "items": 500,
+          "factors": 5
+        },
+        "blockSize": 128,
+        "scope": "Worker termination call duration after an additional kernel dispatch using this fit's resident source. Does not measure GPU command retirement."
+      },
+      "comparison": {
+        "fixture": "large",
+        "dimensions": {
+          "rows": 20000,
+          "items": 500,
+          "factors": 5
+        },
+        "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+        "errors": {
+          "rawStatistic": 9.800714906305075e-9,
+          "trace": 5.093170329928398e-11,
+          "traceSquared": 4.94765117764473e-10,
+          "scalingFactor": 1.7763568394002505e-15,
+          "shift": 1.1641532182693481e-10,
+          "statistic": 8.833012543618679e-9,
+          "pValue": 6.341260849751507e-12
+        },
+        "rotations": {
+          "oblimin": {
+            "mapping": [
+              1,
+              2,
+              4,
+              3,
+              0
+            ],
+            "signs": [
+              -1,
+              1,
+              -1,
+              -1,
+              1
+            ],
+            "errors": {
+              "pattern": 1.9555040919883027e-10,
+              "structure": 1.5549592169428195e-10,
+              "phi": 2.858326908494746e-10,
+              "communalities": 1.7675305663544805e-12,
+              "reproduced": 1.7675305663544805e-12,
+              "patternSE": 2.948106788119159e-8,
+              "structureSE": 6.692347015099798e-9,
+              "phiSE": 1.3325574969857978e-8,
+              "communalitySE": 1.8735013540549517e-15,
+              "uniquenessSE": 1.8735013540549517e-15
+            },
+            "scores": {
+              "maxAbsolute": 1.1746470462981051e-9,
+              "maxStandardized": 1.2353962297595444e-9,
+              "sameCompleteMask": true,
+              "completeRows": 20000,
+              "passed": true
+            },
+            "passed": true
+          },
+          "promax": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 1.5285550603039155e-12,
+              "structure": 1.3670176102209552e-12,
+              "phi": 3.450018049022674e-14,
+              "communalities": 1.7673640329007867e-12,
+              "reproduced": 1.7673640329007867e-12,
+              "patternSE": 3.710920459809586e-14,
+              "structureSE": 4.10400879946593e-14,
+              "phiSE": 5.758299409934502e-14,
+              "communalitySE": 1.8735013540549517e-15,
+              "uniquenessSE": 1.8735013540549517e-15
+            },
+            "passed": true
+          },
+          "varimax": {
+            "mapping": [
+              2,
+              1,
+              3,
+              4,
+              0
+            ],
+            "signs": [
+              -1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            "errors": {
+              "pattern": 2.990182525197671e-9,
+              "structure": 2.990182525197671e-9,
+              "phi": 0,
+              "communalities": 1.7679746555643305e-12,
+              "reproduced": 1.7679746555643305e-12,
+              "patternSE": 4.939119032602163e-7,
+              "structureSE": 4.939119032602163e-7,
+              "phiSE": 0,
+              "communalitySE": 1.8735013540549517e-15,
+              "uniquenessSE": 1.8735013540549517e-15
+            },
+            "passed": true
+          }
+        },
+        "passed": true,
+        "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+      },
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      }
+    },
+    {
+      "backend": "browser",
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "beforeMs": 848481.5,
+      "afterMs": 424203.89999997616,
+      "observedRatio": 2.0001737372052633,
+      "traceBeforeMs": 131723.89999997616,
+      "traceAfterMs": 130912.09999990463,
+      "derivativeBeforeMs": 569019.0000001192,
+      "derivativeAfterMs": 155688.10000002384,
+      "peakRssBeforeBytes": 988364800,
+      "peakRssAfterBytes": 1376944128,
+      "gpuOwnedBufferBytes": 184971968,
+      "versionBefore": "156.0.8078.76",
+      "versionAfter": "156.0.8078.80",
+      "heartbeat": {
+        "count": 8516,
+        "maxGapMs": 178.29999995231628
+      },
+      "cancellation": {
+        "acknowledgedMs": 0.5,
+        "passed": true,
+        "dimensions": {
+          "rows": 6000,
+          "items": 500,
+          "factors": 5
+        },
+        "blockSize": 128,
+        "scope": "Worker termination call duration after an additional kernel dispatch using this fit's resident source. Does not measure GPU command retirement."
+      },
+      "comparison": {
+        "fixture": "large-holdout",
+        "dimensions": {
+          "rows": 6000,
+          "items": 500,
+          "factors": 5
+        },
+        "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+        "sameMembership": true,
+        "errors": {
+          "rawStatistic": 4.916364559903741e-8,
+          "trace": 1.1641532182693481e-10,
+          "traceSquared": 3.958120942115784e-9,
+          "scalingFactor": 8.43769498715119e-15,
+          "shift": 1.7462298274040222e-10,
+          "statistic": 2.546585164964199e-8,
+          "pValue": 1.439337538045038e-11
+        },
+        "rotations": {
+          "oblimin": {
+            "mapping": [
+              2,
+              3,
+              1,
+              4,
+              0
+            ],
+            "signs": [
+              1,
+              -1,
+              -1,
+              1,
+              -1
+            ],
+            "errors": {
+              "pattern": 2.5519952817631975e-10,
+              "structure": 1.9947589413593647e-10,
+              "phi": 3.1862407157134953e-10,
+              "communalities": 1.484756761982453e-12,
+              "reproduced": 1.484756761982453e-12,
+              "patternSE": 5.85299052922178e-8,
+              "structureSE": 1.7348068303071895e-8,
+              "phiSE": 2.9214232975458e-8,
+              "communalitySE": 2.624636619152909e-15,
+              "uniquenessSE": 2.624636619152909e-15
+            },
+            "scores": {
+              "maxAbsolute": 1.374723335167971e-9,
+              "maxStandardized": 1.4460244668335065e-9,
+              "sameCompleteMask": true,
+              "completeRows": 6000,
+              "passed": true
+            },
+            "passed": true
+          },
+          "promax": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 1.3014034294656085e-12,
+              "structure": 1.1500800312091997e-12,
+              "phi": 6.428191312579656e-14,
+              "communalities": 1.4848677842849156e-12,
+              "reproduced": 1.4848677842849156e-12,
+              "patternSE": 7.435718707426986e-14,
+              "structureSE": 7.297461246391634e-14,
+              "phiSE": 1.3616565394984279e-13,
+              "communalitySE": 2.624636619152909e-15,
+              "uniquenessSE": 2.624636619152909e-15
+            },
+            "passed": true
+          },
+          "varimax": {
+            "mapping": [
+              2,
+              1,
+              3,
+              4,
+              0
+            ],
+            "signs": [
+              1,
+              1,
+              -1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 4.345502152558467e-9,
+              "structure": 4.345502152558467e-9,
+              "phi": 0,
+              "communalities": 1.485589429250922e-12,
+              "reproduced": 1.485589429250922e-12,
+              "patternSE": 6.152996056708188e-7,
+              "structureSE": 6.152996056708188e-7,
+              "phiSE": 0,
+              "communalitySE": 2.624636619152909e-15,
+              "uniquenessSE": 2.624636619152909e-15
+            },
+            "passed": true
+          }
+        },
+        "passed": true,
+        "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+      },
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      }
+    },
+    {
+      "backend": "scala",
+      "fixture": "large",
+      "dimensions": {
+        "rows": 20000,
+        "items": 500,
+        "factors": 5
+      },
+      "beforeMs": 2081656.054167,
+      "afterMs": 1033060.8135,
+      "observedRatio": 2.01503728237873,
+      "traceBeforeMs": 1095971.972458,
+      "traceAfterMs": 492353.08041600004,
+      "derivativeBeforeMs": 648784.057,
+      "derivativeAfterMs": 243845.1568760001,
+      "peakRssBeforeBytes": 832585728,
+      "peakRssAfterBytes": 1401683968,
+      "versionBefore": "v26.8.1",
+      "versionAfter": "v26.8.1",
+      "comparison": {
+        "fixture": "large",
+        "dimensions": {
+          "rows": 20000,
+          "items": 500,
+          "factors": 5
+        },
+        "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+        "errors": {
+          "rawStatistic": 0,
+          "trace": 0,
+          "traceSquared": 2.671731635928154e-8,
+          "scalingFactor": 9.792167077193881e-14,
+          "shift": 3.943569026887417e-9,
+          "statistic": 1.4551915228366852e-11,
+          "pValue": 1.2101430968414206e-14
+        },
+        "rotations": {
+          "oblimin": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 0,
+              "structure": 0,
+              "phi": 0,
+              "communalities": 0,
+              "reproduced": 0,
+              "patternSE": 0,
+              "structureSE": 0,
+              "phiSE": 0,
+              "communalitySE": 0,
+              "uniquenessSE": 0
+            },
+            "scores": {
+              "maxAbsolute": 0,
+              "maxStandardized": 0,
+              "sameCompleteMask": true,
+              "completeRows": 20000,
+              "passed": true
+            },
+            "passed": true
+          },
+          "promax": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 0,
+              "structure": 0,
+              "phi": 0,
+              "communalities": 0,
+              "reproduced": 0,
+              "patternSE": 0,
+              "structureSE": 0,
+              "phiSE": 0,
+              "communalitySE": 0,
+              "uniquenessSE": 0
+            },
+            "passed": true
+          },
+          "varimax": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 0,
+              "structure": 0,
+              "phi": 0,
+              "communalities": 0,
+              "reproduced": 0,
+              "patternSE": 0,
+              "structureSE": 0,
+              "phiSE": 0,
+              "communalitySE": 0,
+              "uniquenessSE": 0
+            },
+            "passed": true
+          }
+        },
+        "passed": true,
+        "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+      },
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      }
+    },
+    {
+      "backend": "scala",
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "beforeMs": 882409.889166,
+      "afterMs": 431181.955042,
+      "observedRatio": 2.0464907653198225,
+      "traceBeforeMs": 80120.371791,
+      "traceAfterMs": 45337.30937500001,
+      "derivativeBeforeMs": 654574.1338749998,
+      "derivativeAfterMs": 249835.9051249999,
+      "peakRssBeforeBytes": 743571456,
+      "peakRssAfterBytes": 1123745792,
+      "versionBefore": "v26.8.1",
+      "versionAfter": "v26.8.1",
+      "comparison": {
+        "fixture": "large-holdout",
+        "dimensions": {
+          "rows": 6000,
+          "items": 500,
+          "factors": 5
+        },
+        "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+        "sameMembership": true,
+        "errors": {
+          "rawStatistic": 0,
+          "trace": 0,
+          "traceSquared": 3.4924596548080444e-10,
+          "scalingFactor": 8.881784197001252e-16,
+          "shift": 1.4551915228366852e-11,
+          "statistic": 0,
+          "pValue": 0
+        },
+        "rotations": {
+          "oblimin": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 0,
+              "structure": 0,
+              "phi": 0,
+              "communalities": 0,
+              "reproduced": 0,
+              "patternSE": 0,
+              "structureSE": 0,
+              "phiSE": 0,
+              "communalitySE": 0,
+              "uniquenessSE": 0
+            },
+            "scores": {
+              "maxAbsolute": 0,
+              "maxStandardized": 0,
+              "sameCompleteMask": true,
+              "completeRows": 6000,
+              "passed": true
+            },
+            "passed": true
+          },
+          "promax": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 0,
+              "structure": 0,
+              "phi": 0,
+              "communalities": 0,
+              "reproduced": 0,
+              "patternSE": 0,
+              "structureSE": 0,
+              "phiSE": 0,
+              "communalitySE": 0,
+              "uniquenessSE": 0
+            },
+            "passed": true
+          },
+          "varimax": {
+            "mapping": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "signs": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "errors": {
+              "pattern": 0,
+              "structure": 0,
+              "phi": 0,
+              "communalities": 0,
+              "reproduced": 0,
+              "patternSE": 0,
+              "structureSE": 0,
+              "phiSE": 0,
+              "communalitySE": 0,
+              "uniquenessSE": 0
+            },
+            "passed": true
+          }
+        },
+        "passed": true,
+        "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+      },
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      }
+    }
+  ],
+  "limits": [
+    "Single-machine retained before/after timings; Chrome changed between checkpoints. Not a controlled cross-device speed claim.",
+    "RSS is summed sampled process RSS, not total physical memory. Do not add it to GPU-owned buffer accounting.",
+    "WebGPU cancellation measures the worker termination call, not GPU command retirement.",
+    "Accelerated kernels remain qualification backends; the app now parallelizes rotation derivatives.",
+    "Original full JavaScript CPU baseline skipped by user. Public/synthetic inputs only."
+  ]
+}

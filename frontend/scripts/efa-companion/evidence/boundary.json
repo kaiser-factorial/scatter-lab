@@ -1,0 +1,141 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-04T05:42:50.653Z",
+  "checks": [
+    {
+      "label": "authenticated health",
+      "status": 200
+    },
+    {
+      "label": "wrong origin",
+      "status": 403
+    },
+    {
+      "label": "null origin",
+      "status": 403
+    },
+    {
+      "label": "wrong Host",
+      "status": 403
+    },
+    {
+      "label": "missing authentication",
+      "status": 401
+    },
+    {
+      "label": "wrong authentication",
+      "status": 401
+    },
+    {
+      "label": "allowed preflight",
+      "status": 204
+    },
+    {
+      "label": "unapproved preflight headers",
+      "status": 403
+    },
+    {
+      "label": "cancel before create",
+      "status": 200
+    },
+    {
+      "label": "late create rejected",
+      "status": 409
+    },
+    {
+      "label": "cancel during JVM startup",
+      "status": 200
+    },
+    {
+      "label": "native startup",
+      "status": 201
+    },
+    {
+      "label": "second live job rejected",
+      "status": 409
+    },
+    {
+      "label": "synthetic source accepted",
+      "status": 200
+    },
+    {
+      "label": "synthetic block accepted",
+      "status": 200
+    },
+    {
+      "label": "benchmark probe is inaccessible",
+      "status": 422
+    },
+    {
+      "label": "malformed job stopped",
+      "status": 404
+    },
+    {
+      "label": "new job after failure",
+      "status": 201
+    },
+    {
+      "label": "oversize block rejected",
+      "status": 413
+    },
+    {
+      "label": "wrong body type rejected",
+      "status": 413
+    },
+    {
+      "label": "nonfinite source rejected",
+      "status": 422
+    },
+    {
+      "label": "restart before cancellation",
+      "status": 201
+    },
+    {
+      "label": "owned JVM exit acknowledged",
+      "status": 200
+    },
+    {
+      "label": "startup for chunk checks",
+      "status": 201
+    },
+    {
+      "label": "bounded upload initialized",
+      "status": 200
+    },
+    {
+      "label": "first chunk accepted",
+      "status": 200
+    },
+    {
+      "label": "replayed offset rejected",
+      "status": 422
+    },
+    {
+      "label": "startup for partial upload",
+      "status": 201
+    },
+    {
+      "label": "partial upload allocated",
+      "status": 200
+    },
+    {
+      "label": "incomplete upload cannot become resident",
+      "status": 422
+    },
+    {
+      "label": "startup for aborted body",
+      "status": 201
+    },
+    {
+      "label": "abort upload allocated",
+      "status": 200
+    },
+    {
+      "label": "aborted body stopped owned job",
+      "status": 404
+    }
+  ],
+  "startupCancelMs": 2.7142909999999745,
+  "cancellationMs": 317.36962500000027,
+  "maxScaledError": 2.7138404359797215e-13
+}

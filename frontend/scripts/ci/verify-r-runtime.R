@@ -1,0 +1,5 @@
+args <- commandArgs(TRUE)
+expected <- c(lavaan='0.6.21',psych='2.5.6',GPArotation='2025.3.1',jsonlite='2.0.0',polycor='0.8.1',numDeriv='2016.8.1.1',MASS='7.3.65')
+actual <- sapply(names(expected),function(p)as.character(packageVersion(p)))
+stopifnot(as.character(getRversion())=='4.5.1',identical(unname(actual),unname(expected)))
+jsonlite::write_json(list(R=R.version.string,platform=R.version$platform,packages=as.list(actual),image=Sys.getenv('REFERENCE_IMAGE_ID'),scope='Pinned versions freshly executed on this CI architecture; package/source adapters are qualified separately.'),args[1],auto_unbox=TRUE,pretty=TRUE)

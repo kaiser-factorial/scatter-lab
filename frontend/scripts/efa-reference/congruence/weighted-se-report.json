@@ -1,0 +1,1010 @@
+{
+  "recordedAt": "2026-11-06T12:10:27.588Z",
+  "scope": "Pinned independent R lavaan and numDeriv rotated uncertainty references; exact source fixture bytes recorded.",
+  "fixtureHashes": {
+    "src/lib/__tests__/fixtures/efa-weighted/normal.input.json": "aeff080ab26900b020b4b3c60cf096f2040383bad6672ae0a07123ca37338b6f",
+    "src/lib/__tests__/fixtures/efa-weighted/normal.reference.json": "dffcb0218097fbef8e4d7e593e3e3a665df9ced962993cee0d9a98ac103486c8",
+    "src/lib/__tests__/fixtures/efa-weighted/heavy-tail.input.json": "23f6952411b44c232f78d4a22e7bdb5074d4579c8f51b01ea1ecfae7711242c6",
+    "src/lib/__tests__/fixtures/efa-weighted/heavy-tail.reference.json": "5c1d8a81f15f48ec7acf3c1a05e7f66442561e9568a8c75f6481bd79d12a95c4",
+    "src/lib/__tests__/fixtures/efa-weighted/skew.input.json": "0853dbbc6b99a3d1bc108e3c0f7796d04f5165213a45dc402a446439eb6ff0eb",
+    "src/lib/__tests__/fixtures/efa-weighted/skew.reference.json": "525f198ce1036fd6dae6cdd3c03c238d0fce0efbb24c973309ed5b687940a69d",
+    "src/lib/__tests__/fixtures/efa-weighted/pairwise.input.json": "4b1cc17d78801b405fac98631f884aec87da73f124d03bf808009c4297e509c6",
+    "src/lib/__tests__/fixtures/efa-weighted/pairwise.reference.json": "546d006b059ab79aabdacf36727a54864b492e7d6f82f0b405e93e8f86b1e2c5",
+    "src/lib/__tests__/fixtures/efa-weighted/complete.input.json": "e1c98cfa69c39951bd3c0075004e7fffeb7dc0d2cd946c699578774066281b11",
+    "src/lib/__tests__/fixtures/efa-weighted/complete.reference.json": "c5c090b41a39d52b6425d3064f9d6def51100d553836f11ea18bad65f727b10f"
+  },
+  "summary": {
+    "passed": 5,
+    "failed": 0
+  },
+  "results": [
+    {
+      "dataset": "normal",
+      "method": "weighted inference and rotated SE",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "weighted polychoric max abs",
+          "error": 8.02863331372805e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "weighted Gamma max abs",
+          "error": 1.3965939515969694e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "weighted case influences max abs",
+          "error": 1.6621815035477994e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan polychoric max abs",
+          "error": 0.000020155067128602155,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan Gamma max abs",
+          "error": 0.00005364228263515791,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV raw chi-square abs",
+          "error": 3.793836356180691e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 1.6430764304686818e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 5.300057281942827e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV scaling abs",
+          "error": 4.712916723548233e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV shift abs",
+          "error": 2.4308244306325832e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 4.003693732101965e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 2.268286780626738e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta pattern max abs",
+          "error": 1.479626681177848e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta loading SE max abs",
+          "error": 2.1568929923360125e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta structure SE max abs",
+          "error": 2.1812285393857378e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta Phi SE max abs",
+          "error": 2.9917775568044647e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta uniqueness SE max abs",
+          "error": 1.4024049067862254e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan loading SE max abs",
+          "error": 2.6782106815267936e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan Phi SE max abs",
+          "error": 3.094311413348594e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta pattern max abs",
+          "error": 3.540256264811248e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta loading SE max abs",
+          "error": 0.000012431017047884185,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta structure SE max abs",
+          "error": 0.000012431017047884185,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta uniqueness SE max abs",
+          "error": 1.4024049067862254e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan loading SE max abs",
+          "error": 0.00001995260064931864,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta pattern max abs",
+          "error": 1.569205888563019e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta loading SE max abs",
+          "error": 0.0000022978381000945958,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta structure SE max abs",
+          "error": 8.773953393756417e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta Phi SE max abs",
+          "error": 3.2805273775249333e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta uniqueness SE max abs",
+          "error": 1.4024049067862254e-8,
+          "limit": 0.0001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 445.002208
+    },
+    {
+      "dataset": "heavy-tail",
+      "method": "weighted inference and rotated SE",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "weighted polychoric max abs",
+          "error": 4.175326751010289e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "weighted Gamma max abs",
+          "error": 1.0688117058066382e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "weighted case influences max abs",
+          "error": 8.287148745012018e-12,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan polychoric max abs",
+          "error": 0.0000203199521243147,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan Gamma max abs",
+          "error": 0.00007466470422845539,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV raw chi-square abs",
+          "error": 1.3447731816995656e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 2.8667225038248034e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 2.4612973881232847e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV scaling abs",
+          "error": 2.259886056066307e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV shift abs",
+          "error": 9.014744506430361e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 5.518774948143346e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 4.606609205204393e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta pattern max abs",
+          "error": 1.7808545684644406e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta loading SE max abs",
+          "error": 9.260592953135027e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta structure SE max abs",
+          "error": 1.552072729227305e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta Phi SE max abs",
+          "error": 1.869684933611393e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta uniqueness SE max abs",
+          "error": 5.722805854202484e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan loading SE max abs",
+          "error": 9.431489551847694e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan Phi SE max abs",
+          "error": 1.1776291254650406e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta pattern max abs",
+          "error": 1.376822992560367e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta loading SE max abs",
+          "error": 0.00002505439178960428,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta structure SE max abs",
+          "error": 0.00002505439178960428,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta uniqueness SE max abs",
+          "error": 5.722805854202484e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan loading SE max abs",
+          "error": 0.00002491397431929332,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta pattern max abs",
+          "error": 1.6542500111405012e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta loading SE max abs",
+          "error": 0.000005080252421900411,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta structure SE max abs",
+          "error": 0.0000013953661140986284,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta Phi SE max abs",
+          "error": 9.255788564754841e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta uniqueness SE max abs",
+          "error": 5.722805854202484e-9,
+          "limit": 0.0001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 1045.93975
+    },
+    {
+      "dataset": "skew",
+      "method": "weighted inference and rotated SE",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "weighted polychoric max abs",
+          "error": 3.553823901825126e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "weighted Gamma max abs",
+          "error": 1.1860512572070547e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "weighted case influences max abs",
+          "error": 1.404121263703928e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan polychoric max abs",
+          "error": 0.000019433680167102452,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan Gamma max abs",
+          "error": 0.00007656080987272773,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV raw chi-square abs",
+          "error": 3.219078337224346e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 3.488691113773257e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 3.944994109161826e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV scaling abs",
+          "error": 3.6001651659844924e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV shift abs",
+          "error": 2.5581528007023735e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 1.5706909550772252e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 3.2551661366397866e-10,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta pattern max abs",
+          "error": 4.7879524789351535e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta loading SE max abs",
+          "error": 4.130353573397749e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta structure SE max abs",
+          "error": 1.6252200763650082e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta Phi SE max abs",
+          "error": 3.872219202089022e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta uniqueness SE max abs",
+          "error": 2.582162574038538e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan loading SE max abs",
+          "error": 4.920088061896588e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan Phi SE max abs",
+          "error": 5.239916370525233e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta pattern max abs",
+          "error": 0.0000011486264604454455,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta loading SE max abs",
+          "error": 0.00005677506788258693,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta structure SE max abs",
+          "error": 0.00005677506788258693,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta uniqueness SE max abs",
+          "error": 2.582162574038538e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan loading SE max abs",
+          "error": 0.00005417199276414042,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta pattern max abs",
+          "error": 1.7364404397528233e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta loading SE max abs",
+          "error": 0.000005962628837521966,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta structure SE max abs",
+          "error": 0.000002611957426561229,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta Phi SE max abs",
+          "error": 1.3373779236824923e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta uniqueness SE max abs",
+          "error": 2.582162574038538e-9,
+          "limit": 0.0001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 1196.2423750000003
+    },
+    {
+      "dataset": "pairwise",
+      "method": "weighted inference and rotated SE",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "weighted polychoric max abs",
+          "error": 2.2726265314076954e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "weighted Gamma max abs",
+          "error": 1.0435874386871546e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "weighted case influences max abs",
+          "error": 6.427303134159956e-12,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV raw chi-square abs",
+          "error": 1.1402434552110208e-10,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 3.1342762163433235e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 2.9075837293390805e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV scaling abs",
+          "error": 2.3938977466997358e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV shift abs",
+          "error": 2.253518260886267e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 5.640190536837508e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 4.723247237770067e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta pattern max abs",
+          "error": 1.639630551331095e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta loading SE max abs",
+          "error": 1.1340108318699804e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta structure SE max abs",
+          "error": 1.0049098898151643e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta Phi SE max abs",
+          "error": 2.4249949422128214e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta uniqueness SE max abs",
+          "error": 1.4146345414522976e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan loading SE max abs",
+          "error": 1.5960899269612527e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan Phi SE max abs",
+          "error": 1.8466188950877482e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta pattern max abs",
+          "error": 1.3427773049023983e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta loading SE max abs",
+          "error": 0.000019238099957422095,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta structure SE max abs",
+          "error": 0.000019238099957422095,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta uniqueness SE max abs",
+          "error": 1.4146345414522976e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan loading SE max abs",
+          "error": 0.00002480356617681756,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta pattern max abs",
+          "error": 1.714518664819309e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta loading SE max abs",
+          "error": 0.000001954627631091388,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta structure SE max abs",
+          "error": 0.0000016907753603648268,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta Phi SE max abs",
+          "error": 1.9105900021104683e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta uniqueness SE max abs",
+          "error": 1.4146345414522976e-8,
+          "limit": 0.0001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 514.8602089999999
+    },
+    {
+      "dataset": "complete",
+      "method": "weighted inference and rotated SE",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "weighted polychoric max abs",
+          "error": 5.899725152858082e-12,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "weighted Gamma max abs",
+          "error": 1.6724399642953358e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "weighted case influences max abs",
+          "error": 1.964428619771752e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan polychoric max abs",
+          "error": 0.00001939663812694503,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "raw-data lavaan Gamma max abs",
+          "error": 0.00007903755825156011,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV raw chi-square abs",
+          "error": 7.814193736521702e-11,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV df difference",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace abs",
+          "error": 1.7551889719413794e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV trace squared abs",
+          "error": 1.804513516390216e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV scaling abs",
+          "error": 1.6879759257015792e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV shift abs",
+          "error": 8.585384847492605e-9,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV chi-square abs",
+          "error": 2.7123785883986784e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "WLSMV p-value abs",
+          "error": 2.1028739860540213e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta pattern max abs",
+          "error": 1.571306838948905e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta loading SE max abs",
+          "error": 0.0000012003874475044474,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta structure SE max abs",
+          "error": 2.711992250076234e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta Phi SE max abs",
+          "error": 5.018265664194499e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin numerical-delta uniqueness SE max abs",
+          "error": 1.0816962110749007e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan loading SE max abs",
+          "error": 9.261642184010821e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "oblimin lavaan Phi SE max abs",
+          "error": 6.342921644031385e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta pattern max abs",
+          "error": 3.227988157883388e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta loading SE max abs",
+          "error": 0.00002005975753884698,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta structure SE max abs",
+          "error": 0.00002005975753884698,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax numerical-delta uniqueness SE max abs",
+          "error": 1.0816962110749007e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan loading SE max abs",
+          "error": 0.000011296733889297472,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "varimax lavaan Phi SE max abs",
+          "error": 0,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta pattern max abs",
+          "error": 1.4228831744789172e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta loading SE max abs",
+          "error": 0.000008097263720842351,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta structure SE max abs",
+          "error": 0.0000042698794661677475,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta Phi SE max abs",
+          "error": 3.6037795424909147e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "promax numerical-delta uniqueness SE max abs",
+          "error": 1.0816962110749007e-8,
+          "limit": 0.0001,
+          "passed": true
+        }
+      ],
+      "nativeMs": 303.56966699999975
+    }
+  ]
+}

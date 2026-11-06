@@ -1,0 +1,14 @@
+Loading file "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-cell/cell.saw"
+Stack trace:
+   (builtin) in z3
+   /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-cell/cell.saw:4:27-4:29 in (callback)
+   (builtin) in prove_print
+   /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-cell/cell.saw:4:15-4:56 in main
+   [internal:call-to-main] (at top level)
+prove: 1 unsolved subgoal(s)
+Invalid: [
+   _ = 253
+   _ = 18446744073709551615
+   _ = 0
+]
+
