@@ -1,4 +1,8 @@
 "use client";
+
+import { EfaBackendControls } from "./EfaBackendControls";
+import type { EfaService } from "@/lib/efa/service";
+import type { EfaComputeSettings } from "@/lib/efa/backends/types";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { DataTable } from "@/lib/table";
@@ -1119,11 +1123,13 @@ function Results({
 }
 
 export function EfaPanel({
+  service,
   table,
   state,
   actions,
   job,
 }: {
+  service: EfaService;
   table: DataTable;
   state: EfaState;
   actions: EfaActions;
@@ -1142,6 +1148,7 @@ export function EfaPanel({
   const [selected, setSelected] = useState<string[]>([]),
     [orders, setOrders] = useState<Record<string, string>>({}),
     [reverse, setReverse] = useState<Record<string, boolean>>({});
+  const [compute, setCompute] = useState<EfaComputeSettings>({ backend: "cpu" });
   const [factors, setFactors] = useState(2),
     [extraction, setExtraction] = useState<EfaEstimator>("minres"),
     [rotation, setRotation] = useState<Rotation>("oblimin"),
@@ -1187,6 +1194,7 @@ export function EfaPanel({
       selected.filter((c) => c !== predictorTarget);
   const busy = job?.status === "running";
   const setupKey = JSON.stringify({
+    compute,
     selected,
     orders,
     reverse,
@@ -1216,6 +1224,7 @@ export function EfaPanel({
       return { column, categories, reverse: reverse[column] ?? false };
     }),
     nFactors: factors,
+    compute: extraction === "wlsmv" ? compute : { backend: "cpu" },
     extraction,
     rotation,
     missing: missing === "mice" ? "pairwise" : missing,
@@ -1364,6 +1373,8 @@ export function EfaPanel({
             <option value="wlsmv">WLSMV · DWLS + robust inference</option>
           </select>
         </label>
+        {extraction === "wlsmv" && <EfaBackendControls value={compute} onChange={setCompute} service={service} disabled={!!busy} />}
+        {extraction === "wlsmv" && compute.backend !== "cpu" && missing === "mice" && <p role="alert" className="col-span-2 text-xs">Accelerated MICE is not connected yet. Select Browser CPU explicitly to run imputation.</p>}
         <label>
           Factors
           <input

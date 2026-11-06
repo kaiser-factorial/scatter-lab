@@ -17,7 +17,7 @@ export interface RobustTraceBlock {
   leftProjection: Float64Array[];
   rightProjection: Float64Array[];
   diagonal: boolean;
-  /** Experimental resident backends consume row ranges and never evaluate the
+  /** Resident accelerated backends consume row ranges and never evaluate the
    * lazy left/right matrices. Production CPU still uses the same matrix loop. */
   ordinal?: {
     source: OrdinalTraceSource;

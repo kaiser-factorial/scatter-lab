@@ -1,3 +1,4 @@
+import { isTraceEstimate, type TraceEstimate, type TraceEstimateTask, type TraceEstimator } from "./trace-estimation";
 import { CholeskyDecomposition } from "ml-matrix";
 import { projectCases, normalizeCaseProjections } from "./weighted-linalg";
 import { Matrix } from "./math";
@@ -13,6 +14,7 @@ export interface IdentifiedLoadings {
   index: number[][];
 }
 export interface WeightedTest {
+  traceEstimation?: TraceEstimate;
   rawStatistic: number;
   df: number;
   trace: number;
@@ -94,6 +96,9 @@ export function planWeightedInference(
     space?: "moments" | "cases";
     budgetBytes?: number;
     blockSize?: number;
+    correction?: "exact" | "estimated";
+    probes?: number;
+    probeSeed?: number;
   } = {},
 ): InferencePlan {
   const m = (p * (p - 1)) / 2,
@@ -128,13 +133,13 @@ export function planWeightedInference(
     // One typed copy of L plus the compact <=2k-entry pair Jacobian.
     caseBytes = 1.2 * (common + 8 * n * q + 8 * q * q + 24 * m * k + 4 * (m + 1));
   const space =
-      options.space ??
+      (options.correction === "estimated" ? "cases" : options.space) ??
       (m < n && momentBytes <= budgetBytes ? "moments" : "cases"),
     estimatedBytes = space === "moments" ? momentBytes : caseBytes;
   if (estimatedBytes > budgetBytes)
     throw new EfaError(
       "weighted-budget",
-      `Exact WLSMV uncertainty needs an estimated ${Math.ceil(estimatedBytes / 1024 ** 2)} MiB, above the ${Math.floor(budgetBytes / 1024 ** 2)} MiB worker budget. Reduce the item/factor set or run DWLS point fitting explicitly. No method was substituted.`,
+      `WLSMV uncertainty needs an estimated ${Math.ceil(estimatedBytes / 1024 ** 2)} MiB, above the ${Math.floor(budgetBytes / 1024 ** 2)} MiB worker budget. Reduce the item/factor set or run DWLS point fitting explicitly. No method was substituted.`,
     );
   return {
     space,
@@ -147,7 +152,7 @@ export function planWeightedInference(
     approximateMultiplyAdds:
       space === "moments"
         ? (n * m * m) / 2 + 2 * m * m * q + 2 * q * q * m
-        : (n * n * (m + q)) / 2 + n * q * q + 2 * q * q * q,
+        : (options.correction === "estimated" ? 2 * n * (m + q) * (options.probes ?? 128) : (n * n * (m + q)) / 2) + n * q * q + 2 * q * q * q,
   };
 }
 
@@ -207,7 +212,7 @@ export function* weightedInferenceSteps(
   objective: number,
   progress?: Progress,
   options: Parameters<typeof planWeightedInference>[4] = {},
-): Generator<RobustTraceBlock, { identified: IdentifiedLoadings; covariance: Matrix; test: WeightedTest; plan: InferencePlan }, Float64Array> {
+): Generator<RobustTraceBlock | TraceEstimateTask, { identified: IdentifiedLoadings; covariance: Matrix; test: WeightedTest; plan: InferencePlan }, Float64Array | TraceEstimate> {
   const p = loadings.length,
     k = loadings[0].length,
     n = data.nRows,
@@ -254,6 +259,7 @@ export function* weightedInferenceSteps(
       "The identified weighted information is too ill-conditioned for stable uncertainty.",
     );
   progress?.({ stage: "Information factorization", completed: 1, total: 1 });
+  let traceEstimation: TraceEstimate | undefined;
   let covariance: Matrix,
     trace = 0,
     traceSquared = 0;
@@ -304,7 +310,22 @@ export function* weightedInferenceSteps(
     covariance = covariance.mmul(inverseLower).div(n - 1);
     progress?.({ stage: "Covariance matrix products", completed: 2, total: 2 });
     const rootWeights = Float64Array.from(moments.weights, weight => Math.sqrt(weight / n));
+    // Each weighted influence column has unit squared norm by construction.
+    // Z'Z was already accumulated for covariance, so this trace needs no Gram entries.
+    let projectionNorm = 0, projectionCorrection = 0;
+    for (const value of meat.diag()) {
+      const term = value - projectionCorrection, next = projectionNorm + term;
+      projectionCorrection = next - projectionNorm - term; projectionNorm = next;
+    }
+    trace = m - projectionNorm;
     const source = { nRows: n, codes: data.codes, observed: data.observed, pairs: moments.pairs, rootWeights, projection: z };
+    if (options.correction === "estimated") {
+      const estimate = yield { kind: "estimate", source, probes: options.probes ?? 128, seed: options.probeSeed ?? 61001 };
+      if (!isTraceEstimate(estimate) || estimate.probes !== (options.probes ?? 128) || estimate.requestedProbes !== estimate.probes || estimate.seed !== (options.probeSeed ?? 61001) || !(estimate.traceSquared >= 0) || !Number.isFinite(estimate.traceSquared))
+        throw new EfaError("trace-estimate", "Incomplete or invalid MV trace estimate. No corrected result was published.");
+      traceEstimation = estimate;
+      traceSquared = estimate.traceSquared;
+    } else {
     const block = (start: number) =>
         Array.from(
           { length: Math.min(plan.blockSize, n - start) },
@@ -334,7 +355,7 @@ export function* weightedInferenceSteps(
           diagonal: next === start,
           ordinal: { source, leftStart: start, rightStart: next, leftRows: aLength, rightRows: bLength },
         };
-        if (values.length !== aLength * bLength)
+        if (!(values instanceof Float64Array) || values.length !== aLength * bLength)
           throw new EfaError("weighted-kernel", "The trace kernel returned an incorrect block shape.");
         for (let a = 0; a < aLength; a++)
           for (let b = 0; b < bLength; b++) {
@@ -342,7 +363,6 @@ export function* weightedInferenceSteps(
             const h = values[a * bLength + b];
             if (!Number.isFinite(h)) throw new EfaError("weighted-kernel", "The trace kernel returned a non-finite value.");
             const diagonal = start + a === next + b;
-            if (diagonal) trace += h;
             traceSquared += (diagonal ? 1 : 2) * h * h;
           }
         progress?.({
@@ -353,6 +373,7 @@ export function* weightedInferenceSteps(
       }
     }
   }
+  }
   if (covariance.diag().some((v) => !Number.isFinite(v) || v < 0))
     throw new EfaError(
       "weighted-covariance",
@@ -361,7 +382,7 @@ export function* weightedInferenceSteps(
   return {
     identified,
     covariance,
-    test: testResult(objective, n, m - q, trace, traceSquared),
+    test: { ...testResult(objective, n, m - q, trace, traceSquared), ...(traceEstimation ? { traceEstimation } : {}) },
     plan,
   };
 }
@@ -371,7 +392,10 @@ export function* weightedInferenceSteps(
 export function weightedInference(...args: Parameters<typeof weightedInferenceSteps>) {
   const steps = weightedInferenceSteps(...args);
   let state = steps.next();
-  while (!state.done) state = steps.next(cpuTraceBlock(state.value));
+  while (!state.done) {
+    if ("kind" in state.value) throw new EfaError("trace-async", "Estimated MV correction requires the asynchronous EFA service.");
+    state = steps.next(cpuTraceBlock(state.value));
+  }
   return state.value;
 }
 
@@ -380,7 +404,21 @@ export async function weightedInferenceWithKernel(kernel: TraceKernel, ...args: 
   const steps = weightedInferenceSteps(...args);
   try {
     let state = steps.next();
-    while (!state.done) state = steps.next(await kernel(state.value));
+    while (!state.done) {
+      if ("kind" in state.value) throw new EfaError("trace-async", "Use the matrix-product estimator for estimated MV correction.");
+      state = steps.next(await kernel(state.value));
+    }
     return state.value;
+  } finally { steps.return(undefined as never); }
+}
+
+export async function weightedInferenceWithEstimator(estimate: TraceEstimator, ...args: Parameters<typeof weightedInferenceSteps>) {
+  const steps = weightedInferenceSteps(...args);
+  try {
+    const state = steps.next();
+    if (state.done || !("kind" in state.value)) throw new EfaError("trace-settings", "Estimated MV correction was not requested.");
+    const result = steps.next(await estimate(state.value));
+    if (!result.done) throw new EfaError("trace-estimate", "MV estimator did not finish.");
+    return result.value;
   } finally { steps.return(undefined as never); }
 }

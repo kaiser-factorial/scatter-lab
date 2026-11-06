@@ -1,0 +1,99 @@
+{
+  "recordedAt": "2026-11-04T05:40:17.651Z",
+  "browser": "156.0.8078.80",
+  "results": [
+    {
+      "status": "passed",
+      "backend": "webgpu",
+      "dimensions": {
+        "items": 500,
+        "respondents": 20000,
+        "parameters": 2490,
+        "pairs": 124750
+      },
+      "blockRows": 128,
+      "sampledValues": 3,
+      "maxScaledError": 2.44742542682723e-14,
+      "elapsedMs": 9178.799999952316,
+      "execution": {
+        "backend": "webgpu",
+        "blockSize": 128,
+        "budgetBytes": 1610612736,
+        "state": "completed",
+        "precision": "explicit-rounding-dekker-split-f32/gpu-pair-reduction/host-f64",
+        "kernelVersion": "ordinal-trace/1",
+        "adapter": "apple / metal-3 /  / ",
+        "kernelSha256": "5dd10084b992369c92dec0c6828079a6a2ab8a89300436379786c5679ef8a790",
+        "timings": {
+          "startupMs": 87.09999990463257,
+          "packMs": 599.8000001907349,
+          "uploadSubmitMs": 405.9999998807907,
+          "dispatchReadbackMs": 941.1000002622604,
+          "readMapWaitMs": 897.700000166893,
+          "hostReductionMs": 22.99999988079071,
+          "gpuMs": 108.92083200000002,
+          "reductionGpuMs": 4.784128,
+          "panelExpansions": 0,
+          "panelCacheHits": 0,
+          "panelGpuMs": null,
+          "calls": 6,
+          "uploadedBytes": 432869672,
+          "readbackBytes": 793696,
+          "peakOwnedGpuBufferBytes": 465124968,
+          "sourceInitializations": 3
+        },
+        "selfCheck": {
+          "version": "ordinal-trace/1",
+          "passed": true,
+          "checks": 24958,
+          "tolerance": 1e-10,
+          "maxScaledError": 2.2963706476744324e-12,
+          "elapsedMs": 129.29999995231628
+        }
+      },
+      "scope": "Full resident-source upload and one block, with three Float64 sampled checks. Not a full EFA fit or a new end-to-end performance benchmark."
+    },
+    {
+      "status": "passed",
+      "backend": "scala",
+      "dimensions": {
+        "items": 500,
+        "respondents": 20000,
+        "parameters": 2490,
+        "pairs": 124750
+      },
+      "blockRows": 256,
+      "sampledValues": 3,
+      "maxScaledError": 2.558539196407575e-16,
+      "elapsedMs": 24167.699999928474,
+      "execution": {
+        "backend": "scala",
+        "blockSize": 256,
+        "budgetBytes": 1610612736,
+        "state": "completed",
+        "precision": "float64 / native BLAS",
+        "kernelVersion": "ordinal-trace/1",
+        "kernelSha256": "21136cac2832c38efd222afa1da3d4828427590785dca5d270f00543c5554ed9",
+        "runtime": "dev.ludovic.netlib.blas.JNIBLAS; Java 25.0.3+9-LTS; requested BLAS threads 4",
+        "timings": {
+          "packMs": 1281.0000001192093,
+          "roundTripMs": 19108.29999935627,
+          "nativeMs": 300.81925,
+          "materializeMs": 235.034042,
+          "blasMs": 65.758208,
+          "calls": 6,
+          "sentBytes": 432883364
+        },
+        "selfCheck": {
+          "version": "ordinal-trace/1",
+          "passed": true,
+          "checks": 98750,
+          "tolerance": 1e-10,
+          "maxScaledError": 5.101474798152594e-14,
+          "elapsedMs": 144.39999997615814
+        }
+      },
+      "scope": "Full resident-source upload and one block, with three Float64 sampled checks. Not a full EFA fit or a new end-to-end performance benchmark."
+    }
+  ]
+}

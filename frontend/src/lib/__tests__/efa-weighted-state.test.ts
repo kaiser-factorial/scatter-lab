@@ -205,3 +205,29 @@ it("retains separate within-imputation robust fits without claiming Rubin poolin
   expect(analysis.provenance.uncertainty).toContain("no Rubin-pooled");
   expect(analysis.provenance.method).toContain("WLSMV");
 });
+
+it("round-trips backend provenance and refuses incomplete self-checks or saved pairing credentials", () => {
+  const saved = structuredClone(workspace), r = saved.datasets[0].efa.runs[0];
+  r.spec.compute = { backend: "webgpu", blockSize: 256, memoryMiB: 1536 };
+  r.result.provenance.execution = { backend: "webgpu", state: "completed", precision: "portable split-f32 / host-f64", kernelVersion: "ordinal-trace/1", kernelSha256: "a".repeat(64), blockSize: 256, budgetBytes: 1536 * 1024 ** 2,
+    selfCheck: { version: "ordinal-trace/1", passed: true, checks: 5000, tolerance: 1e-10, maxScaledError: 1e-13, elapsedMs: 75 } };
+  r.result.weighted!.robust!.plan.blockSize = 256;
+  r.result.weighted!.robust!.plan.budgetBytes = 1536 * 1024 ** 2;
+  r.result.provenance.execution.reusedFromJobId = "11111111-2222-4333-8444-555555555555";
+  expect(() => validateWorkspace(JSON.parse(JSON.stringify(saved)))).not.toThrow();
+  for (const mutate of [
+    (r: EfaRun) => { r.result.provenance.execution!.selfCheck!.passed = false; },
+    (r: EfaRun) => { r.result.provenance.execution!.selfCheck!.tolerance = 1e-8; },
+    (r: EfaRun) => { r.result.provenance.execution!.selfCheck!.maxScaledError = NaN; },
+    (r: EfaRun) => { r.result.provenance.execution!.state = "failed"; },
+    (r: EfaRun) => { r.result.provenance.execution!.reusedFromJobId = "private item name"; },
+    (r: EfaRun) => { Object.assign(r.result.provenance.execution!, { token: "secret" }); },
+    (r: EfaRun) => { Object.assign(r.spec.compute!, { url: "http://127.0.0.1:8787" }); },
+    (r: EfaRun) => { delete r.result.provenance.execution; },
+    (r: EfaRun) => { r.result.weighted!.robust!.plan.blockSize = 257; },
+    (r: EfaRun) => { r.result.weighted!.robust!.plan.budgetBytes = 4097 * 1024 ** 2; },
+  ]) {
+    const damaged = structuredClone(saved); mutate(damaged.datasets[0].efa.runs[0]);
+    expect(() => validateWorkspace(damaged)).toThrow(/EFA/);
+  }
+});

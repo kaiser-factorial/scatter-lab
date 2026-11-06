@@ -47,6 +47,8 @@ export function runMetadata(run: InspectableRun) {
     parentReviewRevision: run.parentReviewRevision,
     type: isImputation(run) ? "mice" : "observed",
     extraction: run.spec.extraction ?? "minres",
+    backend: run.spec.compute?.backend ?? "cpu",
+    mvCorrection: run.spec.extraction === "wlsmv" ? run.spec.compute?.correction ?? "exact" : undefined,
     rotation: run.spec.rotation,
     missing: isImputation(run) ? "mice" : run.spec.missing,
     nItems: run.spec.items.length,
@@ -126,6 +128,7 @@ export function runOverview(run: InspectableRun, privateMode: boolean) {
               }
             : undefined,
           engine: fit.provenance.engine,
+          compute: fit.provenance.execution ? { backend: fit.provenance.execution.backend, precision: fit.provenance.execution.precision, selfCheck: fit.provenance.execution.selfCheck } : undefined,
         }
       : {}),
     readItemsWith: "get_efa_items (at most 20 items and 12 factors per page)",

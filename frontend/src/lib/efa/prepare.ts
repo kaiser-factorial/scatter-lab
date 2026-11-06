@@ -1,3 +1,4 @@
+import { computeSettings } from "./backends/types";
 import type { DataTable } from "../table";
 import {
   EfaError,
@@ -27,6 +28,7 @@ export function validateSpec(spec: EfaSpec) {
       "spec",
       "Supply a run label, items and an explicit sample partition.",
     );
+  computeSettings(spec);
   const p = spec.items.length,
     k = spec.nFactors;
   if (p < 3 || p > 500)

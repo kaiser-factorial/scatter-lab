@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "efa:companion:setup": "node scripts/efa-companion/setup.mjs",
+    "efa:companion": "node scripts/efa-companion/server.mjs"
   },
   "dependencies": {
     "@types/papaparse": "^5.5.2",

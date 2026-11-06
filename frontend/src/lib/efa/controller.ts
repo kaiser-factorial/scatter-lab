@@ -140,6 +140,7 @@ export class EfaController {
       );
   }
   private input(spec: EfaSpec, assistant = false) {
+    validateSpec(spec);
     const context = this.current(),
       rows = fittingRows(context.eligibleRows, spec, context.state.splits);
     const excluded = context.eligibleRows.length - rows.length;
@@ -791,6 +792,7 @@ export class EfaController {
           progress: privateMode
             ? { completed: job.progress.completed, total: job.progress.total }
             : job.progress,
+          compute: (() => { const e = this.service.report(job.id)?.execution; return e ? { backend: e.backend, state: e.state, selfCheck: e.selfCheck, failure: e.failure } : undefined; })(),
           ...(!privateMode && job.error ? { error: job.error } : {}),
         });
       }

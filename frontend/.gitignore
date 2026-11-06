@@ -1,3 +1,6 @@
 .vercel
 .env*
 !.env.local.example
+
+# Local Scala companion dependencies and compiled classes
+.efa-companion/

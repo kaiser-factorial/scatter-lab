@@ -1,3 +1,7 @@
+import { FitInvariantCache, type FitInvariant } from "./fit-cache";
+import { EFA_ENGINE } from "./types";
+import { computeSettings, type CompanionConnection, type CompanionSession } from "./backends/types";
+import { connectCompanion, createCompanionSession, closeCompanionSession, companionRequest } from "./backends/companion";
 import type { DataTable } from "../table";
 import { assembleCorrelations } from "./correlation";
 import { summarizeParallel, validateReplicates } from "./parallel";
@@ -75,9 +79,10 @@ class WorkerClient {
     this.worker = factory();
     trace.worker(true, index);
     this.worker.onmessage = (event) => {
-      const { id, progress, error, value, workerMs = 0, workerStages = {} } = event.data;
+      const { id, progress, execution, error, value, workerMs = 0, workerStages = {} } = event.data;
       const p = this.pending.get(id);
       if (!p) return;
+      if (execution) { trace.execution(execution); return; }
       if (progress) {
         p.progress(progress);
         return;
@@ -95,6 +100,7 @@ class WorkerClient {
       }
       if ((p.op === "fit" || p.op === "fit-finish") && !error && value?.extraction) trace.numerical(value);
       if (p.op === "rotation-batch" && !error) trace.received(value.values.byteLength);
+      if (p.op === "fit-cache" && !error) trace.received(value.inference.covariance.byteLength);
       if (error)
         p.reject(new EfaError(error.code, error.message, error.diagnostics));
       else p.resolve(value);
@@ -120,6 +126,7 @@ class WorkerClient {
         this.trace.sent(request.data.codes.byteLength + request.data.observed.byteLength);
       }
       if (request.op === "rotation-accept") this.trace.sent(request.batch.values.byteLength);
+      if (request.op === "fit" && request.invariant?.inference) this.trace.sent(request.invariant.inference.covariance.byteLength);
       const pending = {
         resolve: (v: unknown) => resolve(v as T), reject, progress,
         op: request.op, started, postMessageMs: 0,
@@ -152,9 +159,20 @@ class WorkerClient {
 /** UI and assistant use the same jobs. Publishing results is the caller's
  * transaction: a completed numerical job never mutates a dataset itself. */
 export class EfaService {
+  private companion?: CompanionConnection;
+  private companionCleanup: Promise<void> = Promise.resolve();
+  private cleanups = new WeakMap<WorkerClient[], () => Promise<void>>();
+  async connectScala(connection: CompanionConnection) {
+    this.companion = await connectCompanion(connection);
+    this.emit();
+  }
+  scalaConnected() { return !!this.companion; }
+  disconnectScala() { this.cancelAll(); this.companion = undefined; this.emit(); }
   private jobs = new Map<string, EfaJob>();
   private listeners = new Set<() => void>();
   private cache = new WeakMap<DataTable, CacheEntry[]>();
+  private invariantCache = new FitInvariantCache();
+  private completedCaches = new WeakMap<WorkerClient[], () => void>();
   private revisionIds = new WeakMap<DataTable, string>();
   private traces = new WeakMap<WorkerClient[], ComputeTrace>();
   constructor(
@@ -241,7 +259,10 @@ export class EfaService {
       cancel: () => {
         if (job.status !== "running") return;
         job.status = "cancelled";
+        trace.cancellation("requested");
+        void this.cleanups.get(workers)?.();
         workers.forEach((w) => w.terminate());
+        if (!this.cleanups.has(workers)) trace.cancellation("workers-terminated");
         trace.finish("cancelled");
         this.emit();
       },
@@ -269,6 +290,8 @@ export class EfaService {
       .then((result) => {
         if (job.status !== "running")
           throw new EfaError("cancelled", "Analysis cancelled.");
+        this.completedCaches.get(workers)?.();
+        this.completedCaches.delete(workers);
         job.result = result;
         job.status = "completed";
         trace.finish("completed");
@@ -283,8 +306,10 @@ export class EfaService {
         }
         throw error;
       })
-      .finally(() => {
+      .finally(async () => {
+        await this.cleanups.get(workers)?.();
         workers.forEach((w) => w.terminate());
+        this.completedCaches.delete(workers);
         this.emit();
       });
     // Job-id callers may poll later; avoid an unhandled rejection in the meantime.
@@ -353,6 +378,7 @@ export class EfaService {
     const snapshot = structuredClone(spec),
       membership = rows.slice(),
       settings = structuredClone(options);
+    if (computeSettings(snapshot).backend !== "cpu") throw new EfaError("backend-batch", "Accelerated MICE is not connected yet. Select Browser CPU explicitly for imputation.");
     validateMiceOptions(settings, snapshot.items.length);
     if (snapshot.missing !== "pairwise")
       throw new EfaError(
@@ -430,6 +456,7 @@ export class EfaService {
       reference = structuredClone({ rotation: run.result.rotation }),
       settings = structuredClone(options),
       fingerprint = run.result.provenance.inputSha256;
+    if (computeSettings(spec).backend !== "cpu") throw new EfaError("backend-batch", "Accelerated resampling is not connected yet. Refit with Browser CPU before resampling.");
     validateStability(settings);
     return this.launch(async (workers, progress, live) => {
       const first = this.client(workers),
@@ -523,6 +550,7 @@ export class EfaService {
                       ),
                   0,
                 ),
+                computeSettings(snapshot),
               ),
             }
           : {}),
@@ -536,6 +564,9 @@ export class EfaService {
     reuse?: EfaRun,
     minimumPairN = 0,
   ): EfaJob<EfaResult> {
+    const settings = computeSettings(spec);
+    const connection = this.companion;
+    if (settings.backend === "scala" && !connection) throw new EfaError("companion-unavailable", "Connect the local Scala companion before fitting.");
     const snapshot = structuredClone(spec),
       membership = rows.slice();
     const key = JSON.stringify({
@@ -711,9 +742,37 @@ export class EfaService {
       if (snapshot.extraction !== "wlsmv") return first.request<EfaResult>(
         { op: "fit", correlation, spec: snapshot, extraction }, progress,
       );
+      const invariantKey = JSON.stringify({ revision: this.revision(table), key, fingerprint: data.fingerprint,
+        factors: snapshot.nFactors, estimator: snapshot.extraction, settings, engine: EFA_ENGINE });
+      let invariant = this.invariantCache.get(invariantKey);
+      if (invariant && extraction && JSON.stringify(invariant.extraction) !== JSON.stringify(extraction)) invariant = undefined;
+      trace.event("cache", invariant ? "WLSMV inference hit: reusing extraction, ordinal uncertainty, canonical covariance and robust test; recomputing rotation and its standard errors" : "WLSMV inference miss");
+      if (invariant) progress({ stage: "Reused rotation-independent WLSMV inference", completed: 1, total: 1 });
+      let companion: CompanionSession | undefined;
+      if (!invariant && settings.backend === "scala" && connection) {
+        progress({ stage: "Starting local Scala companion", completed: 0, total: 1 });
+        await this.companionCleanup;
+        if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+        companion = { ...connection, id: crypto.randomUUID() };
+        const session = companion;
+        let closing: Promise<void> | undefined;
+        const heartbeat = setInterval(() => {
+          void companionRequest(session, `/v1/jobs/${session.id}/heartbeat`, "POST").catch(() => {});
+        }, 15000);
+        this.cleanups.set(workers, () => closing ??= this.companionCleanup = (async () => {
+          clearInterval(heartbeat);
+          try { await closeCompanionSession(session); trace.cancellation("native-exited"); }
+          catch { trace.cancellation("native-unconfirmed"); }
+          this.emit();
+        })());
+        await createCompanionSession(connection, session.id);
+        if (!live()) { await this.cleanups.get(workers)!(); throw new EfaError("cancelled", "Analysis cancelled."); }
+      }
       const { rotationContext: context } = await first.request<{ rotationContext: RotationDerivativeContext }>(
-        { op: "fit", correlation, spec: snapshot, extraction, parallelDerivatives: true }, progress,
+        { op: "fit", correlation, spec: snapshot, extraction, invariant, parallelDerivatives: true, companion }, progress,
       );
+      // The resident native source is no longer needed during rotation derivatives.
+      if (companion) await this.cleanups.get(workers)!();
       if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
       const q = context.identified.free.length, clients = [first];
       for (let slot = 1; slot < Math.min(this.concurrency, Math.ceil(q / 8)); slot++) {
@@ -737,7 +796,19 @@ export class EfaService {
       }));
       if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
       clients.filter(client => client !== first).forEach(client => client.terminate());
-      return first.request<EfaResult>({ op: "fit-finish" }, progress);
+      const result = await first.request<EfaResult>({ op: "fit-finish" }, progress);
+      if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+      if (!invariant && !this.invariantCache.acceptsCovariance(q)) trace.event("cache", "WLSMV covariance exceeds cache budget; skipped transfer");
+      if (!invariant && this.invariantCache.acceptsCovariance(q)) {
+        const saved = await first.request<FitInvariant>({ op: "fit-cache" });
+        if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
+        saved.sourceJobId = trace.snapshot().jobId;
+        this.completedCaches.set(workers, () => {
+          const stored = this.invariantCache.put(invariantKey, saved);
+          trace.event("cache", stored ? "Completed WLSMV invariant state cached (128 MiB / two-entry limit)" : "WLSMV invariant state exceeds cache budget; not retained");
+        });
+      }
+      return result;
     });
   }
   scores(table: DataTable, run: EfaRun): EfaJob<(number | null)[][]> {

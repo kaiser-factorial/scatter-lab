@@ -22,6 +22,14 @@ const spec = {
       },
     },
     extraction: { type: "string", enum: ["minres", "dwls", "wlsmv"] },
+    compute: { type: "object", properties: {
+      backend: { type: "string", enum: ["cpu", "webgpu", "scala"] },
+      blockSize: { type: "integer", enum: [32, 64, 128, 256] },
+      memoryMiB: { type: "integer", minimum: 256, maximum: 4096 },
+      correction: { type: "string", enum: ["exact", "estimated"] },
+      probes: { type: "integer", minimum: 16, maximum: 4096 },
+      probeSeed: { type: "integer", minimum: 0, maximum: 4294967295 },
+    }, required: ["backend"], additionalProperties: false },
     nFactors: { type: "integer", minimum: 1 },
     rotation: { type: "string", enum: ["oblimin", "promax", "varimax"] },
     missing: { type: "string", enum: ["pairwise", "complete"] },
@@ -139,7 +147,7 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
 
   tool(
     "run_efa",
-    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES by default, or DWLS/WLSMV; oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel; this tool currently runs observed-data fits. WLSMV adds exact robust inference and rotated standard errors; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
+    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES by default, or DWLS/WLSMV; oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel; this tool currently runs observed-data fits. Select compute.backend explicitly for WLSMV trace acceleration: webgpu or scala; cpu is the default. Scala requires an already paired local companion; tools cannot pair it or provide endpoints or tokens. Accelerated fits must pass a synthetic numerical self-check. WLSMV applies MV correction and rotated standard errors. compute.correction defaults to exact; estimated requires WebGPU and uses fixed-budget random probes (compute.probes 16–4096, default 128; compute.probeSeed default 61001). Report its approximation label and Monte Carlo uncertainty with the corrected test. Both modes apply MV correction; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
     {
       spec,
       parentId: { type: "string" },

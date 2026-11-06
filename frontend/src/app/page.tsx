@@ -4946,7 +4946,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
 
               <SidebarSection title="PCA / EFA" step={3} hasBorder theme={theme} guide="pca" order={3}>
                 <div className="flex gap-2 mb-3">{(['pca', 'efa'] as const).map(mode => <button key={mode} className="border border-[var(--border)] px-3 py-1 text-xs font-bold" aria-pressed={decomposition === mode} onClick={() => setDecomposition(mode)}>{mode.toUpperCase()}</button>)}</div>
-                {processedData && decomposition === 'efa' && <EfaPanel key={activeId} table={processedData} state={activeDataset?.efa ?? emptyEfaState()} actions={efaController} job={efaJob} />}
+                {processedData && decomposition === 'efa' && <EfaPanel service={efaService} key={activeId} table={processedData} state={activeDataset?.efa ?? emptyEfaState()} actions={efaController} job={efaJob} />}
                 {processedData && decomposition === 'pca' && (
                   <PCASection
                     table={processedData}

@@ -1,3 +1,4 @@
+import { EfaTraceEstimate } from "./EfaTraceEstimate";
 import type { EfaResult } from "@/lib/efa/types";
 
 export function EfaWeightedSummary({ result }: { result: EfaResult }) {
@@ -11,6 +12,7 @@ export function EfaWeightedSummary({ result }: { result: EfaResult }) {
       </summary>
       {robust ? (
         <>
+          {robust.test.traceEstimation && <EfaTraceEstimate estimate={robust.test.traceEstimation} />}
           <p className="mt-1">
             {robust.test.df > 0
               ? `Scaled/shifted χ²(${robust.test.df}) = ${robust.test.statistic!.toFixed(3)}; p ${robust.test.pValue! < 0.001 ? "< .001" : `= ${robust.test.pValue!.toFixed(3)}`}.`
@@ -32,9 +34,7 @@ export function EfaWeightedSummary({ result }: { result: EfaResult }) {
             </p>
             <p>
               Trace {robust.test.trace.toPrecision(7)}; squared trace product{" "}
-              {robust.test.traceSquared.toPrecision(7)}. Exact{" "}
-              {robust.plan.space === "cases" ? "case-block" : "moment-space"}{" "}
-              calculation.
+              {robust.test.traceSquared.toPrecision(7)}. {robust.test.traceEstimation ? "Estimated matrix-product correction" : `Exact ${robust.plan.space === "cases" ? "case-block" : "moment-space"} calculation`}.
             </p>
             <p>{robust.standardErrors.method}</p>
           </details>

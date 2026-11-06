@@ -1,29 +1,5 @@
-import type { OrdinalTraceSource, RobustTraceBlock } from "../../../src/lib/efa/trace-kernel";
-export function encodeOrdinalSource(source: OrdinalTraceSource) {
-  const cells = source.codes.length, pairs = source.pairs.length, parameters = source.projection[0].length;
-  const lookups = source.pairs.reduce((sum, pair) => sum + pair.values.length, 0);
-  const size = 24 + cells * 2 + pairs * 16 + lookups * 8 + source.nRows * parameters * 8;
-  if (size > 512 * 1024 ** 2) throw new Error("Resident source exceeds the explicit 512 MiB transfer budget");
-  const buffer = new ArrayBuffer(size), view = new DataView(buffer);
-  [0x45464132, source.nRows, cells, pairs, parameters, lookups].forEach((v, i) => view.setUint32(i * 4, v, true));
-  let at = 24;
-  for (let i = 0; i < cells; i++, at += 2) view.setUint16(at, source.observed[i] ? source.codes[i] : 65535, true);
-  let lookup = 0;
-  for (const pair of source.pairs) {
-    for (const v of [pair.i * source.nRows, pair.j * source.nRows, pair.columns, lookup]) { view.setUint32(at, v, true); at += 4; }
-    lookup += pair.values.length;
-  }
-  for (let i = 0; i < pairs; i++) for (const value of source.pairs[i].values) { view.setFloat64(at, value * source.rootWeights[i], true); at += 8; }
-  for (const row of source.projection) for (const value of row) { view.setFloat64(at, value, true); at += 8; }
-  return buffer;
-}
-export function encodeOrdinalRange(block: RobustTraceBlock) {
-  if (!block.ordinal) throw new Error("Resident kernel requires an ordinal source");
-  const { leftStart, rightStart, leftRows, rightRows } = block.ordinal;
-  const bytes = new ArrayBuffer(20), view = new DataView(bytes);
-  [0x45464133, leftStart, rightStart, leftRows, rightRows].forEach((v, i) => view.setUint32(i * 4, v, true));
-  return bytes;
-}
+import type { RobustTraceBlock } from "../../../src/lib/efa/trace-kernel";
+export { encodeOrdinalSource, encodeOrdinalRange } from "../../../src/lib/efa/backends/native-protocol";
 export function encodeBlock(block: RobustTraceBlock) {
   const rows = block.left.length, cols = block.right.length, pairs = block.left[0].length, parameters = block.leftProjection[0].length;
   const buffer = new ArrayBuffer(24 + 8 * (rows + cols) * (pairs + parameters));

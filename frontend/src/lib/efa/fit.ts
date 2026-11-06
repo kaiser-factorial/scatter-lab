@@ -1,3 +1,5 @@
+import type { FitInvariant } from "./fit-cache";
+import { computeSettings } from "./backends/types";
 import { Matrix, solve } from "./math";
 import { checkCorrelation, extractMinres } from "./extraction";
 import { rotate } from "./rotation";
@@ -16,19 +18,30 @@ import type {
 } from "./types";
 
 export interface FitRotationTask {
+  kind: "rotation";
   context: RotationDerivativeContext;
   covariance: Matrix;
 }
 
-/** Pause only after the robust covariance is complete. The owning worker
- * keeps the covariance and continuation while peers compute small batches. */
+export interface FitInferenceTask {
+  kind: "inference";
+  args: Parameters<typeof weightedInference>;
+}
+export type FitTask = FitRotationTask | FitInferenceTask;
+export type FitContinuation = RotatedUncertainty | ReturnType<typeof weightedInference>;
+
+/** Pause at the asynchronous trace stage, then at parallel rotation derivatives.
+ * The owning worker retains the fit and covariance across both boundaries. */
 export function* fitEfaSteps(
   data: EfaPreparedData,
   correlation: EfaCorrelations,
   spec: EfaSpec,
   progress?: Progress,
   extraction?: EfaExtraction,
-): Generator<FitRotationTask, EfaResult, RotatedUncertainty> {
+  invariant?: FitInvariant,
+  capture?: (base: FitInvariant) => void,
+): Generator<FitTask, EfaResult, FitContinuation> {
+  const settings = computeSettings(spec);
   const { conditionNumber } = checkCorrelation(correlation.matrix);
   const estimator = spec.extraction ?? "minres",
     pointEstimator = estimator === "minres" ? "minres" : "dwls";
@@ -51,13 +64,14 @@ export function* fitEfaSteps(
             data.items[pair.j].categories.length,
         0,
       ),
+      settings,
     );
   const moments =
-    estimator === "minres"
+    estimator === "minres" || invariant
       ? undefined
       : weightedMoments(data, correlation, progress);
   const unrotated =
-    extraction ??
+    invariant?.extraction ?? extraction ??
     (moments
       ? extractDwls(correlation.matrix, moments, spec.nFactors, progress)
       : extractMinres(correlation.matrix, spec.nFactors, progress));
@@ -89,32 +103,32 @@ export function* fitEfaSteps(
     );
   const weights = solve(new Matrix(correlation.matrix), s).to2DArray();
   let weighted: EfaResult["weighted"];
-  if (moments) {
-    weighted = {
+  if (moments || invariant) {
+    weighted = invariant ? { ...invariant.weighted } : {
       estimator: estimator as "dwls" | "wlsmv",
-      samplingVariances: moments.pairs.map((pair) => pair.variance),
-      fittingWeights: Array.from(moments.weights),
-      uncertaintyMethod: moments.method,
+      samplingVariances: moments!.pairs.map((pair) => pair.variance),
+      fittingWeights: Array.from(moments!.weights),
+      uncertaintyMethod: moments!.method,
       rawStatistic: (data.nRows - 1) * unrotated.convergence.objective,
       df:
         (p * (p - 1)) / 2 -
         (p * spec.nFactors - (spec.nFactors * (spec.nFactors - 1)) / 2),
     };
+    capture?.({ extraction: unrotated, weighted: { ...weighted } });
     if (estimator === "wlsmv") {
-      const inference = weightedInference(
-        data,
-        moments,
-        unrotated.loadings,
-        unrotated.convergence.objective,
-        progress,
-      );
+      const saved = invariant?.inference;
+      const inference = saved ? { ...saved, covariance: Matrix.from1DArray(saved.identified.free.length, saved.identified.free.length, saved.covariance) } : (yield {
+        kind: "inference",
+        args: [data, moments!, unrotated.loadings, unrotated.convergence.objective, progress, settings],
+      }) as ReturnType<typeof weightedInference>;
       weighted.robust = {
         test: inference.test,
         plan: inference.plan,
-        standardErrors: yield {
+        standardErrors: (yield {
+          kind: "rotation",
           context: rotationDerivativeContext(inference.identified, rotation, spec.rotation, spec.seed),
           covariance: inference.covariance,
-        },
+        }) as RotatedUncertainty,
       };
     }
   }
@@ -187,17 +201,19 @@ export function fitEfa(
   progress?: Progress, extraction?: EfaExtraction,
 ): EfaResult {
   const steps = fitEfaSteps(data, correlation, spec, progress, extraction);
-  const step = steps.next();
-  if (step.done) return step.value;
-  const { context, covariance } = step.value;
-  const uncertainty = rotatedUncertainty(
-    context.identified, covariance,
-    { pattern: context.referencePattern },
-    context.method, context.seed, progress,
-  );
-  const done = steps.next(uncertainty);
-  if (!done.done) throw new EfaError("worker", "Unexpected additional fit continuation.");
-  return done.value;
+  if (computeSettings(spec).backend !== "cpu")
+    throw new EfaError("backend-async", "Accelerated fits require the asynchronous EFA service.");
+  let step = steps.next();
+  while (!step.done) {
+    const task = step.value;
+    if (task.kind === "inference") step = steps.next(weightedInference(...task.args));
+    else {
+      const { context, covariance } = task;
+      step = steps.next(rotatedUncertainty(context.identified, covariance,
+        { pattern: context.referencePattern }, context.method, context.seed, progress));
+    }
+  }
+  return step.value;
 }
 
 export function scoreEfa(

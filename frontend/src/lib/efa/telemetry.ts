@@ -1,3 +1,4 @@
+import type { EfaExecution } from "./backends/types";
 import type { EfaProgress, EfaResult, EfaSpec } from "./types";
 
 /** Operational records only. Never pass source cells, column names, category
@@ -51,8 +52,11 @@ export interface ComputeReport {
   elapsedMs: number;
   status: "running" | "completed" | "failed" | "cancelled";
   publication: "not-requested" | "pending" | "accepted" | "discarded";
-  backend: "browser-cpu";
-  precision: "float64";
+  backend: "browser-cpu" | "webgpu" | "scala";
+  precision: string;
+  execution?: EfaExecution;
+  traceEstimation?: EfaProgress["traceEstimation"];
+  cancellation?: "requested" | "native-exited" | "native-unconfirmed" | "workers-terminated";
   context: {
     operation?: string;
     items?: number;
@@ -60,6 +64,9 @@ export interface ComputeReport {
     fittingRows?: number;
     factors?: number;
     extraction?: string;
+    correction?: string;
+    probes?: number;
+    probeSeed?: number;
     rotation?: string;
     missing?: string;
     partition?: string;
@@ -121,12 +128,23 @@ export class ComputeTrace {
   spec(spec: EfaSpec, rows: number, operation?: string) {
     const known = (value: string, choices: string[]) => choices.includes(value) ? value : "invalid";
     Object.assign(this.report.context, {
+      ...(spec.extraction === "wlsmv" ? { correction: known(spec.compute?.correction ?? "exact", ["exact", "estimated"]) } : {}),
+      ...(spec.compute?.correction === "estimated" ? { probes: spec.compute.probes ?? 128, probeSeed: spec.compute.probeSeed ?? 61001 } : {}),
       operation, items: spec.items.length, eligibleRows: rows, factors: spec.nFactors,
       extraction: known(spec.extraction ?? "minres", ["minres", "dwls", "wlsmv"]),
       rotation: known(spec.rotation, ["oblimin", "promax", "varimax"]),
       missing: known(spec.missing, ["pairwise", "complete"]),
       partition: known(spec.sample.partition, ["all", "development", "holdout"]),
     });
+  }
+  execution(value: EfaExecution) {
+    this.report.execution = structuredClone(value);
+    this.report.backend = value.backend === "cpu" ? "browser-cpu" : value.backend;
+    this.report.precision = value.precision;
+  }
+  cancellation(value: NonNullable<ComputeReport["cancellation"]>) {
+    this.report.cancellation = value;
+    this.event("job", `Cancellation: ${value}`);
   }
   prepared(rows: number, items: number, fingerprint?: string) {
     Object.assign(this.report.context, { fittingRows: rows, items, inputSha256: fingerprint });
@@ -151,8 +169,10 @@ export class ComputeTrace {
   }
   progress(progress: EfaProgress) {
     if (this.ended !== undefined) return;
+    if (progress.traceEstimation) this.report.traceEstimation = structuredClone(progress.traceEstimation);
+    const plain = { stage: progress.stage, completed: progress.completed, total: progress.total };
     const stage = computeStageName(progress.stage);
-    progress = { ...progress, stage };
+    progress = { ...plain, stage };
     const now = this.clock();
     if (this.currentStage?.stage !== progress.stage) {
       this.closeStage(now);
@@ -170,6 +190,7 @@ export class ComputeTrace {
     this.currentStage = undefined;
   }
   numerical(result: EfaResult) {
+    if (result.weighted?.robust?.test.traceEstimation) this.report.traceEstimation = structuredClone(result.weighted.robust.test.traceEstimation);
     const convergence = (value: EfaResult["extraction"]["convergence"]) => ({
       converged: value.converged, iterations: value.iterations,
       objective: value.objective, gradient: value.gradient,

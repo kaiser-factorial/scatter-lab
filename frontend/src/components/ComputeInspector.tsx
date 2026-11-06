@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+import { EfaTraceEstimate } from "./EfaTraceEstimate";
 import { useEffect, useRef, useState } from "react";
 import type { EfaService } from "@/lib/efa/service";
 import type { ComputeReport } from "@/lib/efa/telemetry";
@@ -15,7 +17,7 @@ function download(report: ComputeReport) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Native dialog supplies focus containment, Escape, and an inert background.
+/** Nonmodal side panel permits dashboard interaction while computation runs.
  * Reports are cloned only while open; closed chrome uses cheap job metadata. */
 export function ComputeInspector({ service, compact = false }: { service: EfaService; compact?: boolean }) {
   const [, refresh] = useState(0);
@@ -23,9 +25,10 @@ export function ComputeInspector({ service, compact = false }: { service: EfaSer
   const [selected, setSelected] = useState("");
   const [view, setView] = useState<"Timeline" | "Diagnostics" | "Logs">("Timeline");
   const dialog = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
   useEffect(() => service.subscribe(() => refresh((n) => n + 1)), [service]);
   useEffect(() => {
-    if (open) dialog.current?.showModal();
+    if (open) dialog.current?.show();
     else dialog.current?.close();
   }, [open]);
   useEffect(() => {
@@ -37,24 +40,18 @@ export function ComputeInspector({ service, compact = false }: { service: EfaSer
   const active = jobs.some((j) => j.status === "running");
   const job = jobs.find((j) => j.id === selected) ?? jobs[0];
   const report = open && job ? service.report(job.id) : undefined;
-  const close = () => setOpen(false);
+  const close = () => { setOpen(false); opener.current?.focus(); };
   return <>
-    <button className={`${button} ${compact ? "px-1" : "w-full text-left"}`} aria-label="Open computation inspector" aria-haspopup="dialog" onClick={() => setOpen(true)} title="Inspect background computations">
-      {compact ? "CPU" : "Compute"}{active ? " ●" : ""}
+    <button ref={opener} className={`${button} ${compact ? "px-1" : "w-full text-left"}`} aria-label="Open computation inspector" aria-haspopup="dialog" onClick={() => setOpen(true)} title="Inspect background computations">
+      {"Compute"}{active ? " ●" : ""}
       {!compact && <span className="float-right opacity-70">{active ? "Running" : jobs.length ? `${jobs.length} recent` : "Inspector"}</span>}
     </button>
-    <dialog ref={dialog} onCancel={close} onClose={close} aria-labelledby="compute-title"
-      onKeyDown={(event) => {
-        if (event.key !== "Tab") return;
-        const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("button:not(:disabled), select, summary, [tabindex='0']")).filter((element) => element.getClientRects().length > 0);
-        const first = controls[0], last = controls.at(-1);
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-      }}
-      className="compute-inspector fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-[760px] border-l-2 bg-[var(--card)] text-[var(--foreground)] p-0 backdrop:bg-black/40">
+    {open && createPortal(<dialog ref={dialog} aria-modal="false" onCancel={close} onClose={() => setOpen(false)} aria-labelledby="compute-title"
+      onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); close(); } }}
+      className="compute-inspector fixed z-[90] inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-[760px] border-l-2 bg-[var(--card)] text-[var(--foreground)] p-0 shadow-xl">
       <div className="flex h-full flex-col">
         <header className="compute-inspector-header flex items-center justify-between gap-3 border-b p-4">
-          <div><h2 id="compute-title" className="text-lg font-bold">Computation inspector</h2><p className="text-xs opacity-80">EFA jobs in this session</p></div>
+          <div><h2 id="compute-title" className="text-lg font-bold">Computation inspector</h2><p className="text-xs opacity-80">Background jobs · dashboard remains interactive</p></div>
           <button className={button} onClick={close} aria-label="Close computation inspector">Close</button>
         </header>
         <div className="flex-1 overflow-y-auto p-4 space-y-5 text-sm">
@@ -70,6 +67,17 @@ export function ComputeInspector({ service, compact = false }: { service: EfaSer
               <button className={`${button} ml-auto`} onClick={() => download(report)}>Export diagnostics</button>
               {job.status === "running" && <button className={button} onClick={job.cancel}>Cancel job</button>}
             </div>
+            {report.execution && <div className="text-xs space-y-1 border p-2">
+              <p>WLSMV trace kernel: {report.execution.state} · {report.execution.blockSize} block rows · {bytes(report.execution.budgetBytes)} inference budget</p>
+              {report.execution.reusedFromJobId && <p>Reused rotation-independent inference from job {report.execution.reusedFromJobId}. The numerical check below belongs to that computation; no trace kernel ran for this comparison.</p>}
+              <p>{report.execution.selfCheck ? `Numerical self-check passed: ${report.execution.selfCheck.checks} values; maximum scaled error ${report.execution.selfCheck.maxScaledError.toExponential(3)}; tolerance ${report.execution.selfCheck.tolerance}.` : "Numerical self-check has not passed for this job."}</p>
+              {report.execution.failure && <p role="alert">Backend stopped: {report.execution.failure}. No automatic fallback.</p>}
+              <p className="break-all">{report.execution.adapter ?? report.execution.runtime} {report.execution.kernelSha256 && `· Kernel SHA-256 ${report.execution.kernelSha256}`}</p>
+              {report.execution.timings && <details><summary>Trace kernel timings and counters</summary><pre className="overflow-auto">{JSON.stringify(report.execution.timings, null, 2)}</pre></details>}
+            </div>}
+            {report.context.correction === "estimated" && <p className="text-xs">Estimated MV correction · requested {report.context.probes} probes · seed {report.context.probeSeed}. {report.traceEstimation ? "" : "Uncertainty appears after the first probe batch."}</p>}
+            {report.traceEstimation && <EfaTraceEstimate estimate={report.traceEstimation} status={report.status} />}
+            {report.cancellation && <p role="status" className="text-xs">Process cleanup: {report.cancellation}. Worker termination does not measure GPU retirement time.</p>}
             <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
               <dt>Analysis</dt><dd>{report.context.operation ?? "Preparing"} · {report.context.extraction ?? "—"} · {report.context.rotation ?? "—"}</dd>
               <dt>Sample</dt><dd>{report.context.partition ?? "—"} · {report.context.fittingRows ?? "—"} fitting / {report.context.eligibleRows ?? "—"} eligible rows</dd>
@@ -113,6 +121,6 @@ export function ComputeInspector({ service, compact = false }: { service: EfaSer
           <p className="text-xs opacity-65 border-t pt-3">Recent execution records stay in this tab and are not saved in workspaces. Exports contain operational timings and aggregate fit diagnostics, without respondent responses, item names, category counts, or row membership.</p>
         </div>
       </div>
-    </dialog>
+    </dialog>, document.body)}
   </>;
 }

@@ -16,6 +16,7 @@ export interface EfaItem {
   reverse: boolean;
 }
 export interface EfaSpec {
+  compute?: import("./backends/types").EfaComputeSettings;
   /** Absent in older workspaces: MINRES. WLSMV uses the DWLS point fit. */
   extraction?: EfaEstimator;
   items: EfaItem[];
@@ -100,7 +101,7 @@ export interface Convergence {
   objective: number;
   gradient: number;
 }
-export const EFA_ENGINE = "scatter-efa/6";
+export const EFA_ENGINE = "scatter-efa/8";
 export interface EfaExtraction {
   estimator?: "minres" | "dwls";
   method?: string;
@@ -154,6 +155,7 @@ export interface EfaResult {
   diagnostics: EfaDiagnostic[];
   provenance: {
     inputSha256?: string;
+    execution?: import("./backends/types").EfaExecution;
     engine: string;
     matrix: string;
     correlation: string;
@@ -219,6 +221,7 @@ export interface EfaStabilityRun {
   result: StabilityResult;
 }
 export interface EfaProgress {
+  traceEstimation?: import("./trace-estimation").TraceEstimate;
   stage: string;
   completed: number;
   total: number;
@@ -227,6 +230,7 @@ export type Progress = (value: EfaProgress) => void;
 export interface ParallelResult {
   provenance?: {
     inputSha256?: string;
+    execution?: import("./backends/types").EfaExecution;
     engine: string;
     correlation: string;
     extraction: string;

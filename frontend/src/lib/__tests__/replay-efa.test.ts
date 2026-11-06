@@ -716,3 +716,53 @@ describe("bounded EFA item collaboration", () => {
         { state: { runs: [], splits: [], imputationRuns: [miRun] } },
       ));
 });
+
+
+describe("EFA backend assistant replay", () => {
+  it.each(["webgpu", "scala"] as const)("passes an explicit %s selection through the shared controller", async backend => {
+    const { bridge, service } = setup();
+    await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute: { backend } } }), ctx => {
+      expect(JSON.parse(ctx.lastObservation!).jobId).toBeDefined(); return say("done");
+    }]);
+    expect(service.fit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ compute: { backend } }), expect.anything(), undefined, 5);
+  });
+  it.each([
+    { backend: "unknown" }, { backend: "scala", token: "do-not-export" },
+    { backend: "cpu", correction: "estimated" }, { backend: "scala", correction: "estimated" },
+    { backend: "webgpu", correction: "unknown" }, { backend: "webgpu", correction: "estimated", probes: 1 },
+    { backend: "webgpu", correction: "estimated", probes: 4097 }, { backend: "webgpu", correction: "estimated", probes: 16.5 },
+    { backend: "webgpu", correction: "estimated", probeSeed: -1 }, { backend: "webgpu", correction: "estimated", probeSeed: 4294967296 },
+    { backend: "webgpu", blockSize: 512 }, { backend: "webgpu", memoryMiB: 1 },
+  ])("rejects invalid or credential-bearing settings offline", async compute => {
+    const { bridge, service } = setup();
+    await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute } }), ctx => {
+      expect(ctx.lastObservation).toContain("EFA action failed"); expect(ctx.lastObservation).not.toContain("do-not-export"); return say("done");
+    }]);
+    expect(service.fit).not.toHaveBeenCalled();
+  });
+  it("does not let an assistant supply a companion endpoint", async () => {
+    const { bridge, service } = setup();
+    await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute: { backend: "scala", url: "https://external.example" } } }), ctx => {
+      expect(ctx.lastObservation).toContain("EFA action failed"); return say("done");
+    }]);
+    expect(service.fit).not.toHaveBeenCalled();
+  });
+});
+
+it("offline assistant replay cannot start Scala without an explicit UI pairing", async () => {
+  const { bridge, service } = setup();
+  vi.mocked(service.fit).mockRestore();
+  await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute: { backend: "scala" } } }), ctx => {
+    expect(ctx.lastObservation).toContain("EFA action failed (companion-unavailable)"); return say("done");
+  }]);
+  expect(service.listJobs()).toHaveLength(0);
+});
+
+it("offline replay preserves explicit MV probe settings and their approximation label", async () => {
+  const { bridge, service } = setup();
+  const compute = { backend: "webgpu", correction: "estimated", probes: 64, probeSeed: 789 };
+  await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute } }), ctx => {
+    expect(JSON.parse(ctx.lastObservation!).jobId).toBeDefined(); return say("done");
+  }]);
+  expect(service.fit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ compute }), expect.anything(), undefined, 5);
+});

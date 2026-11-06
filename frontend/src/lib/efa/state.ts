@@ -189,6 +189,7 @@ export function serializeEfaCsv(run: EfaRun) {
           "uniqueness_SE",
         ]
       : []),
+    "mv_correction", "mv_probes", "mv_seed", "trace_squared_mcse",
     "status",
     "note",
   ];
@@ -211,6 +212,10 @@ export function serializeEfaCsv(run: EfaRun) {
               se.uniquenesses[i],
             ]
           : []),
+        run.result.weighted?.robust ? (run.result.weighted.robust.test.traceEstimation ? "estimated" : "exact") : "",
+        run.result.weighted?.robust?.test.traceEstimation?.probes ?? "",
+        run.result.weighted?.robust?.test.traceEstimation?.seed ?? "",
+        run.result.weighted?.robust?.test.traceEstimation?.monteCarloSE ?? "",
         run.reviews[item.column]?.status ?? "retain",
         run.reviews[item.column]?.note ?? "",
       ]),

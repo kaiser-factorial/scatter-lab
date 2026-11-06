@@ -1,7 +1,12 @@
+import { createEstimatedBackend } from "./backends/estimated";
+import type { FitInvariant } from "./fit-cache";
+import { createBackend } from "./backends/runtime";
+import { computeSettings, type CompanionSession, type EfaExecution } from "./backends/types";
+import { weightedInference, weightedInferenceWithKernel, weightedInferenceWithEstimator } from "./weighted-inference";
 import type { DataTable } from "../table";
 import { prepareEfa } from "./prepare";
 import { polychoric } from "./correlation";
-import { fitEfa, fitEfaSteps, scoreEfa, type FitRotationTask } from "./fit";
+import { fitEfa, fitEfaSteps, scoreEfa, type FitRotationTask, type FitTask, type FitContinuation } from "./fit";
 import {
   parallelAnalysis,
   parallelObserved,
@@ -25,13 +30,14 @@ import {
   type EfaResult,
 } from "./types";
 
-import { RotationDerivativeAccumulator, rotationDerivativeBatch, type RotationDerivativeContext, type RotationDerivativeBatch, type RotatedUncertainty } from "./weighted-rotation";
+import { RotationDerivativeAccumulator, rotationDerivativeBatch, type RotationDerivativeContext, type RotationDerivativeBatch } from "./weighted-rotation";
 
 export type WorkerRequest =
   | { id: number; op: "rotation-initialize"; context: RotationDerivativeContext }
   | { id: number; op: "rotation-batch"; start: number; count: number }
   | { id: number; op: "rotation-accept"; batch: RotationDerivativeBatch }
   | { id: number; op: "fit-finish" }
+  | { id: number; op: "fit-cache" }
   | {
       id: number;
       op: "imputation";
@@ -65,7 +71,9 @@ export type WorkerRequest =
       correlation: EfaCorrelations;
       spec: EfaSpec;
       extraction?: EfaExtraction;
+      invariant?: FitInvariant;
       parallelDerivatives?: boolean;
+      companion?: CompanionSession;
     }
   | { id: number; op: "score"; result: EfaResult }
   | {
@@ -77,9 +85,12 @@ export type WorkerRequest =
     };
 let prepared: EfaPreparedData | undefined;
 let rotationContext: RotationDerivativeContext | undefined;
-let continuation: Generator<FitRotationTask, EfaResult, RotatedUncertainty> | undefined;
+let continuation: Generator<FitTask, EfaResult, FitContinuation> | undefined;
 let rotationTask: FitRotationTask | undefined;
 let accumulator: RotationDerivativeAccumulator | undefined;
+let execution: EfaExecution | undefined;
+let invariant: FitInvariant | undefined;
+let cachedInference: ReturnType<typeof weightedInference> | undefined;
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const request = event.data,
     id = request.id,
@@ -91,7 +102,13 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   };
   try {
     let value: unknown;
-    if (request.op === "rotation-initialize") {
+    if (request.op === "fit-cache") {
+      if (!invariant || !cachedInference || continuation) throw new EfaError("worker", "No completed invariant fit state.");
+      const q = cachedInference.covariance.rows, covariance = new Float64Array(q * q);
+      for (let i = 0; i < q; i++) for (let j = 0; j < q; j++) covariance[i * q + j] = cachedInference.covariance.get(i, j);
+      value = { ...invariant, execution, inference: { ...cachedInference, covariance } };
+      invariant = undefined; cachedInference = undefined;
+    } else if (request.op === "rotation-initialize") {
       prepared = undefined;
       rotationContext = request.context;
       value = true;
@@ -106,6 +123,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       if (!continuation || !rotationTask || !accumulator) throw new EfaError("worker", "No pending fit continuation.");
       const done = continuation.next(accumulator.finish(rotationTask.covariance, progress));
       if (!done.done) throw new EfaError("worker", "Unexpected additional fit continuation.");
+      if (execution) done.value.provenance.execution = execution;
       value = done.value;
       continuation = undefined; rotationTask = undefined; accumulator = undefined; rotationContext = undefined;
     } else if (request.op === "prepare") {
@@ -169,9 +187,31 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           break;
         case "fit":
           if (request.parallelDerivatives && request.spec.extraction === "wlsmv") {
-            continuation = fitEfaSteps(prepared, request.correlation, request.spec, progress, request.extraction);
-            const step = continuation.next();
-            if (step.done) throw new EfaError("worker", "Missing weighted rotation task.");
+            invariant = undefined; cachedInference = undefined;
+            continuation = fitEfaSteps(prepared, request.correlation, request.spec, progress, request.extraction, request.invariant, base => { invariant = base; });
+            const settings = computeSettings(request.spec);
+            const estimated = !request.invariant && settings.correction === "estimated" ? await createEstimatedBackend(request.spec,
+              value => { execution = value; self.postMessage({ id, execution: value }); }, progress) : undefined;
+            const backend = !estimated && !request.invariant && settings.backend !== "cpu" ? await createBackend(request.spec, request.companion,
+              value => { execution = value; self.postMessage({ id, execution: value }); }, progress) : undefined;
+            execution = request.invariant?.execution
+              ? { ...request.invariant.execution, reusedFromJobId: request.invariant.sourceJobId, timings: undefined }
+              : backend || estimated ? execution : { backend: settings.backend, blockSize: settings.blockSize, budgetBytes: settings.budgetBytes, state: "running", precision: "float64" };
+            if (request.invariant) self.postMessage({ id, execution });
+            let step;
+            try {
+              step = continuation.next();
+              if (!request.invariant) {
+                if (step.done || step.value.kind !== "inference") throw new EfaError("worker", "Missing weighted inference task.");
+                const inference = estimated ? await weightedInferenceWithEstimator(task => estimated.estimate(task), ...step.value.args) : backend ? await weightedInferenceWithKernel(block => backend.run(block), ...step.value.args) : weightedInference(...step.value.args);
+                cachedInference = inference;
+                if (estimated) execution = estimated.finish();
+                else if (backend) execution = backend.finish();
+                else if (execution) execution.state = "completed";
+                step = continuation.next(inference);
+              }
+            } finally { backend?.destroy(); estimated?.destroy(); }
+            if (step.done || step.value.kind !== "rotation") throw new EfaError("worker", "Missing weighted rotation task.");
             rotationTask = step.value;
             rotationContext = rotationTask.context;
             accumulator = new RotationDerivativeAccumulator(rotationContext);
@@ -198,9 +238,9 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       }
     }
     self.postMessage({ id, value, workerMs: performance.now() - started, workerStages: timer.finish() },
-      { transfer: request.op === "rotation-batch" ? [(value as RotationDerivativeBatch).values.buffer as ArrayBuffer] : [] });
+      { transfer: request.op === "fit-cache" ? [(value as FitInvariant).inference!.covariance.buffer as ArrayBuffer] : request.op === "rotation-batch" ? [(value as RotationDerivativeBatch).values.buffer as ArrayBuffer] : [] });
   } catch (error) {
-    continuation = undefined; rotationTask = undefined; accumulator = undefined; rotationContext = undefined;
+    continuation = undefined; rotationTask = undefined; accumulator = undefined; rotationContext = undefined; invariant = undefined; cachedInference = undefined;
     self.postMessage({
       id,
       workerMs: performance.now() - started,

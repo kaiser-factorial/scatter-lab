@@ -29,11 +29,11 @@ for (const name of ["normal", "pairwise", "complete", "skew", "heavy-tail"]) {
   const data = prepareEfa(input, spec, Array.from({ length: input.nRows }, (_, i) => i)), correlation = correlate(data), moments = weightedMoments(data, correlation), fit = extractDwls(correlation.matrix, moments, spec.nFactors);
   const steps = weightedInferenceSteps(data, moments, fit.loadings, fit.convergence.objective, undefined, { space: "cases" });
   const first = steps.next();
-  if (first.done) throw new Error("Expected case-space kernel");
+  if (first.done || "kind" in first.value) throw new Error("Expected case-space kernel");
   const provenance = `${path} sha256:${createHash("sha256").update(raw).digest("hex")}`;
   await save(`${name}-diagonal`, first.value, provenance);
   const second = steps.next(cpuTraceBlock(first.value));
-  if (second.done) throw new Error("Expected second case block");
+  if (second.done || "kind" in second.value) throw new Error("Expected second case block");
   await save(`${name}-offdiagonal`, second.value, provenance);
   await save(`${name}-ragged`, { ...second.value, left: second.value.left.slice(0, 19), leftProjection: second.value.leftProjection.slice(0, 19), right: second.value.right.slice(0, 7), rightProjection: second.value.rightProjection.slice(0, 7) }, provenance);
   steps.return(undefined as never);

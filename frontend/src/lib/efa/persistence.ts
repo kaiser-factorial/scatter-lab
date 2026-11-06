@@ -1,3 +1,5 @@
+import { isTraceEstimate } from "./trace-estimation";
+import { computeSettings } from "./backends/types";
 import type { EfaState } from "./types";
 import { validateSpec } from "./prepare";
 import { validateMiceOptions } from "./mice";
@@ -124,6 +126,24 @@ export function validateEfaState(value: unknown, nRows: number) {
     const p = run.spec.items.length,
       k = run.spec.nFactors,
       r = run.result;
+    const execution = r.provenance?.execution;
+    const settings = computeSettings(run.spec);
+    const backend = settings.backend;
+    const kernelVersion = settings.correction === "estimated" ? "ordinal-trace-probes/1" : "ordinal-trace/1";
+    if (backend !== "cpu" && !execution) return fail();
+    if (execution) {
+      if (!record(execution) || Object.keys(execution).some(key => !["backend", "state", "precision", "kernelVersion", "kernelSha256", "adapter", "runtime", "blockSize", "budgetBytes", "selfCheck", "timings", "reusedFromJobId"].includes(key)) ||
+        (execution.reusedFromJobId !== undefined && (typeof execution.reusedFromJobId !== "string" || !/^[0-9a-f-]{36}$/.test(execution.reusedFromJobId))) ||
+        execution.backend !== backend || execution.state !== "completed" || typeof execution.precision !== "string" ||
+        ![32, 64, 128, 256].includes(execution.blockSize) || !Number.isFinite(execution.budgetBytes) || execution.budgetBytes < 256 * 1024 ** 2 || execution.budgetBytes > 4096 * 1024 ** 2) return fail();
+      if (backend !== "cpu") {
+        const check = execution.selfCheck;
+        if (execution.kernelVersion !== kernelVersion || typeof execution.kernelSha256 !== "string" || !/^[a-f0-9]{64}$/.test(execution.kernelSha256) || !record(check) ||
+          Object.keys(check).some(key => !["version", "passed", "checks", "tolerance", "maxScaledError", "elapsedMs"].includes(key)) ||
+          check.version !== kernelVersion || check.passed !== true || !Number.isSafeInteger(check.checks) || check.checks < 1 || check.tolerance !== 1e-10 ||
+          !Number.isFinite(check.maxScaledError) || check.maxScaledError < 0 || check.maxScaledError > check.tolerance || !Number.isFinite(check.elapsedMs) || check.elapsedMs < 0) return fail();
+      }
+    }
     if (
       !rows(r.fittingRows) ||
       r.originalRowCount !== nRows ||
@@ -211,6 +231,10 @@ export function validateEfaState(value: unknown, nRows: number) {
         const t = robust.test,
           se = robust.standardErrors,
           plan = robust.plan;
+        if (settings.correction === "estimated") {
+          const estimate = t.traceEstimation;
+          if (!isTraceEstimate(estimate) || estimate.probes !== settings.probes || estimate.requestedProbes !== settings.probes || estimate.seed !== settings.probeSeed || estimate.traceSquared !== t.traceSquared || plan.space !== "cases") return fail();
+        } else if (t.traceEstimation !== undefined) return fail();
         if (
           t.df !== df ||
           t.denominator !== n - 1 ||
@@ -256,12 +280,12 @@ export function validateEfaState(value: unknown, nRows: number) {
           plan.rows !== n ||
           !Number.isInteger(plan.blockSize) ||
           plan.blockSize < 1 ||
-          plan.blockSize > 128 ||
+          plan.blockSize > 256 ||
           !Number.isFinite(plan.estimatedBytes) ||
           plan.estimatedBytes <= 0 ||
           plan.estimatedBytes > plan.budgetBytes ||
           !Number.isFinite(plan.budgetBytes) ||
-          plan.budgetBytes > 1024 ** 3 ||
+          plan.budgetBytes > 4 * 1024 ** 3 ||
           !Number.isFinite(plan.approximateMultiplyAdds) ||
           plan.approximateMultiplyAdds <= 0
         )
@@ -342,6 +366,7 @@ export function validateEfaState(value: unknown, nRows: number) {
         p = run.spec.items?.length;
       try {
         validateSpec(run.spec);
+        if ((run.spec.compute?.backend ?? "cpu") !== "cpu") return fail();
         validateMiceOptions(r.options, p);
       } catch {
         return fail();
