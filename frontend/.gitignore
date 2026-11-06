@@ -4,3 +4,6 @@
 
 # Local Scala companion dependencies and compiled classes
 .efa-companion/
+
+# Lossless .json.gz archive and compact summary retain the full paired benchmark.
+/scripts/efa-reference/compute/paired-full-large-v7.json

@@ -30,7 +30,7 @@ try {
   await page.getByRole("button", { name: "EFA", exact: true }).click();
   await page.getByRole("button", { name: "Select ordinal candidates" }).click();
   await page.getByLabel("EFA extraction").selectOption("wlsmv");
-  await page.getByLabel("EFA compute backend").selectOption(backend);
+  await page.getByRole("radio", { name: `EFA backend ${backend}`, exact: true }).check();
   if (backend === "scala") {
     await page.getByLabel("Companion URL").fill(pairing.url);
     await page.getByLabel("Pairing token").fill(pairing.token);

@@ -66,3 +66,5 @@ Reproduce the chart with `matplotlib==3.10.7` and `frontend/scripts/efa-referenc
 - `frontend/scripts/efa-reference/compute/trace-estimation-large-v5.json`: retained 500-item comparison and immutable executable archive.
 
 Final regression verification: 688 tests passed and 4 skipped across 56 passing test files, TypeScript passed, and an isolated production build passed against identical application sources. The existing lint baseline remains 117 errors and 6 warnings, with no additional file/rule/severity counts. A prior test run overlapped browser/GPU work and hit the existing 5-second limit on a heavy-tail R comparison; the complete suite passed with one worker after that load ended, without changing numerical tolerances or test timeouts. Source and evidence hashes are recorded in `frontend/scripts/efa-reference/compute/estimated-verification-v6/audit.json`.
+
+A subsequent [fresh paired full-fit benchmark and runtime-guidance study](EFA-RUNTIME-GUIDANCE.md) measures the complete 500-item workflow for both methods, while preserving this earlier trace-only comparison as historical evidence.

@@ -1,6 +1,8 @@
 "use client";
 
 import { EfaBackendControls } from "./EfaBackendControls";
+import { InfoTip } from "./InfoTip";
+import { mvRuntimeAdvice } from "@/lib/efa/runtime-advice";
 import type { EfaService } from "@/lib/efa/service";
 import type { EfaComputeSettings } from "@/lib/efa/backends/types";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
@@ -1208,6 +1210,10 @@ export function EfaPanel({
     partition,
   });
   const previewCurrent = preview?.key === setupKey;
+  const runtimeAdvice = missing !== "mice" && previewCurrent && preview.inferencePlan
+    ? mvRuntimeAdvice(preview.inferencePlan, compute.probes ?? 128,
+      preview.counts.reduce((sum, categories, i) => sum + preview.counts.slice(i + 1).reduce((s, other) => s + categories.length * other.length, 0), 0))
+    : undefined;
   const simulation = parallel ?? state.parallelRuns?.at(-1)?.result;
   const makeSpec = (): EfaSpec => ({
     items: selected.map((column) => {
@@ -1722,7 +1728,7 @@ export function EfaPanel({
           </summary>
           {previewCurrent && preview.inferencePlan && (
             <p className="my-2">
-              Exact WLSMV inference: about{" "}
+              {compute.correction === "estimated" ? "WLSMV with estimated MV correction" : "Exact WLSMV inference"}: about{" "}
               {Math.ceil(
                 preview.inferencePlan.estimatedBytes / 1024 ** 2,
               ).toLocaleString()}{" "}
@@ -1738,6 +1744,10 @@ export function EfaPanel({
                 : ""}
             </p>
           )}
+          {runtimeAdvice && <div className="my-2 border p-2 text-xs" aria-label="Runtime guidance">
+            <p className="font-bold">{runtimeAdvice.title}<InfoTip label="About runtime guidance" text="Uses the preview's fitting rows, item pairs, factors, probe count and memory plan. Arithmetic estimates are not device benchmarks. The choice remains yours; no backend or correction is changed automatically. Matrix structure determines estimation error, so there is no reliable rows × items accuracy cutoff." /></p>
+            <p>{runtimeAdvice.detail}</p>
+          </div>}
           <div className="max-h-32 overflow-auto">
             {preview.counts.map((counts, i) => (
               <p key={i}>

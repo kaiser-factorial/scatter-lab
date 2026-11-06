@@ -12,7 +12,7 @@ try{
  await page.evaluate(table=>{const bridge=window.__scatterlabBridge.current,s=bridge.snapshot(),first=s.datasets[0];bridge.restore({...s,datasets:[{...first,name:'Synthetic MV inspector fixture',table,axes:{x:table.columns[0],y:table.columns[1],z:table.columns[2]},axes2d:{x:table.columns[0],y:table.columns[1]},pcaRuns:[],efa:{runs:[],splits:[]}}],activeId:first.id,pinnedViews:[],analysisViews:[],rowFilter:null,colorBy:'',shapeBy:'',viewMode:'2D'});},table);
  await page.getByRole('button',{name:'EFA',exact:true}).click();await page.getByRole('button',{name:'Select ordinal candidates'}).click();
  await page.getByLabel('EFA extraction').selectOption('wlsmv');await expect(page.getByLabel('MV correction',{exact:true})).toHaveValue('exact');
- await page.getByLabel('MV correction',{exact:true}).selectOption('estimated');await expect(page.getByLabel('EFA compute backend')).toHaveValue('webgpu');
+ await page.getByLabel('MV correction',{exact:true}).selectOption('estimated');await expect(page.getByRole('radio',{name:'EFA backend webgpu',exact:true})).toBeChecked();
  await expect(page.getByLabel('MV probe count')).toHaveValue('128');await expect(page.getByLabel('MV probe seed')).toHaveValue('61001');
  await page.getByLabel('MV probe count').fill('4096');await page.getByLabel('MV probe seed').fill('77771');
  await page.screenshot({path:`${out}/setup.png`});

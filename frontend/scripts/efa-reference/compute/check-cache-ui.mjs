@@ -26,7 +26,7 @@ try {
   await page.getByRole("button", { name: "EFA", exact: true }).click();
   await page.getByRole("button", { name: "Select ordinal candidates" }).click();
   await page.getByLabel("EFA extraction").selectOption("wlsmv");
-  await page.getByLabel("EFA compute backend").selectOption("webgpu");
+  await page.getByRole("radio", { name: "EFA backend webgpu", exact: true }).check();
   await page.getByText("Memory and block settings", { exact: true }).click();
   await page.getByLabel("EFA block rows", { exact: true }).selectOption("256");
   await page.getByRole("button", { name: "Preview sample", exact: true }).click();

@@ -1,0 +1,110 @@
+{
+  "purpose": "Explain error dependence on structure, dimension and scale",
+  "grain": "one constructed operator aggregated over 256 seeds at 128 probes",
+  "transformations": [
+    "RMS signed relative errors over all seeds",
+    "maximum absolute error over the same seeds",
+    "closed-form theoretical standard deviation"
+  ],
+  "encoding": "common linear percentage axis; distinct marks for RMS, theory and finite-sample maximum",
+  "limits": [
+    "Not typical-survey error estimates",
+    "Maximum depends on tested seeds",
+    "RMS and theoretical SE are not confidence limits"
+  ],
+  "validation": [
+    "all six cases included",
+    "zero-error diagonal retained",
+    "scale-control relative errors match"
+  ],
+  "summaries": [
+    {
+      "name": "dense rank 1",
+      "n": 256,
+      "rank": 1,
+      "scale": 1,
+      "diagonal": false,
+      "exact": 1,
+      "count": 128,
+      "theoreticalRelativeSE": 0.12475562048961962,
+      "observedRmsRelativeError": 0.13240644695105783,
+      "medianAbsRelativeError": 0.08764648437499978,
+      "maxAbsRelativeError": 0.4291992187499998,
+      "normalIntervalCoverage": 0.9140625
+    },
+    {
+      "name": "dense rank 4",
+      "n": 256,
+      "rank": 4,
+      "scale": 1,
+      "diagonal": false,
+      "exact": 1,
+      "count": 128,
+      "theoreticalRelativeSE": 0.062009796353076345,
+      "observedRmsRelativeError": 0.06599247439392548,
+      "medianAbsRelativeError": 0.04193115234374972,
+      "maxAbsRelativeError": 0.22082519531249978,
+      "normalIntervalCoverage": 0.92578125
+    },
+    {
+      "name": "dense rank 16",
+      "n": 256,
+      "rank": 16,
+      "scale": 1,
+      "diagonal": false,
+      "exact": 1,
+      "count": 128,
+      "theoreticalRelativeSE": 0.030257682392245445,
+      "observedRmsRelativeError": 0.03169967602835828,
+      "medianAbsRelativeError": 0.023193359374999833,
+      "maxAbsRelativeError": 0.09634399414062544,
+      "normalIntervalCoverage": 0.94140625
+    },
+    {
+      "name": "diagonal rank 1",
+      "n": 256,
+      "rank": 1,
+      "scale": 1,
+      "diagonal": true,
+      "exact": 1,
+      "count": 128,
+      "theoreticalRelativeSE": 0,
+      "observedRmsRelativeError": 0,
+      "medianAbsRelativeError": 0,
+      "maxAbsRelativeError": 0,
+      "normalIntervalCoverage": 1
+    },
+    {
+      "name": "larger dense rank 1",
+      "n": 4096,
+      "rank": 1,
+      "scale": 1,
+      "diagonal": false,
+      "exact": 1,
+      "count": 128,
+      "theoreticalRelativeSE": 0.12498474027950122,
+      "observedRmsRelativeError": 0.12694861637571492,
+      "medianAbsRelativeError": 0.08626556396484397,
+      "maxAbsRelativeError": 0.38597106933593817,
+      "normalIntervalCoverage": 0.9375
+    },
+    {
+      "name": "scaled dense rank 1",
+      "n": 256,
+      "rank": 1,
+      "scale": 1000000,
+      "diagonal": false,
+      "exact": 1000000000000,
+      "count": 128,
+      "theoreticalRelativeSE": 0.12475562048961962,
+      "observedRmsRelativeError": 0.13240644695105783,
+      "medianAbsRelativeError": 0.08764648437499994,
+      "maxAbsRelativeError": 0.42919921875,
+      "normalIntervalCoverage": 0.9140625
+    }
+  ],
+  "matplotlib": "3.10.7",
+  "sources": {
+    "frontend/scripts/efa-reference/compute/trace-error-shapes-v7.json": "c635c0efe8ca3a1a702fca12dcf1a6e9ed119b0cf018f0849cc09f29b9f1be94"
+  }
+}
