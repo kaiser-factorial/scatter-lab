@@ -11,14 +11,8 @@ export type DefaultAxes = { x: string; y: string; z: string | null };
 // the assistant's default PCA variables (finding E5). Requiring a boundary —
 // a non-uppercase-letter before the ID, or the whole name being ID — keeps
 // respondentID and subjID while letting VALID through.
-export const isIdentifierColumn = (name: string) => {
-  const trimmed = name.trim();
-  return /^(?:id|uuid|guid)$/i.test(trimmed)
-    || /^(?:response|respondent|participant|subject|record)[_\-\s]?id$/i.test(trimmed)
-    || /[a-z]Id$/.test(trimmed)
-    || /(?:[_\-\s]id)$/i.test(trimmed)
-    || /(?:[^A-Z]|^)ID$/.test(trimmed);
-};
+export { isIdentifierColumn } from '@scatterlab/stats/internal/identifiers';
+import { isIdentifierColumn } from '@scatterlab/stats/internal/identifiers';
 
 /**
  * How many rows a value must cover before naming it describes a group rather

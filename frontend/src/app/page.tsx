@@ -25,16 +25,20 @@ import type { AppBridge, ColumnProfile } from "@/lib/assistant";
 import type { ConversationBridge } from "@/components/AssistantPanel";
 import { GUIDE_TARGETS, paintYield } from "@/lib/assistant";
 import { readRelayout } from "@/lib/relayout";
-import { correlation, silhouetteByK, kDistancePercentiles } from "@/lib/stats";
+import { silhouetteByK, kDistancePercentiles } from "@/lib/stats";
 import { runPCA, sanitizeLabel, isPCColumn, type MissingReport, type MissingStrategy, type PCAResult } from "@/lib/pca";
 import { isIdentifierColumn, valueIsTooRare, pickDefaultAxes, pickDefaultColorBy } from "@/lib/defaults";
 import { asDataMode, combinedPolicy, policyFor, type DataMode } from "@/lib/dataPolicy";
 import { sampleRowsCore, rowsWhereCore, listCategoriesCore } from "@/lib/rowAccess";
 import { buildRowMask, countMask, describeConditions, validateConditions, validateConditionsForPolicy, subsetTable, scatterBack, type FilterCondition } from "@/lib/rowFilter";
-import { numericTails, correlationAllowed, groupComparisonReport, filterMeetsFloor } from "@/lib/aggregatePolicy";
+import { numericTails, correlationReport, groupComparisonReport, filterMeetsFloor } from "@/lib/aggregatePolicy";
 import { diagnoseTable, summarizeDiagnosis, applyNumericFix, type ColumnDiagnosis } from "@/lib/uploadDoctor";
 import { InfoTip } from "@/components/InfoTip";
 import { PanelChoiceButton } from "@/components/PanelChoiceButton";
+import { ConvergenceDialog } from "@/components/ConvergenceDialog";
+import type { ConvergenceRetrySettings, IterativePcaSettings } from "@/lib/convergence";
+import { adviceForAssistant } from "@/lib/decomposition-advice";
+import { analyzeItemsAsync } from "@/lib/decomposition-advice-service";
 import { applyRecode, describeRecode } from "@/lib/recode";
 import { InfoDialog } from "@/components/InfoDialog";
 import { RecodeDialog } from "@/components/RecodeDialog";
@@ -49,7 +53,7 @@ import { PRIMARY_CHART_COLORS } from "@/lib/chartPalette";
 import { EfaService, type EfaJob } from '@/lib/efa/service';
 import { EfaController } from '@/lib/efa/controller';
 import { ComputeInspector } from '@/components/ComputeInspector';
-import { emptyEfaState } from '@/lib/efa/state';
+import { emptyEfaState, fittingRows } from '@/lib/efa/state';
 import type { EfaState } from '@/lib/efa/types';
 import { commitDatasetAnalysis, type DatasetAnalysisTarget } from '@/lib/datasetAnalysis';
 import { createDatasetPartitions, type DatasetPartition, type DatasetSplitOptions } from '@/lib/datasetSplit';
@@ -57,6 +61,7 @@ import { DatasetSplitControls, DEFAULT_DATASET_SPLIT } from '@/components/Datase
 import { DatasetDialog } from '@/components/DatasetDialog';
 import { DecompositionSetup, type SharedAnalysisSetup } from '@/components/DecompositionSetup';
 import { runPcaImputations, type PcaImputationBatch, type PcaImputationOptions } from '@/lib/pca-imputation';
+import { createPcaBatchController, type PcaBatchDependencies, type PcaBatchRequest, type PcaBatchSummary } from '@/lib/pca-batch-controller';
 import type { MeasurementChoice } from '@/lib/measurement';
 const EfaPanel = dynamic(() => import('@/components/EfaPanel').then(m => m.EfaPanel), { ssr: false });
 
@@ -977,9 +982,9 @@ const PCASection = ({ table, theme, lastRun, runs, onRun, externalRun, setup, on
     theme: string | undefined,
     lastRun: { varianceExplained: number[]; cumulative: number[]; spectrum?: number[]; eigenvalues?: number[]; standardize?: boolean; k?: number; columns?: string[] } | null,
     runs: PcaRun[],
-    onRun: (vars: string[], k: number, standardize: boolean, label: string, missing: MissingStrategy, measurements: Record<string, MeasurementChoice>) => void,
-    externalRun?: { vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null,
-    setup: SharedAnalysisSetup,
+    onRun: (vars: string[], k: number, standardize: boolean, label: string, missing: MissingStrategy, measurements: Record<string, MeasurementChoice>, iterative?: IterativePcaSettings) => void,
+    externalRun?: { vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number; iterative?: IterativePcaSettings } | null,
+    setup: Omit<SharedAnalysisSetup, 'missing'> & { missing: MissingStrategy },
     onImpute: (vars: string[], options: PcaImputationOptions) => Promise<PcaImputationBatch>,
     onApplyImputation: (batch: PcaImputationBatch, result: PCAResult) => string,
     contextKey: string,
@@ -988,11 +993,13 @@ const PCASection = ({ table, theme, lastRun, runs, onRun, externalRun, setup, on
     const selected = new Set(setup.selected), label = setup.label, missing = setup.missing;
     const [k, setK] = useState(externalRun?.k ?? 3);
     const [standardize, setStandardize] = useState(externalRun?.standardize ?? true);
+    const [iterative, setIterative] = useState<IterativePcaSettings>(externalRun?.iterative ?? { maxIterations: 200, tolerance: 1e-8 });
     const [externalSeq, setExternalSeq] = useState(externalRun?.seq ?? 0);
     if (externalRun && externalSeq !== externalRun.seq) {
         setExternalSeq(externalRun.seq); setK(externalRun.k); setStandardize(externalRun.standardize);
+        setIterative(externalRun.iterative ?? { maxIterations: 200, tolerance: 1e-8 });
     }
-    const [pendingRun, setPendingRun] = useState<{ vars: string[]; k: number; standardize: boolean; label: string; missing: MissingStrategy; replaces: string[]; measurements: Record<string, MeasurementChoice> } | null>(null);
+    const [pendingRun, setPendingRun] = useState<{ vars: string[]; k: number; standardize: boolean; label: string; missing: MissingStrategy; replaces: string[]; measurements: Record<string, MeasurementChoice>; iterative?: IterativePcaSettings } | null>(null);
     const [imputations, setImputations] = useState(20), [iterations, setIterations] = useState(10), [seed, setSeed] = useState(73021);
     const [batch, setBatch] = useState<{ result: PcaImputationBatch; key: string; table: DataTable } | null>(null);
     const [selectedFit, setSelectedFit] = useState(1), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
@@ -1030,9 +1037,9 @@ const PCASection = ({ table, theme, lastRun, runs, onRun, externalRun, setup, on
         const existing = runs.find(r => r.label === cleanLabel);
         const suppressed = typeof localStorage !== 'undefined' && localStorage.getItem('scatterlab.pca.confirmReplace') === 'off';
         if (existing && !suppressed) {
-            setPendingRun({ vars, k: effK, standardize, label: cleanLabel, missing, replaces: existing.columns, measurements: setup.measurements }); return;
+            setPendingRun({ vars, k: effK, standardize, label: cleanLabel, missing, replaces: existing.columns, measurements: setup.measurements, iterative: missing === 'iterative' ? iterative : undefined }); return;
         }
-        onRun(vars, effK, standardize, cleanLabel, missing, setup.measurements);
+        onRun(vars, effK, standardize, cleanLabel, missing, setup.measurements, missing === 'iterative' ? iterative : undefined);
     };
     return (
         <div className="space-y-3 text-xs">
@@ -1040,6 +1047,13 @@ const PCASection = ({ table, theme, lastRun, runs, onRun, externalRun, setup, on
                 <input type="checkbox" checked={standardize} onChange={e => setStandardize(e.target.checked)} />
                 <span className="opacity-80">Standardize variables</span><InfoTip topic="standardize_pca" />
             </label>
+            {missing === 'iterative' && <details><summary className="cursor-pointer">Iterative PCA settings</summary>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                    <label>Iterations<input aria-label="PCA maximum iterations" type="number" min={1} max={20000} value={iterative.maxIterations ?? 200} onChange={e => setIterative(v => ({ ...v, maxIterations: +e.target.value }))} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                    <label>Tolerance<input aria-label="PCA convergence tolerance" type="number" min={1e-12} max={0.01} step="any" value={iterative.tolerance ?? 1e-8} onChange={e => setIterative(v => ({ ...v, tolerance: +e.target.value }))} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                    <label>Imputation rank<input aria-label="PCA imputation rank" type="number" min={1} max={Math.max(1, selected.size - 1)} placeholder={`Component count (${Math.min(k, maxK)})`} value={iterative.rank ?? ''} onChange={e => setIterative(v => ({ ...v, rank: e.target.value === '' ? undefined : +e.target.value }))} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
+                </div>
+            </details>}
             {missing === 'mice' && <details open><summary className="cursor-pointer">MICE settings</summary>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                     <label>Imputations<input aria-label="PCA MICE imputations" type="number" min={2} max={100} value={imputations} onChange={e => setImputations(+e.target.value)} className="w-full border border-[var(--border)] bg-[var(--input)] p-1" /></label>
@@ -1100,7 +1114,7 @@ const PCASection = ({ table, theme, lastRun, runs, onRun, externalRun, setup, on
                                 Cancel
                             </button>
                             <button
-                                onClick={() => { onRun(pendingRun.vars, pendingRun.k, pendingRun.standardize, pendingRun.label, pendingRun.missing, pendingRun.measurements); setPendingRun(null); }}
+                                onClick={() => { onRun(pendingRun.vars, pendingRun.k, pendingRun.standardize, pendingRun.label, pendingRun.missing, pendingRun.measurements, pendingRun.iterative); setPendingRun(null); }}
                                 className={`px-3 py-1.5 font-bold cursor-pointer ${theme === 'primary' ? 'bauhaus-btn bg-[var(--p-red)] text-white' : 'bg-[var(--system-green)]/20 border border-[var(--system-green)] text-[var(--system-green)]'}`}
                             >
                                 Replace
@@ -2190,6 +2204,21 @@ export default function Home() {
   const [efaService] = useState(() => new EfaService());
   const [efaController] = useState(() => new EfaController(efaService));
   const [efaJob, setEfaJob] = useState<EfaJob | undefined>();
+  const [dismissedConvergenceJob, setDismissedConvergenceJob] = useState('');
+  const [convergenceBusy, setConvergenceBusy] = useState(false);
+  const [recoveredEfaRun, setRecoveredEfaRun] = useState<string | null>(null);
+  const [pendingPcaConvergence, setPendingPcaConvergence] = useState<{
+    vars: string[]; k: number; standardize: boolean; label: string; missing: MissingStrategy;
+    measurements: Record<string, MeasurementChoice>; result: PCAResult;
+    target: DatasetAnalysisTarget; filterKey: string;
+  } | null>(null);
+  const convergenceJobId = efaJob?.id;
+  const dismissConvergence = () => {
+      if (pendingPcaConvergence) setUploadStatus('Unconverged PCA result discarded. No scores were added.');
+      setPendingPcaConvergence(null);
+      if (convergenceJobId) setDismissedConvergenceJob(convergenceJobId);
+  };
+
   useEffect(() => efaService.subscribe(() => {
       const job = efaService.listJobs().at(-1);
       setEfaJob(job ? { ...job } : undefined);
@@ -2239,6 +2268,7 @@ export default function Home() {
   // undo snapshots and workspaces carry the scope with them for free.
   const [rowFilterState, setRowFilterState] = useState<{ datasetId: number; conditions: FilterCondition[] } | null>(null);
   const rowFilter = rowFilterState && rowFilterState.datasetId === activeId ? rowFilterState.conditions : null;
+
   // Tool calls in one model response run before React re-renders, so a
   // set_row_filter followed by compare_groups in the same turn must not
   // analyse the previous filter. The ref carries the just-set conditions
@@ -3698,10 +3728,11 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       }
   };
 
-  const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median', expected?: DatasetAnalysisTarget, measurements: Record<string, MeasurementChoice> = {}, completed?: PCAResult): string => {
+  const handleRunPCA = (vars: string[], k: number, standardize: boolean, label = '', missing: MissingStrategy = 'median', expected?: DatasetAnalysisTarget, measurements: Record<string, MeasurementChoice> = {}, completed?: PCAResult, iterative?: IterativePcaSettings, acceptUnconverged = false, expectedFilterKey?: string): string => {
       const targetId = liveActiveId();
       if (expected && (targetId !== expected.datasetId || latestTable() !== expected.table))
           return 'PCA cancelled because the active dataset changed.';
+      if (expectedFilterKey !== undefined && expectedFilterKey !== JSON.stringify(currentFilter())) return 'PCA retry cancelled because the fitting filter changed.';
       const gate = analysisTable();
       if (typeof gate === 'string') { setUploadStatus(gate); return gate; }
       const { table: base, full: t, mask, filter, note: filterNote } = gate;
@@ -3709,7 +3740,12 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       if (targetId == null || !targetDataset) return 'No unlocked dataset loaded.';
       const target: DatasetAnalysisTarget = { datasetId: targetId, table: t };
       try {
-          const sub = completed ?? runPCA(base, vars, { k, standardize, label, missing, measurements, minimumPairN: sessionPolicy.rowAccess ? 2 : 5 });
+          const sub = completed ?? runPCA(base, vars, { k, standardize, label, missing, measurements, iterative, minimumPairN: sessionPolicy.rowAccess ? 2 : 5 });
+          if (sub.missing.convergenceIssue && !acceptUnconverged) {
+              setPendingPcaConvergence({ vars: vars.slice(), k, standardize, label, missing, measurements: { ...measurements }, result: sub, target, filterKey: JSON.stringify(filter) });
+              setUploadStatus('Iterative PCA has not converged. Adjust settings and retry, or explicitly keep its current result. No score columns have been added.');
+              return JSON.stringify({ status: 'nonconverged', applied: false, convergence: sub.missing.convergenceIssue, message: 'The recovery dialog is open. Retry run_pca with explicit iterative settings, or let the user keep the unconverged result locally.' });
+          }
           // Under a filter the PCA is fitted on the visible rows only; scores
           // are scattered back into the full table, null for the rest.
           const res = mask
@@ -3854,6 +3890,13 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       [processedData, activeDataset?.dataMode],
   );
   const sessionPolicy = combinedPolicy(datasets.map(d => d.dataMode));
+  const liveDisclosureFloor = useRef(sessionPolicy.rowAccess ? 0 : 5);
+  useLayoutEffect(() => { liveDisclosureFloor.current = sessionPolicy.rowAccess ? 0 : 5; }, [sessionPolicy.rowAccess]);
+  const [pcaRecoveryScope, setPcaRecoveryScope] = useState({ datasetId: activeId, table: processedData, filter: JSON.stringify(rowFilterState), floor: sessionPolicy.rowAccess ? 0 : 5 });
+  if (pcaRecoveryScope.datasetId !== activeId || pcaRecoveryScope.table !== processedData || pcaRecoveryScope.filter !== JSON.stringify(rowFilterState) || pcaRecoveryScope.floor !== (sessionPolicy.rowAccess ? 0 : 5)) {
+    setPcaRecoveryScope({ datasetId: activeId, table: processedData, filter: JSON.stringify(rowFilterState), floor: sessionPolicy.rowAccess ? 0 : 5 });
+    setPendingPcaConvergence(null);
+  }
   // Keep the controller behind the same filter/privacy gate used by PCA. Jobs
   // own numerical snapshots; this adapter alone publishes to React state.
   useEffect(() => {
@@ -3882,6 +3925,15 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
                   provenance: [...(d.provenance ?? []), { at: new Date().toISOString(), action: `Added estimated EFA scores: ${columns.join(', ')}` }],
               } : d));
           },
+          complete: (datasetId, expectedTable, table, runId, record) => {
+              freshTableRef.current = table;
+              setDatasets(prev => prev.map(d => d.id === datasetId && d.table === expectedTable ? {
+                  ...d, table,
+                  efa: { ...(d.efa ?? emptyEfaState()), runs: (d.efa?.runs ?? []).map(r => r.id === runId ? { ...r, completions: [...(r.completions ?? []), record] } : r) },
+                  provenance: [...(d.provenance ?? []), { at: record.createdAt, action: `Added conditional completed columns from ${runId}: ${Object.values(record.columns).join(', ')}; ${record.filledCells} calculated cells; source fingerprint ${record.sourceFingerprint}` }],
+              } : d));
+          },
+          download: (filename, content, mime) => downloadBlob(new Blob([content], { type: mime }), filename),
       });
   });
   useEffect(() => () => efaController.cancel(), [efaController, activeId, processedData, rowFilterState]);
@@ -3964,7 +4016,58 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
   const exitWalkthroughRef = useRef<(() => void) | null>(null);
   const startWalkthroughRef = useRef<(() => void) | null>(null);
   // Mirrors an assistant/walkthrough PCA back into the PCA panel's controls.
-  const [externalPcaRun, setExternalPcaRun] = useState<{ vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number } | null>(null);
+  const [externalPcaRun, setExternalPcaRun] = useState<{ vars: string[]; k: number; standardize: boolean; missing: MissingStrategy; label: string; seq: number; iterative?: IterativePcaSettings } | null>(null);
+  const externalAnalysisSequence = useRef(0);
+  const [externalSetup, setExternalSetup] = useState<(SharedAnalysisSetup & { seq: number; datasetId: number; vars: string[] }) | null>(null);
+  const [externalEfaSpec, setExternalEfaSpec] = useState<{ seq: number; datasetId: number; spec: import('@/lib/efa/types').EfaSpec } | null>(null);
+  const adviceEfaSpec = externalEfaSpec?.datasetId === activeId ? externalEfaSpec.spec : null;
+  const adviceSplits = activeDataset?.efa?.splits;
+  const liveAdviceScope = useRef({ spec: adviceEfaSpec, splits: adviceSplits });
+  useLayoutEffect(() => { liveAdviceScope.current = { spec: adviceEfaSpec, splits: adviceSplits }; }, [adviceEfaSpec, adviceSplits]);
+  const adviceTable = useMemo(() => {
+    if (decomposition !== 'efa' || !adviceEfaSpec || !processedData) return analysisData;
+    try {
+      const eligible = Array.from({ length: processedData.nRows }, (_, row) => row).filter(row => !rowMask || rowMask[row]);
+      const rows = new Set(fittingRows(eligible, adviceEfaSpec, adviceSplits ?? []));
+      return subsetTable(processedData, Array.from({ length: processedData.nRows }, (_, row) => rows.has(row)));
+    } catch {
+      // An invalid saved sample must not silently fall back to all respondents.
+      return subsetTable(processedData, Array(processedData.nRows).fill(false));
+    }
+  }, [decomposition, adviceEfaSpec, adviceSplits, processedData, analysisData, rowMask]);
+  const [analysisSetupView, setAnalysisSetupView] = useState<(SharedAnalysisSetup & { datasetId: number }) | null>(null);
+  const rememberAnalysisSetup = useCallback((setup: SharedAnalysisSetup) => {
+    if (activeId === null) return;
+    setAnalysisSetupView(previous => JSON.stringify(previous) === JSON.stringify({ ...setup, datasetId: activeId }) ? previous : { ...setup, datasetId: activeId });
+  }, [activeId]);
+
+  const pcaBatchAdapter = useRef<PcaBatchDependencies>(null as unknown as PcaBatchDependencies);
+  const pcaBatchController = useRef<ReturnType<typeof createPcaBatchController> | null>(null);
+  const [assistantPcaBatches, setAssistantPcaBatches] = useState<Record<string, PcaBatchSummary>>({});
+  useEffect(() => { pcaBatchAdapter.current = {
+    capture: () => {
+      const gate = analysisTable(), id = liveActiveId();
+      if (typeof gate === 'string') throw new Error(gate);
+      if (id === null) throw new Error('No dataset loaded.');
+      return { datasetId: id, table: gate.table, source: gate.full, filterKey: JSON.stringify(gate.filter), minimumPairN: sessionPolicy.rowAccess ? 0 : 5 };
+    },
+    apply: (scope, batch, result) => {
+      if (scope.datasetId !== liveActiveId() || scope.source !== latestTable() || scope.filterKey !== JSON.stringify(currentFilter()))
+        throw new Error('The dataset or fitting filter changed; run the batch again.');
+      const message = handleRunPCA(batch.variables, result.k, batch.settings.standardize ?? true, result.label, 'mice', { datasetId: scope.datasetId as number, table: scope.source }, {}, result);
+      if (latestTable() === scope.source) throw new Error(message);
+      return message;
+    },
+    onChange: summary => setAssistantPcaBatches(previous => ({ ...previous, [summary.jobId]: summary })),
+  }; });
+  useEffect(() => {
+    const controller = createPcaBatchController({ capture: () => pcaBatchAdapter.current.capture(), apply: (...args) => pcaBatchAdapter.current.apply(...args), onChange: summary => pcaBatchAdapter.current.onChange?.(summary) });
+    pcaBatchController.current = controller;
+    return () => { controller.dispose(); pcaBatchController.current = null; };
+  }, []);
+  useEffect(() => {
+    for (const jobId of Object.keys(assistantPcaBatches)) { try { pcaBatchController.current?.inspect(jobId); } catch { /* A prior mounted session may own this summary. */ } }
+  }, [activeId, processedData, rowFilterState, assistantPcaBatches]);
   useEffect(() => {
       const saved = localStorage.getItem('scatterlab.assistant.dock');
       if (saved === 'right' || saved === 'bottom' || saved === 'float') setAssistantDock(saved);
@@ -4001,19 +4104,63 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               : null,
           clusterSettings: { method: clusterMethod, eps, minSamples, k, standardize },
           clusterBreakdown: { attribute: breakdownBy, direction: breakdownDirection, palette: heatmapPalette },
+          analysisSetup: analysisSetupView?.datasetId === activeId ? { method: decomposition, variables: analysisSetupView.selected, missing: analysisSetupView.missing, measurements: analysisSetupView.measurements } : undefined,
           efaRuns: (activeDataset?.efa?.runs ?? []).map(r => ({ id:r.id, label:r.spec.label, revision:r.revision, rotation:r.spec.rotation, nFactors:r.spec.nFactors, kind:r.kind })),
           pcaRuns: (activeDataset?.pcaRuns ?? []).map(r => ({
               label: r.label || '(unnamed)', columns: r.columns, variables: r.variables,
               standardize: r.standardize, savedAt: r.savedAt,
               varianceExplained: r.varianceExplained.map(v => Math.round(v * 1000) / 1000),
-              missing: r.missing && { strategy: r.missing.strategy, imputedCells: r.missing.imputedCells, rowsUsed: r.missing.rowsUsed, rowsDropped: r.missing.rowsDropped },
+              missing: r.missing && { strategy: r.missing.strategy, imputedCells: r.missing.imputedCells, rowsUsed: r.missing.rowsUsed, rowsDropped: r.missing.rowsDropped,
+                converged: r.missing.converged, iterations: r.missing.iterations, iterativeSettings: r.missing.iterativeSettings },
               ...(r.filter ? { filter: r.filter } : {}),
           })),
       }),
 
       efa: async (action, args) => {
           setDecomposition('efa');
-          return efaController.tool(action, args);
+          // A retry consumes the saved attempt. Capture its display metadata
+          // before dispatch, then mirror it only if the controller accepts it.
+          const recovery = action === 'retry_efa' ? efaController.convergenceRetry(String(args.jobId)) : undefined;
+          const response = await efaController.tool(action, args);
+          const retrySettings = args.settings as ConvergenceRetrySettings | undefined;
+          const displaySpec = recovery && retrySettings ? { ...recovery.spec, likelihood: {
+              maxIterations: retrySettings.maxIterations, tolerance: retrySettings.tolerance,
+              starts: retrySettings.starts ?? recovery.issue.settings.starts,
+              uniquenessFloor: retrySettings.uniquenessFloor ?? recovery.issue.settings.uniquenessFloor,
+          } } : (action === 'run_efa' || action === 'impute_efa') && args.spec && typeof args.spec === 'object'
+              ? args.spec as import('@/lib/efa/types').EfaSpec : undefined;
+          if (displaySpec) {
+              let outcome: { jobId?: string };
+              try { outcome = JSON.parse(response); }
+              catch { return response; } // Preserve actionable controller rejections.
+              const id = liveActiveId();
+              if (outcome.jobId && id !== null) {
+                  const spec = displaySpec, seq = ++externalAnalysisSequence.current;
+                  setExternalEfaSpec({ seq, datasetId: id, spec });
+                  const vars = spec.items.map(item => item.column);
+                  setExternalSetup({ seq, datasetId: id, vars, selected: vars, label: spec.label, missing: action === 'impute_efa' ? 'mice' : spec.missing,
+                    measurements: Object.fromEntries(spec.items.map(item => [item.column, item.measurement ?? 'auto'])) });
+              }
+          }
+          return response;
+      },
+      pcaImputations: async (action, args) => {
+          const controller = pcaBatchController.current;
+          if (!controller) return 'PCA imputation controls are not ready yet.';
+          try {
+              if (action === 'start_pca_imputations') {
+                  const request = args as unknown as PcaBatchRequest;
+                  const summary = controller.start(request), id = liveActiveId(), seq = ++externalAnalysisSequence.current;
+                  setDecomposition('pca');
+                  setExternalPcaRun({ vars: request.variables, k: request.n_components ?? 3, standardize: request.standardize ?? true, missing: 'mice', label: request.label ?? '', seq });
+                  if (id !== null) setExternalSetup({ seq, datasetId: id, vars: request.variables, selected: request.variables, label: request.label ?? '', missing: 'mice', measurements: request.measurements ?? {} });
+                  return JSON.stringify(summary);
+              }
+              if (action === 'pca_imputation_job') return JSON.stringify(controller.inspect(String(args.jobId)));
+              if (action === 'cancel_pca_imputations') return JSON.stringify(controller.cancel(String(args.jobId)));
+              if (action === 'apply_pca_imputation') return JSON.stringify(controller.apply(String(args.jobId), Number(args.imputation)));
+              return 'Unknown PCA imputation action.';
+          } catch (error) { return JSON.stringify({ error: error instanceof Error ? error.message : String(error) }); }
       },
       setPlot: (opts) => {
           const t = latestTable();
@@ -4225,6 +4372,30 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           return `Iris demo loaded: ${table.nRows} flowers, columns: ${table.columns.join(', ')}. It is now active in 3D: petal length × petal width × sepal length, colored by species. Marker shape is available for the tour to demonstrate.`;
       },
 
+      analyzeDecomposition: async (opts) => {
+          const gate = analysisTable(), id = liveActiveId();
+          if (typeof gate === 'string') return JSON.stringify({ error: gate });
+          const variables = opts.variables ?? (analysisSetupView?.datasetId === id ? analysisSetupView.selected : []);
+          if (variables.length < 2) return JSON.stringify({ error: 'Select at least two items or provide their variable names.' });
+          try {
+              const method = opts.method ?? decomposition;
+              const sampleSpec = method === 'efa' ? adviceEfaSpec : null, splits = adviceSplits;
+              let input = gate.table;
+              if (sampleSpec) {
+                  const eligible = Array.from({ length: gate.full.nRows }, (_, row) => row).filter(row => !gate.mask || gate.mask[row]);
+                  const rows = new Set(fittingRows(eligible, sampleSpec, splits ?? []));
+                  input = subsetTable(gate.full, Array.from({ length: gate.full.nRows }, (_, row) => rows.has(row)));
+              }
+              const report = await analyzeItemsAsync(input, variables, { method,
+                  measurements: opts.measurements ?? (analysisSetupView?.datasetId === id ? analysisSetupView.measurements : {}),
+                  orders: opts.orders ?? (analysisSetupView?.datasetId === id ? analysisSetupView.orders : undefined), missing: opts.missing ?? (analysisSetupView?.datasetId === id ? analysisSetupView.missing : undefined), minimumPairN: sessionPolicy.rowAccess ? 0 : 5 });
+              if (liveActiveId() !== id || latestTable() !== gate.full || JSON.stringify(currentFilter()) !== JSON.stringify(gate.filter) || liveDisclosureFloor.current !== (sessionPolicy.rowAccess ? 0 : 5) ||
+                  (method === 'efa' && (liveAdviceScope.current.spec !== sampleSpec || liveAdviceScope.current.splits !== splits)))
+                  return JSON.stringify({ error: 'The fitting dataset, filter or access policy changed. Analyze the current items again.' });
+              return JSON.stringify(adviceForAssistant(report, sessionPolicy.rowAccess ? 0 : 5, opts.offset, opts.limit));
+          } catch { return JSON.stringify({ error: 'The selected items could not be assessed. Review their names, types and declared category orders.' }); }
+      },
+
       runPCA: (opts) => {
           const t = latestTable();
           if (!t) return 'No dataset loaded.';
@@ -4239,8 +4410,10 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const k = Math.min(Math.max(opts.n_components ?? 3, 1), 10);
           const standardizePCA = opts.standardize ?? true;
           setDecomposition('pca');
-          setExternalPcaRun(prev => ({ vars, k, standardize: standardizePCA, missing, label, seq: (prev?.seq ?? 0) + 1 }));
-          return handleRunPCA(vars, k, standardizePCA, label, missing, undefined, opts.measurements);
+          const seq = ++externalAnalysisSequence.current, id = liveActiveId();
+          setExternalPcaRun({ vars, k, standardize: standardizePCA, missing, label, seq, iterative: opts.iterative });
+          if (id !== null) setExternalSetup({ seq, datasetId: id, vars, selected: vars, label, missing, measurements: opts.measurements ?? {} });
+          return handleRunPCA(vars, k, standardizePCA, label, missing, undefined, opts.measurements, undefined, opts.iterative);
       },
 
       correlate: (colA, colB) => {
@@ -4249,9 +4422,8 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           const { table: t, note } = gate;
           const bad = [colA, colB].filter(c => !c || !numericColumns(t).includes(c));
           if (bad.length) return `Not numeric columns: ${bad.join(', ')}. Numeric: ${numericColumns(t).join(', ')}.`;
-          const { n, pearson, spearman } = correlation(t.data[colA], t.data[colB]);
-          if (pearson == null || !correlationAllowed(n, activePolicy)) return `Not enough complete pairs to correlate ${colA} and ${colB}${activePolicy.fullCategories ? ` (n=${n})` : ' (fewer than 5 in private mode)'}.`;
-          return `${colA} × ${colB}: Pearson r=${pearson.toFixed(3)}, Spearman rho=${spearman?.toFixed(3) ?? 'n/a'}, n=${n} (pairwise complete).${note}`;
+          const report = correlationReport(colA, colB, t.data[colA], t.data[colB], activePolicy);
+          return report.ok ? report.message + note : report.message;
       },
 
       // Both go through the ONE analysis gate (validator → executor → pane →
@@ -4713,6 +4885,40 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       );
   }
 
+  const efaRecovery = efaJob && efaJob.id !== dismissedConvergenceJob ? efaController.convergenceRetry(efaJob.id) : undefined;
+  const recoveryIssue = pendingPcaConvergence?.result.missing.convergenceIssue ?? efaRecovery?.issue ?? null;
+  const retryConvergence = async (settings: ConvergenceRetrySettings) => {
+    setConvergenceBusy(true);
+    try {
+      if (pendingPcaConvergence) {
+        const pending = pendingPcaConvergence; setPendingPcaConvergence(null);
+        setDecomposition('pca');
+        const seq = ++externalAnalysisSequence.current;
+        setExternalPcaRun({ vars: pending.vars, k: pending.k, standardize: pending.standardize, missing: pending.missing, label: pending.label, seq, iterative: settings });
+        setExternalSetup({ seq, datasetId: pending.target.datasetId, vars: pending.vars, selected: pending.vars,
+          label: pending.label, missing: pending.missing, measurements: pending.measurements });
+        await paintYield();
+        const message = handleRunPCA(pending.vars, pending.k, pending.standardize, pending.label, pending.missing,
+          pending.target, pending.measurements, undefined, settings, false, pending.filterKey);
+        if (!message.startsWith('{')) setUploadStatus(message);
+      } else if (efaJob && efaRecovery) {
+        const spec = { ...efaRecovery.spec, likelihood: { maxIterations: settings.maxIterations, tolerance: settings.tolerance,
+          starts: settings.starts ?? efaRecovery.issue.settings.starts, uniquenessFloor: settings.uniquenessFloor ?? efaRecovery.issue.settings.uniquenessFloor } };
+        const seq = ++externalAnalysisSequence.current, id = liveActiveId();
+        const retried = efaController.retryNonconverged(efaJob.id, settings);
+        setDecomposition('efa');
+        if (id !== null) {
+          setExternalEfaSpec({ datasetId: id, seq, spec });
+          const vars = spec.items.map(item => item.column);
+          setExternalSetup({ seq, datasetId: id, vars, selected: vars, label: spec.label, missing: spec.missing,
+            measurements: Object.fromEntries(spec.items.map(item => [item.column, item.measurement ?? 'auto'])) });
+        }
+        setRecoveredEfaRun(await retried.completion);
+      }
+    } catch (error) { setUploadStatus(error instanceof Error ? error.message : 'Retry failed.'); }
+    finally { setConvergenceBusy(false); }
+  };
+
   // We construct the views array for TmuxGrid: active view is always first, then pinned views
 
   return (
@@ -5034,21 +5240,23 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               </SidebarSection>
 
               <SidebarSection title="PCA / EFA" step={3} hasBorder theme={theme} guide="pca" order={3}>
-                <DecompositionSetup key={activeId} table={processedData} fittingTable={analysisData ?? processedData}
-                  method={decomposition} onMethodChange={setDecomposition} externalRun={externalPcaRun}
-                  ownedScores={(activeDataset?.efa?.runs ?? []).flatMap(r => r.scoreColumns)}>
-                  {setup => decomposition === 'efa'
-                    ? <EfaPanel service={efaService} table={processedData} itemTable={analysisData ?? processedData}
-                        state={activeDataset?.efa ?? emptyEfaState()} actions={efaController} job={efaJob}
-                        contextKey={JSON.stringify(rowFilter)} setup={{ ...setup, missing: setup.missing === 'iterative' ? 'median' : setup.missing }} />
+                <DecompositionSetup key={activeId} table={processedData} fittingTable={adviceTable ?? processedData}
+                  method={decomposition} onMethodChange={setDecomposition} externalRun={externalSetup?.datasetId === activeId ? externalSetup : null}
+                  ownedScores={(activeDataset?.efa?.runs ?? []).flatMap(r => r.scoreColumns)}
+                  completedItems={(activeDataset?.efa?.runs ?? []).flatMap(r => (r.completions ?? []).flatMap(c => Object.values(c.columns)))}
+                  contextKey={JSON.stringify(rowFilter)} minimumPairN={sessionPolicy.rowAccess ? 0 : 5} onSetupChange={rememberAnalysisSetup}>
+                  {(setup, bindings) => decomposition === 'efa'
+                    ? <EfaPanel service={efaService} table={processedData} itemTable={adviceTable ?? processedData}
+                        state={activeDataset?.efa ?? emptyEfaState()} actions={efaController} job={efaJob} onOrdersChange={bindings.onOrdersChange}
+                        contextKey={JSON.stringify(rowFilter)} recoveredRunId={recoveredEfaRun} externalSpec={externalEfaSpec?.datasetId === activeId ? externalEfaSpec : null} setup={{ ...setup, missing: setup.missing === 'iterative' ? 'median' : setup.missing }} />
                     : <PCASection table={processedData} theme={theme} lastRun={pcaInfo} runs={activeDataset?.pcaRuns ?? []}
-                        setup={setup} contextKey={JSON.stringify(rowFilter)} externalRun={externalPcaRun}
+                        setup={{ ...setup, missing: setup.missing === 'fiml' ? 'median' : setup.missing }} contextKey={JSON.stringify(rowFilter)} externalRun={externalPcaRun}
                         onImpute={handlePcaImputation} onApplyImputation={applyPcaImputation}
-                        onRun={async (vars, k, std, label, missing, measurements) => {
+                        onRun={async (vars, k, std, label, missing, measurements, iterative) => {
                           const id = liveActiveId(), table = latestTable();
                           if (id === null || !table) return;
                           const expected = { datasetId: id, table };
-                          await paintYield(); handleRunPCA(vars, k, std, label, missing, expected, measurements);
+                          await paintYield(); handleRunPCA(vars, k, std, label, missing, expected, measurements, undefined, iterative);
                         }} />}
                 </DecompositionSetup>
               </SidebarSection>
@@ -5682,6 +5890,14 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
           </div>
         );
       })()}
+      <ConvergenceDialog issue={recoveryIssue} theme={theme} disabled={convergenceBusy}
+        onRetry={settings => void retryConvergence(settings)}
+        onDismiss={dismissConvergence}
+        onKeep={pendingPcaConvergence ? () => {
+          const pending = pendingPcaConvergence; setPendingPcaConvergence(null);
+          setUploadStatus(handleRunPCA(pending.vars, pending.k, pending.standardize, pending.label, pending.missing,
+            pending.target, pending.measurements, pending.result, pending.result.missing.iterativeSettings, true, pending.filterKey));
+        } : undefined} />
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} theme={theme} />
 
       {/* Blanking declared missing-value codes. Replaces the active dataset's

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { numericTails, correlationAllowed, groupComparisonReport } from '../aggregatePolicy';
+import { numericTails, correlationAllowed, correlationReport, groupComparisonReport } from '../aggregatePolicy';
 import { policyFor } from '../dataPolicy';
 
 const priv = policyFor('private');
@@ -29,6 +29,47 @@ describe('correlationAllowed', () => {
     expect(correlationAllowed(4, priv)).toBe(false);
     expect(correlationAllowed(5, priv)).toBe(true);
     expect(correlationAllowed(2, open)).toBe(true);
+  });
+});
+
+describe('correlationReport', () => {
+  const x = [1, 2, 3, 4, 5];
+
+  it('reports both xi directions and their interpretation alongside the existing coefficients', () => {
+    const report = correlationReport('age', 'score', x, x, priv);
+    expect(report.ok).toBe(true);
+    expect(report.message).toContain('Pearson r=1.000, Spearman rho=1.000');
+    expect(report.message).toContain('Chatterjee xi(age → score)=0.500, xi(score → age)=0.500');
+    expect(report.message).toContain('n=5 (pairwise complete)');
+    expect(report.message).toContain('dependence of Y on X, not causation');
+    expect(report.message).toContain('predictor ties are averaged over all orderings');
+    expect(report.message).toContain('No p-value or confidence interval is computed');
+  });
+
+  it('applies the private floor to complete pairs and discloses neither their exact count nor coefficients', () => {
+    const report = correlationReport('age', 'score', x, [1, 2, 3, 4, null], priv);
+    expect(report.ok).toBe(false);
+    expect(report.message).toContain('fewer than 5 in private mode');
+    expect(report.message).not.toMatch(/n=|xi\(|Pearson|constant/);
+    expect(report).not.toHaveProperty('correlation');
+  });
+
+  it('allows three complete pairs in open mode but clearly rejects smaller samples', () => {
+    expect(correlationReport('x', 'y', x, [1, 2, 3, null, null], open).ok).toBe(true);
+    const report = correlationReport('x', 'y', x, [1, 2, null, null, null], open);
+    expect(report.ok).toBe(false);
+    expect(report.message).toContain('n=2; at least 3 required');
+  });
+
+  it('describes constant columns without falsely claiming too few observations', () => {
+    const report = correlationReport('constant', 'score', [7, 7, 7, 7, 7], x, priv);
+    expect(report.ok).toBe(true);
+    expect(report.message).toContain('Pearson r=undefined, Spearman rho=undefined');
+    expect(report.message).toContain('xi(constant → score)=0.000');
+    expect(report.message).toContain('xi(score → constant)=undefined (constant response)');
+    expect(report.message).toContain('n=5');
+    expect(report.message).not.toContain('Not enough');
+    expect(report.message).not.toContain('fewer than 5');
   });
 });
 

@@ -7,6 +7,8 @@ import type { DataTable } from "../table";
 import { prepareEfa } from "./prepare";
 import { estimatePair } from "./correlation";
 import { fitEfa, fitEfaSteps, scoreEfa, type FitRotationTask, type FitTask, type FitContinuation } from "./fit";
+import { conditionalCompletionPrepared } from './maximum-likelihood';
+import { convergenceIssueSummary } from '../convergence';
 import {
   parallelAnalysis,
   parallelObserved,
@@ -76,6 +78,7 @@ export type WorkerRequest =
       companion?: CompanionSession;
     }
   | { id: number; op: "score"; result: EfaResult }
+  | { id: number; op: "complete"; result: EfaResult }
   | {
       id: number;
       op: "parallel";
@@ -218,13 +221,14 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
             value = { rotationContext };
           } else value = fitEfa(prepared, request.correlation, request.spec, progress, request.extraction);
           break;
+        case "complete":
         case "score":
           if (prepared.fingerprint !== request.result.provenance.inputSha256)
             throw new EfaError(
               "changed-data",
               "The selected responses or row membership changed since this fit. Refit before adding scores.",
             );
-          value = scoreEfa(prepared, request.result);
+          value = request.op === 'complete' ? conditionalCompletionPrepared(prepared, request.result) : scoreEfa(prepared, request.result);
           break;
         case "parallel":
           value = parallelAnalysis(
@@ -249,6 +253,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         code: error instanceof EfaError ? error.code : "worker",
         message: error instanceof Error ? error.message : String(error),
         diagnostics: error instanceof EfaError ? error.diagnostics : [],
+        convergenceIssue: error instanceof EfaError && error.convergenceIssue ? convergenceIssueSummary(error.convergenceIssue) : undefined,
       },
     });
   }

@@ -121,6 +121,17 @@ function harness(slow = false) {
   return { service, workers, completed, estimatedPairs };
 }
 
+it('keeps original incomplete respondents while fitting each ordinal MICE completion with Gaussian ML', async () => {
+  const h = harness(), rows = Array.from({ length: fixture.table.nRows }, (_, i) => i);
+  const candidate: EfaSpec = { ...spec, extraction: 'ml', correlation: 'pearson', missing: 'complete', likelihood: { starts: 1 } };
+  const result = await h.service.impute(fixture.table, candidate, rows, { ...fixture.options, imputations: 2, iterations: 2 }).promise;
+  expect(result.fittingRows).toEqual(rows);
+  expect(result.missingPositions.length).toBeGreaterThan(0);
+  expect(result.completed).toBe(2);
+  expect(result.fits.every(fit => fit.result.extraction.estimator === 'ml' && fit.result.likelihood?.kind === 'ml')).toBe(true);
+  expect(h.workers.every(worker => worker.terminated)).toBe(true);
+});
+
 it("retains the original correlation pool through repeated exclusions and reinclusion, but never across changed rows", async () => {
   const table = JSON.parse(readFileSync(new URL("./fixtures/efa/mixed.input.json", import.meta.url), "utf8")) as DataTable & { categories: number[][] };
   const full: EfaSpec = { ...spec, items: table.columns.map((column, i) => ({ column, categories: table.categories[i], reverse: false })) };

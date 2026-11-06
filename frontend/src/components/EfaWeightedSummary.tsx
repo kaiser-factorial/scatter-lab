@@ -7,8 +7,14 @@ const value = (number: number | null | undefined, digits = 3) =>
 export function EfaWeightedSummary({ result }: { result: EfaResult }) {
   const weighted = result.weighted;
   const robust = weighted?.robust;
+  const likelihood = result.likelihood;
   const hasTest = !!robust && robust.test.df > 0;
   const metrics = [
+    ...(likelihood ? [
+      { label: "Log likelihood", value: value(likelihood.logLikelihood) },
+      { label: "AIC", value: value(likelihood.aic) },
+      { label: "BIC", value: value(likelihood.bic) },
+    ] : []),
     ...(weighted
       ? [
           {
@@ -46,6 +52,7 @@ export function EfaWeightedSummary({ result }: { result: EfaResult }) {
           ))}
         </dl>
         {robust && <span className="opacity-75">Robust SE · full rotation</span>}
+        {likelihood && <span className="opacity-75">{likelihood.kind === "fiml" ? "FIML" : "Complete-data ML"} · {result.extraction.convergence.converged ? "converged" : "did not converge"}</span>}
       </div>
       {robust && !hasTest && (
         <p className="mt-1">Just-identified model; corrected χ² and p are unavailable.</p>
@@ -77,6 +84,11 @@ export function EfaWeightedSummary({ result }: { result: EfaResult }) {
           )}
         </details>
       )}
+      {likelihood && <details className="mt-2"><summary className="w-fit cursor-pointer font-bold">Likelihood and numerical details</summary>
+        <p className="mt-2">{likelihood.nRows.toLocaleString()} informative rows · {likelihood.observedCells.toLocaleString()} {result.imputation ? `input cells after ${result.imputation.method} fill` : "observed cells"} · {likelihood.patternCount.toLocaleString()} missingness patterns.</p>
+        <p>Selected start {likelihood.selectedStart}/{likelihood.starts.length}; {result.extraction.convergence.iterations} iterations; gradient {value(result.extraction.convergence.gradient, 8)}.</p>
+        <p>Gaussian model likelihood in the original numeric units. Conditional completed values are separate predictions. Standard errors and a likelihood-ratio model test are not computed here.</p>
+      </details>}
     </section>
   );
 }

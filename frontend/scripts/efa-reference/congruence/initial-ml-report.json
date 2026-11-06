@@ -1,0 +1,2386 @@
+{
+  "recordedAt": "2026-11-06T11:55:36.123Z",
+  "scope": "Finite independently generated R fixture agreement; no proof of general numerical or optimizer equivalence. Factor alignment is signed permutation only. Largest synthetic excluded.",
+  "runtime": "v26.8.1",
+  "summary": {
+    "passed": 18,
+    "mismatch": 7,
+    "nativeError": 0,
+    "referenceError": 9
+  },
+  "metricBounds": {
+    "common covariance max abs": {
+      "maximumObservedError": 4.847261759199917e-7,
+      "cases": 15,
+      "failures": []
+    },
+    "signed-permuted pattern max abs": {
+      "maximumObservedError": 0.0011745894557157882,
+      "cases": 15,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "minres",
+          "missing": "median",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0010758576999406883,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "minres",
+          "missing": "pairwise",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0011657363932362358,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "ml",
+          "missing": "mean",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.001052969586409866,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "ml",
+          "missing": "median",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0010169373265234705,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "ml",
+          "missing": "fiml",
+          "rotation": "promax",
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0011745894557157882,
+          "limit": 0.001,
+          "passed": false
+        }
+      ]
+    },
+    "signed-permuted Phi max abs": {
+      "maximumObservedError": 0.00011305037866282674,
+      "cases": 15,
+      "failures": []
+    },
+    "1 - minimum Tucker congruence": {
+      "maximumObservedError": 0.000001068214830923786,
+      "cases": 15,
+      "failures": []
+    },
+    "R rotation convergence": {
+      "maximumObservedError": 0,
+      "cases": 15,
+      "failures": []
+    },
+    "native extractor convergence": {
+      "maximumObservedError": 0,
+      "cases": 15,
+      "failures": []
+    },
+    "native rotation convergence": {
+      "maximumObservedError": 0,
+      "cases": 15,
+      "failures": []
+    },
+    "correlation max abs": {
+      "maximumObservedError": 1.2212453270876722e-15,
+      "cases": 6,
+      "failures": []
+    },
+    "MINRES objective abs": {
+      "maximumObservedError": 2.8935014106945545e-13,
+      "cases": 6,
+      "failures": []
+    },
+    "raw fitted covariance max abs": {
+      "maximumObservedError": 3.6214784793209276e-7,
+      "cases": 9,
+      "failures": []
+    },
+    "fitted means max abs": {
+      "maximumObservedError": 2.2516684916595864e-7,
+      "cases": 9,
+      "failures": []
+    },
+    "residual variances max abs": {
+      "maximumObservedError": 5.866401446841252e-7,
+      "cases": 9,
+      "failures": []
+    },
+    "log likelihood per row abs": {
+      "maximumObservedError": 5.654025396021704e-13,
+      "cases": 9,
+      "failures": []
+    },
+    "AIC abs": {
+      "maximumObservedError": 6.784830475226045e-10,
+      "cases": 9,
+      "failures": []
+    },
+    "BIC abs": {
+      "maximumObservedError": 6.784830475226045e-10,
+      "cases": 9,
+      "failures": []
+    },
+    "parameter count": {
+      "maximumObservedError": 0,
+      "cases": 9,
+      "failures": []
+    },
+    "R extractor convergence": {
+      "maximumObservedError": 0,
+      "cases": 9,
+      "failures": []
+    },
+    "conditional completion max abs": {
+      "maximumObservedError": 4.910087025855603e-7,
+      "cases": 3,
+      "failures": []
+    },
+    "PCA eigenvalues max abs": {
+      "maximumObservedError": 0.0011080542178110164,
+      "cases": 10,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0004414324631709654,
+          "limit": 1e-7,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0011080542178110164,
+          "limit": 1e-7,
+          "passed": false
+        }
+      ]
+    },
+    "PCA displayed vector max abs (rounded .001)": {
+      "maximumObservedError": 0.00048193785478678475,
+      "cases": 10,
+      "failures": []
+    },
+    "PCA sampled scores max abs": {
+      "maximumObservedError": 0.0031908982505708394,
+      "cases": 10,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0015646081268729795,
+          "limit": 0.000001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0031908982505708394,
+          "limit": 0.000001,
+          "passed": false
+        }
+      ]
+    },
+    "iterative PCA completion max abs": {
+      "maximumObservedError": 0.00811789596045287,
+      "cases": 2,
+      "failures": [
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "iterative PCA completion max abs",
+          "error": 0.0058036742702674005,
+          "limit": 0.00001,
+          "passed": false
+        },
+        {
+          "dataset": "normal-mcar",
+          "method": "pca",
+          "missing": "iterative",
+          "metric": "iterative PCA completion max abs",
+          "error": 0.00811789596045287,
+          "limit": 0.00001,
+          "passed": false
+        }
+      ]
+    }
+  },
+  "results": [
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.8480000000000025,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.8480000000000025,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "complete",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 2.8480000000000025,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 4.802,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 4.802,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "mean",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 4.802,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 3.4954388467012265e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0010758576999406883,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.00011305037866282674,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 0.0000010116222628475668,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.2212453270876722e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.8935014106945545e-13,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 6,
+          "objective": 0.008614889200342937,
+          "gradient": 2.227776332969824e-9,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 109,
+          "objective": 1.9554998736068951,
+          "gradient": 0
+        }
+      },
+      "status": "mismatch",
+      "nativeMs": 28.306584000000008,
+      "referenceSeconds": 0.02599999999999625,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 3.495438847256338e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 3.665228679450294e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 2.1142210981928145e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 8.859579736508749e-14,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.2212453270876722e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.8935014106945545e-13,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 6,
+          "objective": 0.008614889200342937,
+          "gradient": 2.227776332969824e-9,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 18,
+          "objective": 0.004455772247899217,
+          "gradient": 6.218394413924164e-9,
+          "maxIterations": 4000
+        }
+      },
+      "status": "passed",
+      "nativeMs": 10.142334000000005,
+      "referenceSeconds": 0.02599999999999625,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "median",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 3.4954388455910035e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00006507238637915025,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 2.9386614253112953e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.2212453270876722e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 2.8935014106945545e-13,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 6,
+          "objective": 0.008614889200342937,
+          "gradient": 2.227776332969824e-9,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 330,
+          "objective": -2.704269345753862,
+          "gradient": 0
+        }
+      },
+      "status": "passed",
+      "nativeMs": 17.624042000000003,
+      "referenceSeconds": 0.02599999999999625,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.7809292740533778e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0011657363932362358,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.00007864852879757578,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 0.0000010551596991703605,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.731390196826112e-14,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 7,
+          "objective": 0.00838229510228402,
+          "gradient": 4.258743904893652e-10,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 151,
+          "objective": 1.8618791884684647,
+          "gradient": 0
+        }
+      },
+      "status": "mismatch",
+      "nativeMs": 7.134375000000006,
+      "referenceSeconds": 0.029000000000003467,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.7809292673920396e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 1.6914959755087722e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 8.755585700903623e-9,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 1.3433698597964394e-14,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.731390196826112e-14,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 7,
+          "objective": 0.00838229510228402,
+          "gradient": 4.258743904893652e-10,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 109,
+          "objective": 0.0052300691272654295,
+          "gradient": 9.243324964517775e-9,
+          "maxIterations": 4000
+        }
+      },
+      "status": "passed",
+      "nativeMs": 8.443083000000001,
+      "referenceSeconds": 0.029000000000003467,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "minres",
+      "missing": "pairwise",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.7809292662818166e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00007344685908794446,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 3.315832497463589e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "correlation max abs",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "passed": true
+        },
+        {
+          "metric": "MINRES objective abs",
+          "error": 3.731390196826112e-14,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 7,
+          "objective": 0.00838229510228402,
+          "gradient": 4.258743904893652e-10,
+          "maxIterations": 500
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 331,
+          "objective": -2.7059805127991075,
+          "gradient": 0
+        }
+      },
+      "status": "passed",
+      "nativeMs": 8.219915999999998,
+      "referenceSeconds": 0.029000000000003467,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "complete",
+      "rotation": "promax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 3.271000000000001,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "complete",
+      "rotation": "oblimin",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 3.271000000000001,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "complete",
+      "rotation": "varimax",
+      "status": "reference-error",
+      "checks": [],
+      "nativeMs": 0,
+      "referenceSeconds": 3.271000000000001,
+      "error": "fit$convergence is not TRUE"
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "mean",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 2.2022828505274816e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.001052969586409866,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.00010830002371287062,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 9.680522392585544e-7,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 2.9108482735296093e-8,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 1.6042722705833512e-13,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 6.508562311324795e-8,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 1.5158245029548805e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 27,
+          "objective": 10.06986954790102,
+          "gradient": 1.6401131783065163e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 150,
+          "objective": 1.9557449808312823,
+          "gradient": 0
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 20,
+            "objective": 10.069869547901035,
+            "gradient": 6.422095035910995e-8
+          },
+          {
+            "converged": true,
+            "iterations": 27,
+            "objective": 10.06986954790102,
+            "gradient": 1.6401131783065163e-8
+          },
+          {
+            "converged": true,
+            "iterations": 31,
+            "objective": 10.069869547901027,
+            "gradient": 3.306507352363042e-8
+          }
+        ]
+      },
+      "status": "mismatch",
+      "nativeMs": 13.907499999999999,
+      "referenceSeconds": 0.10099999999999909,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "mean",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 2.2022828449763665e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 2.19062629147615e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 8.703471388038508e-9,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 4.440892098500626e-16,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 2.9108482735296093e-8,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 1.6042722705833512e-13,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 6.508562311324795e-8,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 1.5158245029548805e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 27,
+          "objective": 10.06986954790102,
+          "gradient": 1.6401131783065163e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 21,
+          "objective": 0.004693735913476174,
+          "gradient": 6.334730752394816e-9,
+          "maxIterations": 4000
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 20,
+            "objective": 10.069869547901035,
+            "gradient": 6.422095035910995e-8
+          },
+          {
+            "converged": true,
+            "iterations": 27,
+            "objective": 10.06986954790102,
+            "gradient": 1.6401131783065163e-8
+          },
+          {
+            "converged": true,
+            "iterations": 31,
+            "objective": 10.069869547901027,
+            "gradient": 3.306507352363042e-8
+          }
+        ]
+      },
+      "status": "passed",
+      "nativeMs": 4.130833000000024,
+      "referenceSeconds": 0.10099999999999909,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "mean",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 2.2022828505274816e-8,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00006302624332060747,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 2.764079742867409e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 2.9108482735296093e-8,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 1.6042722705833512e-13,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 6.508562311324795e-8,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 1.5158245029548805e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 1.8189894035458565e-12,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 27,
+          "objective": 10.06986954790102,
+          "gradient": 1.6401131783065163e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 273,
+          "objective": -2.7034273397364714,
+          "gradient": 0
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 20,
+            "objective": 10.069869547901035,
+            "gradient": 6.422095035910995e-8
+          },
+          {
+            "converged": true,
+            "iterations": 27,
+            "objective": 10.06986954790102,
+            "gradient": 1.6401131783065163e-8
+          },
+          {
+            "converged": true,
+            "iterations": 31,
+            "objective": 10.069869547901027,
+            "gradient": 3.306507352363042e-8
+          }
+        ]
+      },
+      "status": "passed",
+      "nativeMs": 9.095416999999998,
+      "referenceSeconds": 0.10099999999999909,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "median",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 4.847261759199917e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0010169373265234705,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.0000033194716879680897,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 9.048232156860792e-7,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 3.6214784793209276e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 4.873879078104437e-14,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 5.866401446841252e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 5.654025396021704e-13,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 6.784830475226045e-10,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 6.784830475226045e-10,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 25,
+          "objective": 10.070940382048336,
+          "gradient": 8.47114857312666e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 151,
+          "objective": 1.9552375873671681,
+          "gradient": 0
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 19,
+            "objective": 10.070940382048356,
+            "gradient": 9.279223704083961e-8
+          },
+          {
+            "converged": true,
+            "iterations": 25,
+            "objective": 10.070940382048336,
+            "gradient": 8.47114857312666e-8
+          },
+          {
+            "converged": true,
+            "iterations": 31,
+            "objective": 10.070940382048336,
+            "gradient": 4.7860407666651855e-8
+          }
+        ]
+      },
+      "status": "mismatch",
+      "nativeMs": 8.405167000000006,
+      "referenceSeconds": 0.07900000000000063,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "median",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 4.847261758089694e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 4.4557125522537433e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 1.0564809915791784e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 8.404388296412435e-14,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 3.6214784793209276e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 4.873879078104437e-14,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 5.866401446841252e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 5.654025396021704e-13,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 6.784830475226045e-10,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 6.784830475226045e-10,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 25,
+          "objective": 10.070940382048336,
+          "gradient": 8.47114857312666e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 21,
+          "objective": 0.004635351511119983,
+          "gradient": 6.111006681662234e-9,
+          "maxIterations": 4000
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 19,
+            "objective": 10.070940382048356,
+            "gradient": 9.279223704083961e-8
+          },
+          {
+            "converged": true,
+            "iterations": 25,
+            "objective": 10.070940382048336,
+            "gradient": 8.47114857312666e-8
+          },
+          {
+            "converged": true,
+            "iterations": 31,
+            "objective": 10.070940382048336,
+            "gradient": 4.7860407666651855e-8
+          }
+        ]
+      },
+      "status": "passed",
+      "nativeMs": 3.939249999999987,
+      "referenceSeconds": 0.07900000000000063,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "median",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 4.847261758644805e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00006377406374891148,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 2.8238089644361253e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 3.6214784793209276e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 4.873879078104437e-14,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 5.866401446841252e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 5.654025396021704e-13,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 6.784830475226045e-10,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 6.784830475226045e-10,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 25,
+          "objective": 10.070940382048336,
+          "gradient": 8.47114857312666e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 322,
+          "objective": -2.7040343860329497,
+          "gradient": 0
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 19,
+            "objective": 10.070940382048356,
+            "gradient": 9.279223704083961e-8
+          },
+          {
+            "converged": true,
+            "iterations": 25,
+            "objective": 10.070940382048336,
+            "gradient": 8.47114857312666e-8
+          },
+          {
+            "converged": true,
+            "iterations": 31,
+            "objective": 10.070940382048336,
+            "gradient": 4.7860407666651855e-8
+          }
+        ]
+      },
+      "status": "passed",
+      "nativeMs": 8.069500000000005,
+      "referenceSeconds": 0.07900000000000063,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "fiml",
+      "rotation": "promax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.4586325647325538e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.0011745894557157882,
+          "limit": 0.001,
+          "passed": false
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0.000031444810045688776,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 0.000001068214830923786,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 3.073253036500745e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 2.2516684916595864e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 2.1611513767449964e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 4.395891058569153e-14,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 5.275069270282984e-11,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 5.275069270282984e-11,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "conditional completion max abs",
+          "error": 4.910087021414711e-7,
+          "limit": 0.0005,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 32,
+          "objective": 8.65192471975243,
+          "gradient": 7.424818392443022e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 163,
+          "objective": 1.8712104227634059,
+          "gradient": 0
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 24,
+            "objective": 8.651924719752442,
+            "gradient": 8.62826936796554e-8
+          },
+          {
+            "converged": true,
+            "iterations": 33,
+            "objective": 8.651924719752484,
+            "gradient": 8.595101515791274e-8
+          },
+          {
+            "converged": true,
+            "iterations": 32,
+            "objective": 8.65192471975243,
+            "gradient": 7.424818392443022e-8
+          }
+        ]
+      },
+      "status": "mismatch",
+      "nativeMs": 67.40029199999998,
+      "referenceSeconds": 0.26399999999999935,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "fiml",
+      "rotation": "oblimin",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.4586325669529998e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 1.3312481372818041e-7,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 2.4992199532114512e-8,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 2.55351295663786e-15,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 3.073253036500745e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 2.2516684916595864e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 2.1611513767449964e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 4.395891058569153e-14,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 5.275069270282984e-11,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 5.275069270282984e-11,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "conditional completion max abs",
+          "error": 4.910087025855603e-7,
+          "limit": 0.0005,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 32,
+          "objective": 8.65192471975243,
+          "gradient": 7.424818392443022e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 183,
+          "objective": 0.005750776729807398,
+          "gradient": 9.706425927074278e-9,
+          "maxIterations": 4000
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 24,
+            "objective": 8.651924719752442,
+            "gradient": 8.62826936796554e-8
+          },
+          {
+            "converged": true,
+            "iterations": 33,
+            "objective": 8.651924719752484,
+            "gradient": 8.595101515791274e-8
+          },
+          {
+            "converged": true,
+            "iterations": 32,
+            "objective": 8.65192471975243,
+            "gradient": 7.424818392443022e-8
+          }
+        ]
+      },
+      "status": "passed",
+      "nativeMs": 9.373708000000022,
+      "referenceSeconds": 0.26399999999999935,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "ml",
+      "missing": "fiml",
+      "rotation": "varimax",
+      "checks": [
+        {
+          "metric": "common covariance max abs",
+          "error": 1.4586325680632228e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted pattern max abs",
+          "error": 0.00007159729031291917,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "signed-permuted Phi max abs",
+          "error": 0,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "1 - minimum Tucker congruence",
+          "error": 3.0627939073823995e-9,
+          "limit": 0.00001,
+          "passed": true
+        },
+        {
+          "metric": "R rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "native rotation convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "raw fitted covariance max abs",
+          "error": 3.073253036500745e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "fitted means max abs",
+          "error": 2.2516684916595864e-7,
+          "limit": 0.0001,
+          "passed": true
+        },
+        {
+          "metric": "residual variances max abs",
+          "error": 2.1611513767449964e-7,
+          "limit": 0.0002,
+          "passed": true
+        },
+        {
+          "metric": "log likelihood per row abs",
+          "error": 4.395891058569153e-14,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "AIC abs",
+          "error": 5.275069270282984e-11,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "BIC abs",
+          "error": 5.275069270282984e-11,
+          "limit": 0.001,
+          "passed": true
+        },
+        {
+          "metric": "parameter count",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "R extractor convergence",
+          "error": 0,
+          "limit": 0,
+          "passed": true
+        },
+        {
+          "metric": "conditional completion max abs",
+          "error": 4.910087008092034e-7,
+          "limit": 0.0005,
+          "passed": true
+        }
+      ],
+      "convergence": {
+        "extraction": {
+          "converged": true,
+          "iterations": 32,
+          "objective": 8.65192471975243,
+          "gradient": 7.424818392443022e-8,
+          "maxIterations": 2000
+        },
+        "rotation": {
+          "converged": true,
+          "iterations": 317,
+          "objective": -2.6510598151695492,
+          "gradient": 0
+        },
+        "starts": [
+          {
+            "converged": true,
+            "iterations": 24,
+            "objective": 8.651924719752442,
+            "gradient": 8.62826936796554e-8
+          },
+          {
+            "converged": true,
+            "iterations": 33,
+            "objective": 8.651924719752484,
+            "gradient": 8.595101515791274e-8
+          },
+          {
+            "converged": true,
+            "iterations": 32,
+            "objective": 8.65192471975243,
+            "gradient": 7.424818392443022e-8
+          }
+        ]
+      },
+      "status": "passed",
+      "nativeMs": 8.857208000000014,
+      "referenceSeconds": 0.26399999999999935,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "complete",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 2.6645352591003757e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004803145515880347,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 2.6645352591003757e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 4.365875000000017,
+      "referenceSeconds": 0.0009999999999976694,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "complete",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 7.993605777301127e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00047764530839519703,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 6.217248937900877e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.593915999999979,
+      "referenceSeconds": 0.0010000000000047748,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "mean",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 5.329070518200751e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004422301169935139,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 4.6629367034256575e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 8.668124999999975,
+      "referenceSeconds": 0.0030000000000001137,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "mean",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 6.217248937900877e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00048193785478678475,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 7.049916206369744e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 3.6060410000000047,
+      "referenceSeconds": 0.001999999999995339,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "median",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 2.886579864025407e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004651184028187094,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.551115123125783e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 4.1502909999999815,
+      "referenceSeconds": 0.0020000000000024443,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "median",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 1.9984014443252818e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.000466036236582007,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.329070518200751e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 2.5993749999999523,
+      "referenceSeconds": 0.0009999999999976694,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "pairwise",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 5.773159728050814e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004624229083157738,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 5.773159728050814e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 5.778165999999999,
+      "referenceSeconds": 0.0040000000000048885,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "pairwise",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 4.440892098500626e-15,
+          "limit": 1e-7,
+          "passed": true
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.00041909971104375776,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 7.771561172376096e-15,
+          "limit": 0.000001,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "nativeMs": 2.822084000000018,
+      "referenceSeconds": 0.001999999999995339,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "iterative",
+      "standardize": true,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0004414324631709654,
+          "limit": 1e-7,
+          "passed": false
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.0004723937540919154,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0015646081268729795,
+          "limit": 0.000001,
+          "passed": false
+        },
+        {
+          "metric": "iterative PCA completion max abs",
+          "error": 0.0058036742702674005,
+          "limit": 0.00001,
+          "passed": false
+        }
+      ],
+      "status": "mismatch",
+      "nativeMs": 31.46183400000001,
+      "referenceSeconds": 0.07900000000000063,
+      "referenceWarnings": []
+    },
+    {
+      "dataset": "normal-mcar",
+      "method": "pca",
+      "missing": "iterative",
+      "standardize": false,
+      "checks": [
+        {
+          "metric": "PCA eigenvalues max abs",
+          "error": 0.0011080542178110164,
+          "limit": 1e-7,
+          "passed": false
+        },
+        {
+          "metric": "PCA displayed vector max abs (rounded .001)",
+          "error": 0.000435966951445127,
+          "limit": 0.000501,
+          "passed": true
+        },
+        {
+          "metric": "PCA sampled scores max abs",
+          "error": 0.0031908982505708394,
+          "limit": 0.000001,
+          "passed": false
+        },
+        {
+          "metric": "iterative PCA completion max abs",
+          "error": 0.00811789596045287,
+          "limit": 0.00001,
+          "passed": false
+        }
+      ],
+      "status": "mismatch",
+      "nativeMs": 44.16149999999999,
+      "referenceSeconds": 0.07099999999999795,
+      "referenceWarnings": []
+    }
+  ]
+}

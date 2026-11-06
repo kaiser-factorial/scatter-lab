@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DataTable } from '@/lib/table';
 import { numericColumnsOf } from '@/lib/profile';
 import { deriveRunLabel, isPCColumn, type MissingStrategy } from '@/lib/pca';
@@ -7,12 +7,17 @@ import { isIdentifierColumn } from '@/lib/defaults';
 import { inferMeasurement, type MeasurementChoice } from '@/lib/measurement';
 import { InfoTip } from './InfoTip';
 import { PanelChoiceButton } from './PanelChoiceButton';
+import { DecompositionAdvice } from './DecompositionAdvice';
+import type { AdvicePatch } from '@/lib/decomposition-advice';
+import type { OrdinalCategory } from '@/lib/efa/types';
 
 export type SharedAnalysisSetup = {
   label: string;
   selected: string[];
-  missing: MissingStrategy;
+  missing: MissingStrategy | 'fiml';
   measurements: Record<string, MeasurementChoice>;
+  orders?: Record<string, OrdinalCategory[]>;
+  advice?: { seq: number; patch: AdvicePatch };
 };
 export const MISSING_METHODS = [
   { value: 'pairwise', name: 'Pairwise deletion', info: 'Estimate each correlation or covariance from respondents observed on that pair. Pair sample sizes can differ. Incomplete rows have no PCA score.' },
@@ -20,28 +25,41 @@ export const MISSING_METHODS = [
   { value: 'mean', name: 'Column mean', info: 'Fit each column’s mean on the fitting sample. For ordered categorical items, map it to the nearest valid category (ties use the lower category); continuous columns retain the exact mean. Ordered text uses mean category rank.' },
   { value: 'median', name: 'Column median', info: 'Fit each column’s median on the fitting sample. Ordered categorical items use the lower middle observed category, so the fill is a valid category. Continuous columns use the ordinary numeric median, averaging the two middle values when needed.' },
   { value: 'mice', name: 'MICE', info: 'Generate multiple completed datasets with chained conditional models and fit each separately. This implementation uses ordered-category models. Review the separate fits; their results are not pooled standard errors.' },
+  { value: 'fiml', name: 'FIML', info: 'Fit an ML factor model directly to each respondent’s observed numeric values. Requires Maximum Likelihood extraction and Pearson/continuous-data treatment. FIML does not fill cells; model-based completed values can be saved separately after fitting. Available for EFA.' },
   { value: 'iterative', name: 'Iterative PCA', info: 'Reconstruct missing cells from a low-rank PCA model, keeping observed cells unchanged. Available for PCA only.' },
 ] as const;
 
-export function DecompositionSetup({ table, fittingTable = table, method, onMethodChange, externalRun, children, ownedScores = [] }: {
+export function DecompositionSetup({ table, fittingTable = table, method, onMethodChange, externalRun, children, ownedScores = [], completedItems = [], contextKey = '', minimumPairN = 0, onSetupChange }: {
   table: DataTable; fittingTable?: DataTable;
   method: 'pca' | 'efa'; onMethodChange: (method: 'pca' | 'efa') => void;
-  externalRun?: { seq: number; vars: string[]; label: string; missing: MissingStrategy } | null;
+  externalRun?: { seq: number; vars: string[]; label: string; missing: SharedAnalysisSetup['missing']; measurements?: Record<string, MeasurementChoice> } | null;
   ownedScores?: string[];
-  children: (setup: SharedAnalysisSetup) => ReactNode;
+  completedItems?: string[];
+  contextKey?: string;
+  minimumPairN?: number;
+  onSetupChange?: (setup: SharedAnalysisSetup) => void;
+  children: (setup: SharedAnalysisSetup, bindings: { onOrdersChange: (orders: Record<string, OrdinalCategory[]>) => void }) => ReactNode;
 }) {
   const scoreKey = ownedScores.join('\u0000');
+  const completedKey = completedItems.join('\u0000');
+  const completed = useMemo(() => new Set(completedKey.split('\u0000')), [completedKey]);
   const columns = useMemo(() => {
     const scores = new Set(scoreKey.split('\u0000'));
     return table.columns.filter(c => !isPCColumn(c) && c !== 'Cluster' && !scores.has(c));
   }, [table.columns, scoreKey]);
   const numeric = useMemo(() => new Set(numericColumnsOf(table)), [table]);
-  const [selected, setSelected] = useState<string[]>(() => columns.filter(c => numeric.has(c) && !isIdentifierColumn(c)));
-  const [label, setLabel] = useState('');
-  const [missing, setMissing] = useState<MissingStrategy>('median');
-  const [measurements, setMeasurements] = useState<Record<string, MeasurementChoice>>({});
+  const [selected, setSelected] = useState<string[]>(() => externalRun ? externalRun.vars.filter(c => columns.includes(c)) : columns.filter(c => numeric.has(c) && !isIdentifierColumn(c) && !completed.has(c)));
+  const [label, setLabel] = useState(externalRun?.label ?? '');
+  const [missing, setMissing] = useState<SharedAnalysisSetup['missing']>(externalRun?.missing ?? 'median');
+  const [measurements, setMeasurements] = useState<Record<string, MeasurementChoice>>(externalRun?.measurements ?? {});
+  const [orders, setOrders] = useState<Record<string, OrdinalCategory[]>>({});
+  const [advice, setAdvice] = useState<SharedAnalysisSetup['advice']>();
+  const adviceSeq = useRef(0);
+  const onOrdersChange = useCallback((next: Record<string, OrdinalCategory[]>) => {
+    setOrders(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
+  }, []);
   const [search, setSearch] = useState('');
-  const [labelTouched, setLabelTouched] = useState(false);
+  const [labelTouched, setLabelTouched] = useState(!!externalRun?.label);
   const anchor = useRef<{ column: string; checked: boolean } | null>(null);
   const [syncedSeq, setSyncedSeq] = useState(externalRun?.seq ?? 0);
   // An assistant-triggered run becomes the displayed setup. Render-time state
@@ -52,8 +70,11 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
     setLabel(externalRun.label);
     setLabelTouched(true);
     setMissing(externalRun.missing);
+    setMeasurements(externalRun.measurements ?? {});
+    setAdvice(undefined);
   }
   const liveSelected = useMemo(() => selected.filter(c => columns.includes(c)), [selected, columns]);
+  useEffect(() => { onSetupChange?.({ label, selected: liveSelected, missing, measurements, orders }); }, [label, liveSelected, missing, measurements, orders, onSetupChange]);
   const visible = useMemo(() => columns.filter(c => c.toLowerCase().includes(search.toLowerCase())), [columns, search]);
   const suggestions = useMemo(() => Object.fromEntries(liveSelected.map(c => {
     try {
@@ -97,7 +118,7 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
     <div className="space-y-1">
       <div className="flex items-center justify-between"><span className="opacity-60">{liveSelected.length}/{columns.length} items</span>
         <span className="flex gap-2">
-          <button type="button" className="underline-offset-2 hover:underline opacity-60 hover:opacity-100 cursor-pointer" title="Select numeric items, excluding identifiers" onClick={() => { anchor.current = null; choose(columns.filter(c => numeric.has(c) && !isIdentifierColumn(c))); }}>all</button>
+          <button type="button" className="underline-offset-2 hover:underline opacity-60 hover:opacity-100 cursor-pointer" title="Select original numeric items, excluding identifiers and completed copies" onClick={() => { anchor.current = null; choose(columns.filter(c => numeric.has(c) && !isIdentifierColumn(c) && !completed.has(c))); }}>all</button>
           <button type="button" className="underline-offset-2 hover:underline opacity-60 hover:opacity-100 cursor-pointer" onClick={() => { anchor.current = null; choose([]); }}>none</button>
         </span>
       </div>
@@ -108,6 +129,7 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
             onChange={e => toggle(c, (e.nativeEvent as MouseEvent).shiftKey ?? false)} />
           <span className="truncate flex-1" title={c}>{c}</span>
           {isIdentifierColumn(c) && <span className="text-[10px] opacity-50" title="Identifier: excluded from automatic selection">ID</span>}
+          {completed.has(c) && <span className="text-[10px] opacity-60">Completed</span>}
           {missingPct[c] > 0 && <span className="flex-shrink-0 text-[10px] opacity-50" title={`${missingPct[c].toFixed(0)}% missing in the fitting sample`}>{missingPct[c].toFixed(0)}% NA</span>}
         </label>)}
         {!visible.length && <p className="opacity-50 p-1">No matching items.</p>}
@@ -124,13 +146,18 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
     </div>
     <div className="flex gap-2" role="group" aria-label="Analysis method">
       {(['pca', 'efa'] as const).map(value => <PanelChoiceButton key={value} selected={method === value}
-        onClick={() => { if (value === 'efa' && missing === 'iterative') setMissing('median'); onMethodChange(value); }}>{value.toUpperCase()}</PanelChoiceButton>)}
+        onClick={() => { if ((value === 'efa' && missing === 'iterative') || (value === 'pca' && missing === 'fiml')) setMissing('median'); onMethodChange(value); }}>{value.toUpperCase()}</PanelChoiceButton>)}
     </div>
+    <DecompositionAdvice table={fittingTable} columns={liveSelected} contextKey={contextKey}
+      options={{ method, measurements, orders, missing, minimumPairN }} onApply={patch => {
+        if (patch.missing && (method === 'pca' ? patch.missing !== 'fiml' : patch.missing !== 'iterative')) setMissing(patch.missing);
+        setAdvice({ seq: ++adviceSeq.current, patch });
+      }} />
     <div className="space-y-1"><label htmlFor="analysis-missing" className="opacity-70">Missing values</label>
-      <div className="flex items-center gap-1"><select id="analysis-missing" aria-label="Missing values" value={missing} onChange={e => setMissing(e.target.value as MissingStrategy)} className="flex-1 min-w-0 bg-[var(--input)] border border-[var(--border)] p-1.5">
-        {MISSING_METHODS.filter(m => method === 'pca' || m.value !== 'iterative').map(m => <option key={m.value} value={m.value}>{m.name}</option>)}
+      <div className="flex items-center gap-1"><select id="analysis-missing" aria-label="Missing values" value={missing} onChange={e => setMissing(e.target.value as SharedAnalysisSetup['missing'])} className="flex-1 min-w-0 bg-[var(--input)] border border-[var(--border)] p-1.5">
+        {MISSING_METHODS.filter(m => method === 'pca' ? m.value !== 'fiml' : m.value !== 'iterative').map(m => <option key={m.value} value={m.value}>{m.name}</option>)}
       </select><InfoTip label={missingMethod.name} text={missingMethod.info} /></div>
     </div>
-    {children({ label, selected: liveSelected, missing, measurements })}
+    {children({ label, selected: liveSelected, missing, measurements, advice }, { onOrdersChange })}
   </div>;
 }

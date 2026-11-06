@@ -1,0 +1,101 @@
+{
+  "recordedAt": "2026-11-06T12:19:25.565Z",
+  "status": "passed",
+  "method": "ml",
+  "runtime": "v26.8.1",
+  "dimensions": {
+    "respondents": 20000,
+    "items": 500,
+    "factors": 5
+  },
+  "dataSeed": 8801,
+  "timingsMs": {
+    "generation": 3034.2303340000003,
+    "preparation": 6129.47375,
+    "correlation": 15315.002083,
+    "ML extraction and Promax": 3020.1252920000006,
+    "oblimin rotation": 65.88312500000029,
+    "varimax rotation": 21.257790999999997
+  },
+  "qualification": "Single isolated Node CPU run; runtime and execution qualification only. Not browser responsiveness, R speed comparison, or full-size cross-implementation accuracy proof.",
+  "stage": "varimax rotation",
+  "peakRssKiB": 369344,
+  "settings": {
+    "extraction": "ml",
+    "correlation": "pearson",
+    "missing": "complete",
+    "rotation": "promax",
+    "seed": 8801,
+    "likelihood": {
+      "starts": 3,
+      "maxIterations": 2000,
+      "tolerance": 1e-7,
+      "uniquenessFloor": 0.000001
+    }
+  },
+  "progress": {
+    "stage": "Start 3/3: ML · gradient 2.210e-6",
+    "completed": 29,
+    "total": 2000
+  },
+  "convergence": {
+    "converged": true,
+    "iterations": 37,
+    "objective": 598.2591994336467,
+    "gradient": 1.3632312288791581e-8,
+    "maxIterations": 2000
+  },
+  "rotations": {
+    "promax": {
+      "converged": true,
+      "iterations": 13,
+      "objective": 116.00156184301477,
+      "gradient": 0
+    },
+    "oblimin": {
+      "converged": true,
+      "iterations": 24,
+      "objective": 0.013092650131363471,
+      "gradient": 6.442261696230492e-9,
+      "maxIterations": 4000
+    },
+    "varimax": {
+      "converged": true,
+      "iterations": 13,
+      "objective": -368.16281329951016,
+      "gradient": 0
+    }
+  },
+  "likelihood": {
+    "logLikelihood": -14658483.020297052,
+    "nRows": 20000,
+    "patternCount": 1,
+    "selectedStart": 3,
+    "starts": [
+      {
+        "converged": true,
+        "iterations": 16,
+        "objective": 598.2591994336505,
+        "gradient": 6.704611165986307e-8
+      },
+      {
+        "converged": true,
+        "iterations": 38,
+        "objective": 598.259199433647,
+        "gradient": 4.349901659850275e-8
+      },
+      {
+        "converged": true,
+        "iterations": 37,
+        "objective": 598.2591994336467,
+        "gradient": 1.3632312288791581e-8
+      }
+    ],
+    "settings": {
+      "maxIterations": 2000,
+      "tolerance": 1e-7,
+      "starts": 3,
+      "uniquenessFloor": 0.000001
+    }
+  }
+}

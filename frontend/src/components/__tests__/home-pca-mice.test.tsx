@@ -107,7 +107,7 @@ async function save() {
   const dataset = state.datasets.find(dataset => dataset.id === state.activeId)!;
   return { dataset, table: state.tables[dataset.table] };
 }
-async function uploadAndRun() {
+async function uploadAndRun(runMice = true) {
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   await act(async () => root!.render(<Home />));
   const upload = document.querySelector<HTMLInputElement>('[data-guide="upload-dropzone"] input[type="file"]')!;
@@ -118,6 +118,7 @@ async function uploadAndRun() {
     await act(async () => choice.click());
   }
   await click("Add dataset");
+  if (!runMice) return;
   await input('input[aria-label="Run label"]', "MICE trial");
   await input('input[aria-label="PCA component count"]', "2");
   await select("Item type A", "ordinal"); await select("Missing values", "mice");
@@ -157,4 +158,53 @@ it("disables applying a completed batch after shared inputs change", async () =>
   expect(button("Add scores from selected fit").disabled).toBe(true);
   expect((await save()).table).toEqual(table);
   expect(runPcaImputations).toHaveBeenCalledOnce();
+});
+
+
+it("holds an unconverged iterative PCA before publication and cancellation preserves the dataset", async () => {
+  await uploadAndRun(false);
+  await input('input[aria-label="Run label"]', 'capped');
+  await input('input[aria-label="PCA component count"]', '2');
+  await select('Missing values', 'iterative');
+  await input('input[aria-label="PCA maximum iterations"]', '1');
+  await click('Run PCA');
+  expect(document.body.textContent).toContain('Iterative PCA did not converge');
+  expect((await save()).table).toEqual(table);
+  await click('Cancel');
+  expect(document.querySelector('[aria-label="Close convergence dialog"]')).toBeNull();
+  expect(document.body.textContent).toContain('Unconverged PCA result discarded. No scores were added.');
+  const after = await save();
+  expect(after.table).toEqual(table);
+  expect(after.dataset.pcaRuns ?? []).toHaveLength(0);
+});
+
+it("keeps a capped iterative result only after explicit acceptance and persists its convergence status", async () => {
+  await uploadAndRun(false);
+  await input('input[aria-label="Run label"]', 'capped');
+  await input('input[aria-label="PCA component count"]', '2');
+  await select('Missing values', 'iterative');
+  await input('input[aria-label="PCA maximum iterations"]', '1');
+  await click('Run PCA');
+  expect((await save()).table).toEqual(table);
+  await click('Keep unconverged result');
+  const after = await save();
+  expect(after.table.columns).toContain('PC1_capped');
+  expect(after.dataset.pcaRuns?.[0].missing).toMatchObject({ strategy: 'iterative', converged: false, iterations: 1, iterativeSettings: { maxIterations: 1, tolerance: 1e-8, rank: 2 } });
+  for (const column of columns) expect(after.table.data[column]).toEqual(table.data[column]);
+});
+
+it("retries iterative PCA with the edited budget and publishes only the converged retry", async () => {
+  await uploadAndRun(false);
+  await input('input[aria-label="Run label"]', 'retry');
+  await input('input[aria-label="PCA component count"]', '2');
+  await select('Missing values', 'iterative');
+  await input('input[aria-label="PCA maximum iterations"]', '1');
+  await click('Run PCA');
+  expect((await save()).dataset.pcaRuns ?? []).toHaveLength(0);
+  await click('Retry with these settings');
+  const after = await save();
+  expect(after.dataset.pcaRuns).toHaveLength(1);
+  expect(after.dataset.pcaRuns?.[0].missing).toMatchObject({ strategy: 'iterative', converged: true, iterativeSettings: { maxIterations: 1000, tolerance: 1e-8, rank: 2 } });
+  expect(document.querySelector('[aria-label="Close convergence dialog"]')).toBeNull();
+  expect(document.querySelector<HTMLInputElement>('[aria-label="PCA maximum iterations"]')!.value).toBe('1000');
 });

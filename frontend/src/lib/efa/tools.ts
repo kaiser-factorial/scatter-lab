@@ -22,7 +22,13 @@ const spec = {
         additionalProperties: false,
       },
     },
-    extraction: { type: "string", enum: ["minres", "dwls", "wlsmv"] },
+    extraction: { type: "string", enum: ["minres", "ml", "wlsmv", "dwls"], description: 'UI choices are MINRES, ML and WLSMV. DWLS remains available for legacy reproductions.' },
+    likelihood: { type: 'object', properties: {
+      maxIterations: { type: 'integer', minimum: 10, maximum: 20000 },
+      tolerance: { type: 'number', minimum: 1e-10, maximum: 1e-3 },
+      starts: { type: 'integer', minimum: 1, maximum: 20 },
+      uniquenessFloor: { type: 'number', minimum: 1e-8, maximum: 0.1 },
+    }, additionalProperties: false, description: 'ML/FIML optimizer settings. Defaults: 2000 iterations, tolerance 1e-7, 3 deterministic starts, uniqueness floor 1e-6 of observed variance. Results record resolved settings and convergence.' },
     correlation: { type: 'string', enum: ['auto', 'polychoric', 'pearson'], description: 'Independent of missing-value policy. Auto detects fitting-sample measurement levels; all ordinal items use polychoric, numeric continuous/mixed items use Pearson. Use explicit item measurement/category overrides when known.' },
     compute: { type: "object", properties: {
       backend: { type: "string", enum: ["cpu", "webgpu", "scala"] },
@@ -34,7 +40,7 @@ const spec = {
     }, required: ["backend"], additionalProperties: false },
     nFactors: { type: "integer", minimum: 1 },
     rotation: { type: "string", enum: ["oblimin", "promax", "varimax"] },
-    missing: { type: "string", enum: ["pairwise", "complete", "mean", "median"], description: "Separate from correlation choice. Ordinal median stays in category; ordinal mean maps to nearest declared category, ties lower order. Continuous items keep exact numeric means/medians. Replacements use fitting respondents only." },
+    missing: { type: "string", enum: ["pairwise", "complete", "mean", "median", "fiml"], description: "Ordinal median stays in category; ordinal mean maps to nearest declared category, ties lower order. Continuous items keep exact numeric replacements. FIML requires ML and numeric Pearson treatment, and estimates from observed cells without imputing them. ML does not accept pairwise deletion. Replacements use fitting respondents only." },
     seed: { type: "integer" },
     label: { type: "string" },
     sample: {
@@ -77,6 +83,10 @@ const tool = (
   },
 });
 export const EFA_TOOLS: ChatCompletionTool[] = [
+  tool('retry_efa', 'Retry the latest nonconverged ML/FIML fit with explicit numerical settings, preserving its captured dataset, fitting rows, item transforms and model. Rejects stale dataset/filter changes. No unconverged EFA result is published. Discuss the diagnostic and settings; do not silently relax tolerance. Returns a new job ID for efa_job.', {
+    jobId: { type: 'string' },
+    settings: { ...spec.properties.likelihood, required: ['maxIterations', 'tolerance'] },
+  }, ['jobId', 'settings']),
   tool(
     "list_efa_runs",
     "List saved observed-data and MICE EFA analyses, with review revisions, method and sample metadata. At most 20 per page.",
@@ -149,7 +159,7 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
 
   tool(
     "run_efa",
-    "Start EFA. Correlation choice is independent of missing-value handling. Set correlation=auto to infer measurement levels from the fitting sample: all ordinal items use two-step polychoric (tetrachoric for binary); numeric continuous or mixed items use Pearson. Explicit ordinal/continuous item overrides and category orders take precedence; never infer text order. Polychoric supports MINRES, DWLS and WLSMV; Pearson supports MINRES. Column median chooses the lower ordered category for ordinal items, and column mean chooses the nearest declared category (ties lower); continuous columns retain exact numeric replacements. Replacements use fitting respondents only. Weighted uncertainty after single imputation is conditional on the fixed filled categories, without imputation-variance propagation. Omitted correlation preserves legacy missing-policy defaults. The sidebar defaults to Promax; always supply the requested rotation explicitly. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel. Select compute.backend explicitly for WLSMV trace acceleration: webgpu or scala; cpu is the default. Scala requires an already paired local companion; tools cannot pair it or provide endpoints or tokens. Accelerated fits must pass a synthetic numerical self-check. WLSMV applies MV correction and rotated standard errors. compute.correction defaults to exact; estimated requires WebGPU and uses fixed-budget random probes (compute.probes 16–4096, default 128; compute.probeSeed default 61001). Report its approximation label and Monte Carlo uncertainty with the corrected test. Both modes apply MV correction; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
+    "Start EFA. Correlation choice is independent of missing-value handling. Set correlation=auto to infer measurement levels from the fitting sample: all ordinal items use two-step polychoric (tetrachoric for binary); numeric continuous or mixed items use Pearson. Explicit ordinal/continuous item overrides and category orders take precedence; never infer text order. Polychoric supports MINRES, DWLS and WLSMV; Pearson supports MINRES and Gaussian ML. ML requires explicit Pearson or auto-inferred continuous numeric items, and complete/mean/median/FIML handling (not pairwise). FIML uses the observed-data Gaussian likelihood directly; choose likelihood hyperparameters explicitly when requested. Conditional completion is a separate complete_efa_values operation. Column median chooses the lower ordered category for ordinal items, and column mean chooses the nearest declared category (ties lower); continuous columns retain exact numeric replacements. Replacements use fitting respondents only. Weighted uncertainty after single imputation is conditional on the fixed filled categories, without imputation-variance propagation. Omitted correlation preserves legacy missing-policy defaults. The sidebar defaults to Promax; always supply the requested rotation explicitly. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Use impute_efa for separate ordinal MICE fits and stability_efa for bootstrap refits; both expose their hyperparameters and return jobs. Select compute.backend explicitly for WLSMV trace acceleration: webgpu or scala; cpu is the default. Scala requires an already paired local companion; tools cannot pair it or provide endpoints or tokens. Accelerated fits must pass a synthetic numerical self-check. WLSMV applies MV correction and rotated standard errors. compute.correction defaults to exact; estimated requires WebGPU and uses fixed-budget random probes (compute.probes 16–4096, default 128; compute.probeSeed default 61001). Report its approximation label and Monte Carlo uncertainty with the corrected test. Both modes apply MV correction; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
     {
       spec,
       parentId: { type: "string" },
@@ -160,6 +170,42 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
       reasons: { type: "string" },
     },
     ["spec"],
+  ),
+  tool(
+    'impute_efa',
+    'Start separate ordinal MICE imputations and fit EFA to each completion. No Rubin pooling or averaged score columns. Supply explicit category orders and predictor indices (zero-based per target); set missing=pairwise in spec, or complete for ML/Pearson completed fits. Poll efa_job, then get_efa_diagnostics/get_efa_items for the saved batch. Continuous-variable conditional models are not implemented.',
+    { spec, options: { type: 'object', properties: {
+      imputations: { type: 'integer', minimum: 2, maximum: 100 },
+      iterations: { type: 'integer', minimum: 1, maximum: 100 },
+      seed: { type: 'integer' },
+      predictors: { type: 'array', items: { type: 'array', items: { type: 'integer', minimum: 0 } } },
+      predictorEncoding: { type: 'string', enum: ['ordered-polynomial', 'rank'] },
+    }, required: ['imputations', 'iterations', 'seed', 'predictors'], additionalProperties: false } },
+    ['spec', 'options'],
+  ),
+  tool(
+    'stability_efa',
+    'Start respondent or grouped bootstrap refits of a saved individual EFA with its original fitting rows and settings. Reports aligned descriptive intervals and failures; it is not a general validity certificate. Poll efa_job. The group column stays local.',
+    { runId: { type: 'string' }, groupColumn: { type: 'string' }, options: { type: 'object', properties: {
+      replicates: { type: 'integer', minimum: 2, maximum: 1000 }, seed: { type: 'integer' },
+      confidence: { type: 'number', exclusiveMinimum: 0, exclusiveMaximum: 1 },
+      crossLoadingThreshold: { type: 'number', minimum: 0 },
+    }, required: ['replicates', 'seed', 'confidence', 'crossLoadingThreshold'], additionalProperties: false } },
+    ['runId', 'options'],
+  ),
+  tool(
+    'get_efa_stability',
+    'Inspect bounded aggregate bootstrap intervals from a saved EFA stability run. Returns no respondent indices, bootstrap samples, or group labels. Intervals describe resampling variation under the saved model; incomplete batches remain provisional.',
+    { runId: { type: 'string' }, stabilityId: { type: 'string' },
+      offset: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 20 },
+      factorOffset: { type: 'integer', minimum: 0 }, factorLimit: { type: 'integer', minimum: 1, maximum: 12 } },
+    ['runId'],
+  ),
+  tool(
+    'complete_efa_values',
+    'Explicitly preserve or locally export conditional expected missing values from a saved ML/FIML fit. columns adds completed copies with source values unchanged; csv exports completed fitting rows; operation downloads input/model/settings/masks/results JSON; code downloads standalone R code that replays that JSON without refitting. FIML itself is likelihood estimation, not imputation. Never returns respondent values to the assistant. Preserve fitting-row and dataset scope.',
+    { runId: { type: 'string' }, destination: { type: 'string', enum: ['columns', 'csv', 'operation', 'code'] } },
+    ['runId', 'destination'],
   ),
   tool(
     "efa_job",

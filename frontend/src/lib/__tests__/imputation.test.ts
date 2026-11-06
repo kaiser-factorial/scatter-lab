@@ -53,11 +53,36 @@ describe('imputeIterativePCA — recovery of known values', () => {
       const res = imputeIterativePCA(punched, { rank: 2, standardize: true });
       const medMae = mae(holes, truth, j => med[j]);
       const pcaMae = mae(holes, truth, (j, i) => res.columns[j][i]);
-      // Measured improvement is 49-58%; assert a conservative floor so the test
+      // Measured improvement is 52-58%; assert a conservative floor so the test
       // fails on a broken algorithm rather than on ordinary numeric drift.
       expect(pcaMae).toBeLessThan(medMae * 0.7);
-      expect(res.converged).toBe(true);
+      // Recovery accuracy and optimization convergence are separate claims.
+      // The canonical observed-reconstruction stopping rule needs more than
+      // the default 200 passes for the 20% and 35% masks at tolerance 1e-8.
+      expect(res.converged).toBe(rate === 0.05);
+      if (res.converged) expect(res.iterations).toBeLessThan(200);
+      else expect(res.iterations).toBe(200);
     }
+  });
+
+  // Independently matched against missMDA 1.20 / FactoMineR 2.12 with
+  // threshold=1e-8 and maxiter=1000; see the retained Iris boundary report in
+  // scripts/efa-reference/congruence/iris-boundary-report.json.
+  it.each([
+    { seed: 20260805, iterations: [115, 298, 887] },
+    { seed: 7, iterations: [99, 238, 574] },
+    { seed: 42, iterations: [72, 371, 770] },
+    { seed: 20260806, iterations: [74, 216, 524] },
+  ])('reaches the stopping criterion with a larger budget for Iris masks from seed $seed', ({ seed, iterations }) => {
+    [0.05, 0.2, 0.35].forEach((rate, at) => {
+      const { punched, holes } = punch(truth, rate, seed);
+      const med = medianFill(punched);
+      const res = imputeIterativePCA(punched, { rank: 2, standardize: true, maxIter: 1000 });
+      expect(res.converged).toBe(true);
+      expect(res.iterations).toBe(iterations[at]);
+      expect(res.iterations).toBeLessThan(1000);
+      expect(mae(holes, truth, (j, i) => res.columns[j][i])).toBeLessThan(mae(holes, truth, j => med[j]) * 0.7);
+    });
   });
 
   it('never alters an observed value', () => {

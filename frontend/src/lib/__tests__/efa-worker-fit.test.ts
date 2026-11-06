@@ -10,6 +10,8 @@ import { correlate } from "../efa/correlation";
 import { prepareEfa } from "../efa/prepare";
 import type { EfaSpec, EfaRun } from "../efa/types";
 import type { DataTable } from "../table";
+import { conditionalCompletion } from '../efa/maximum-likelihood';
+import { validateEfaState } from '../efa/persistence';
 const directory = mkdtempSync(join(tmpdir(), "efa-worker-fit-"));
 const entry = join(directory, "worker.mjs");
 beforeAll(async () => {
@@ -58,6 +60,24 @@ it("production workers finish weighted fits with exact serial SEs, bounded concu
   // Reused correlations must take the same continuation path.
   expect((await h.service.fit(input, spec, rows).promise).weighted).toEqual(result.weighted);
 }, 30000);
+it('production worker failures preserve typed FIML diagnostics while cancellation remains a separate state', async () => {
+  const table = structuredClone(input);
+  table.data[table.columns[0]][0] = null;
+  const candidate: EfaSpec = { ...spec, extraction: 'ml', correlation: 'pearson', missing: 'fiml',
+    likelihood: { starts: 1, maxIterations: 10, tolerance: 1e-10 },
+    items: spec.items.map(item => ({ ...item, categories: [], measurement: 'continuous' })) };
+  const h = harness(), job = h.service.fit(table, candidate, rows);
+  await expect(job.promise).rejects.toMatchObject({ code: 'ml-nonconvergence', convergenceIssue: { method: 'fiml', partialAvailable: false } });
+  expect(job.status).toBe('failed'); expect(job.result).toBeUndefined();
+  expect(job.convergenceIssue).toMatchObject({ method: 'fiml', reason: 'iteration-limit', iterations: 10,
+    settings: { maxIterations: 10, tolerance: 1e-10, starts: 1, uniquenessFloor: 1e-6 } });
+  expect(h.active()).toBe(0);
+  const cancelled = h.service.fit(table, { ...candidate, likelihood: { starts: 1 } }, rows);
+  cancelled.cancel();
+  await expect(cancelled.promise).rejects.toThrow(/cancelled/);
+  expect(cancelled.status).toBe('cancelled'); expect(cancelled.convergenceIssue).toBeUndefined();
+  expect(cancelled.result).toBeUndefined(); expect(h.active()).toBe(0);
+}, 30000);
 it("production workers fit, permute and score numeric column imputation with the same serial semantics", async () => {
   const table = structuredClone(input);
   table.data[table.columns[0]][0] = null;
@@ -90,6 +110,29 @@ it("production workers carry category median fills through WLSMV, scoring and or
     result, eligibleRows: rows, kind: 'fit', reviews: {}, reasons: '', revisedAfterHoldout: false, scoreColumns: [] };
   expect(await h.service.scores(table, run).promise).toEqual(scoreEfa(data, serial));
   await expect(h.service.fit(table, ordinal, rows, undefined, rows.length).promise).rejects.toThrow(/private aggregate floor/);
+  expect(h.active()).toBe(0);
+}, 30000);
+it('production workers fit FIML, preserve raw observed cells in completion, and reject stale or differently configured reuse', async () => {
+  const table = structuredClone(input), h = harness();
+  table.data[table.columns[0]][0] = null;
+  table.data[table.columns[1]][1] = null;
+  table.data[table.columns[0]][2] = .12345678910111234;
+  const ml: EfaSpec = { ...spec, extraction: 'ml', correlation: 'pearson', missing: 'fiml', likelihood: { starts: 1 },
+    items: spec.items.map((item, j) => ({ ...item, reverse: j === 0 })) };
+  const data = prepareEfa(table, ml, rows), serial = fitEfa(data, correlate(data), ml), result = await h.service.fit(table, ml, rows).promise;
+  expect(result.likelihood).toEqual(serial.likelihood);
+  const run: EfaRun = { id: 'fiml', revision: 1, createdAt: '2026-11-06', datasetRevision: 'fixture', spec: ml,
+    result, eligibleRows: rows, kind: 'fit', reviews: {}, reasons: '', revisedAfterHoldout: false, scoreColumns: [] };
+  expect(() => validateEfaState({ runs: [run], splits: [] }, table.nRows)).not.toThrow();
+  const completed = await h.service.complete(table, run).promise;
+  expect(completed).toEqual(conditionalCompletion(table, ml, result));
+  expect(completed.values[0][2]).toBe(table.data[table.columns[0]][2]);
+  expect(await h.service.scores(table, run).promise).toEqual(scoreEfa(data, serial));
+  const rotated = await h.service.fit(table, { ...ml, rotation: 'varimax' }, rows, run).promise;
+  expect(rotated.likelihood).toEqual(result.likelihood);
+  await expect(h.service.fit(table, { ...ml, likelihood: { starts: 2 } }, rows, run).promise).rejects.toThrow(/Create a refit/);
+  const changed = structuredClone(table); changed.data[changed.columns[0]][2] = 3.75;
+  await expect(h.service.complete(changed, run).promise).rejects.toThrow(/changed since this fit/);
   expect(h.active()).toBe(0);
 }, 30000);
 it("cancelling during derivatives terminates peers and prevents result publication", async () => {

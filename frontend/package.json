@@ -4,13 +4,22 @@
   "private": true,
   "scripts": {
     "copy-plotly": "node -e \"require('fs').copyFileSync('node_modules/plotly.js-gl3d-dist-min/plotly-gl3d.min.js','public/vendor/plotly-gl3d.min.js')\"",
-    "predev": "node -e \"require('fs').mkdirSync('public/vendor',{recursive:true})\" && npm run copy-plotly",
-    "prebuild": "node -e \"require('fs').mkdirSync('public/vendor',{recursive:true})\" && npm run copy-plotly",
-    "dev": "next dev",
+    "build:reference": "node scripts/generate-app-reference.mjs",
+    "predev": "npm --prefix .. run build:stats && npm run build:reference && node -e \"require('fs').mkdirSync('public/vendor',{recursive:true})\" && npm run copy-plotly",
+    "prebuild": "npm --prefix .. run build:stats && npm run build:reference && node -e \"require('fs').mkdirSync('public/vendor',{recursive:true})\" && npm run copy-plotly",
+    "dev": "node scripts/dev.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "pretest": "npm run build:reference",
     "test": "vitest run",
+    "ci:fast": "npm run build:reference && node scripts/ci/fast.mjs",
+    "ci:contracts": "node --test scripts/efa-reference/formal/source-contract.check.mjs scripts/ci/contracts.check.mjs scripts/generate-app-reference.check.mjs",
+    "ci:lint": "node scripts/ci/lint-regression.mjs",
+    "ci:numerical": "node scripts/ci/numerical.mjs",
+    "ci:reference-integrity": "node scripts/ci/reference-integrity.mjs",
+    "ci:reference-r": "bash scripts/ci/fresh-r.sh",
+    "ci:large": "node scripts/efa-reference/congruence/run-large.mjs",
     "efa:companion:setup": "node scripts/efa-companion/setup.mjs",
     "efa:companion": "node scripts/efa-companion/server.mjs"
   },
@@ -33,7 +42,8 @@
     "react-plotly.js": "^4.0.0",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "@scatterlab/stats": "file:../packages/statistics"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
@@ -41,6 +51,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "0.27.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "happy-dom": "^21.0.4",

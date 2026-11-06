@@ -1,0 +1,72 @@
+name: Optional large numerical qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      fragmented_fiml:
+        description: Include a capped fragmented-MCAR FIML stress attempt
+        type: boolean
+        default: false
+      saved_large_nulls:
+        description: Also compare the three saved 500-item MINRES references
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: large-numerical-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  large:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Install the numerical workspace
+        run: npm ci
+        working-directory: .
+      - name: Build the shared numerical package
+        run: npm run build:stats
+        working-directory: .
+      - name: Install the workbench
+        run: npm ci
+      - name: Require small-data accuracy before the largest run
+        run: npm run ci:numerical
+      - name: Select explicit benchmark scope
+        env:
+          INCLUDE_FRAGMENTED: ${{ inputs.fragmented_fiml }}
+        run: |
+          methods=pca,minres,weighted,ml,fiml-block
+          if [[ "$INCLUDE_FRAGMENTED" == true ]]; then methods="$methods,fiml-fragmented"; fi
+          echo "BENCHMARK_METHODS=$methods" >> "$GITHUB_ENV"
+      - name: Sequential capped 20000 by 500 CPU execution checks
+        run: npm run ci:large
+        env:
+          BENCHMARK_REPORT_DIR: .ci-artifacts/large
+      - name: Saved large-null reference comparisons
+        if: inputs.saved_large_nulls
+        run: npx vitest run src/lib/__tests__/efa-large-reference.test.ts --maxWorkers=1
+        env:
+          EFA_LARGE_PARITY: '1'
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: large-numerical-qualification
+          path: frontend/.ci-artifacts/
+          include-hidden-files: true
+          retention-days: 30

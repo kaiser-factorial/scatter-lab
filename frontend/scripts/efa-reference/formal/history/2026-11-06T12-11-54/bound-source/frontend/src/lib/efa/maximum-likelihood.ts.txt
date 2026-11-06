@@ -1,0 +1,388 @@
+import { Matrix, eigen } from './math';
+import { mulberry32 } from '../random';
+import type { DataTable } from '../table';
+import { EfaError, type EfaCorrelations, type EfaExtraction, type EfaLikelihoodSettings, type EfaPreparedData, type EfaResult, type EfaSpec, type Progress } from './types';
+
+export const DEFAULT_LIKELIHOOD_SETTINGS: Required<EfaLikelihoodSettings> = {
+  maxIterations: 2000, tolerance: 1e-7, starts: 3, uniquenessFloor: 1e-6,
+};
+export function likelihoodSettings(settings?: EfaLikelihoodSettings): Required<EfaLikelihoodSettings> {
+  if (settings !== undefined && (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
+    Object.keys(settings).some(key => !['maxIterations', 'tolerance', 'starts', 'uniquenessFloor'].includes(key))))
+    throw new EfaError('likelihood-settings', 'Likelihood settings accept maxIterations, tolerance, starts and uniquenessFloor.');
+  const resolved = { ...DEFAULT_LIKELIHOOD_SETTINGS, ...settings };
+  if (!Number.isSafeInteger(resolved.maxIterations) || resolved.maxIterations < 10 || resolved.maxIterations > 20000 ||
+    !Number.isFinite(resolved.tolerance) || resolved.tolerance < 1e-10 || resolved.tolerance > 1e-3 ||
+    !Number.isSafeInteger(resolved.starts) || resolved.starts < 1 || resolved.starts > 20 ||
+    !Number.isFinite(resolved.uniquenessFloor) || resolved.uniquenessFloor < 1e-8 || resolved.uniquenessFloor > .1)
+    throw new EfaError('likelihood-settings', 'Use 10–20000 iterations, tolerance 1e-10–1e-3, 1–20 starts, and a relative uniqueness floor of 1e-8–0.1.');
+  return resolved;
+}
+
+/** Small positive-definite inverse with its log determinant, using Cholesky. */
+export function positiveInverse(a: number[][]): { inverse: number[][]; logDet: number } {
+  const n = a.length, l = Array.from({ length: n }, () => Array(n).fill(0));
+  let logDet = 0;
+  for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) {
+    let value = a[i][j];
+    for (let k = 0; k < j; k++) value -= l[i][k] * l[j][k];
+    if (i === j) {
+      if (!(value > 0) || !Number.isFinite(value)) throw new EfaError('likelihood-covariance', 'The model covariance is not finite and positive definite.');
+      l[i][j] = Math.sqrt(value); logDet += 2 * Math.log(l[i][j]);
+    } else l[i][j] = value / l[j][j];
+  }
+  const inverse = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let column = 0; column < n; column++) {
+    const y = Array(n).fill(0), x = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      let value = i === column ? 1 : 0;
+      for (let j = 0; j < i; j++) value -= l[i][j] * y[j];
+      y[i] = value / l[i][i];
+    }
+    for (let i = n - 1; i >= 0; i--) {
+      let value = y[i];
+      for (let j = i + 1; j < n; j++) value -= l[j][i] * x[j];
+      x[i] = value / l[i][i];
+    }
+    for (let i = 0; i < n; i++) inverse[i][column] = x[i];
+  }
+  return { inverse, logDet };
+}
+
+type Pattern = { indices: number[]; rows: number[]; values: number[][]; mean?: number[]; covariance?: number[][] };
+export interface LikelihoodProblem {
+  p: number; k: number; nRows: number; observedCells: number; allMissingRows: number;
+  patterns: Pattern[];
+  centers: number[]; scales: number[];
+  objective: (parameters: number[]) => { value: number; gradient: number[] };
+}
+
+/**
+ * Gaussian observed-data likelihood. Each pattern is marginalized to its observed
+ * items. The low-rank Woodbury form inverts k×k matrices, never p×p per pattern.
+ * Parameters are row-major loadings, log residual variances, then item means,
+ * all in fixed observed-column standardized units. Constants are retained.
+ */
+export function createLikelihoodProblem(data: EfaPreparedData, spec: EfaSpec, correlation?: EfaCorrelations): LikelihoodProblem {
+  if (!data.numeric) throw new EfaError('likelihood-data', 'ML requires numeric Gaussian data; polychoric correlations are not raw-data likelihoods.');
+  const p = data.items.length, k = spec.nFactors, centers = data.means.slice(), scales = data.sds.slice();
+  const groups = new Map<string, Pattern>();
+  let nRows = 0, observedCells = 0, allMissingRows = 0;
+  for (let row = 0; row < data.nRows; row++) {
+    const indices: number[] = [], values: number[] = [];
+    for (let j = 0; j < p; j++) if (data.imputation || data.observed[j * data.nRows + row]) {
+      indices.push(j); values.push((data.numeric[j * data.nRows + row] - centers[j]) / scales[j]);
+    }
+    if (!indices.length) { allMissingRows++; continue; }
+    const key = indices.join(',');
+    let group = groups.get(key);
+    if (!group) { group = { indices, rows: [], values: [] }; groups.set(key, group); }
+    group.rows.push(row); group.values.push(values); nRows++; observedCells += indices.length;
+  }
+  if (nRows < 3) throw new EfaError('likelihood-sample', 'ML requires at least three respondents with observed items.');
+  const patterns = [...groups.values()];
+  for (const group of patterns) {
+    const m = group.indices.length, count = group.rows.length;
+    // Sufficient statistics save work when a pattern contains many respondents.
+    // A single complete pattern can reuse the already-computed Pearson matrix.
+    if (count >= Math.max(8, m)) {
+      group.mean = Array(m).fill(0);
+      for (const values of group.values) for (let i = 0; i < m; i++) group.mean[i] += values[i] / count;
+      group.covariance = Array.from({ length: m }, () => Array(m).fill(0));
+      if (patterns.length === 1 && m === p && correlation) {
+        for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) group.covariance[i][j] = correlation.matrix[i][j] * (count - 1) / count;
+      } else {
+        for (const values of group.values) for (let i = 0; i < m; i++) for (let j = 0; j <= i; j++)
+          group.covariance[i][j] += (values[i] - group.mean[i]) * (values[j] - group.mean[j]) / count;
+        for (let i = 0; i < m; i++) for (let j = 0; j < i; j++) group.covariance[j][i] = group.covariance[i][j];
+      }
+      group.values = []; // release per-row values after aggregation
+    }
+  }
+  const objective = (parameters: number[]) => {
+    const gradient = Array(parameters.length).fill(0), psi = parameters.slice(p * k, p * k + p).map(Math.exp), means = parameters.slice(p * k + p);
+    if (parameters.length !== p * (k + 2) || parameters.some(x => !Number.isFinite(x)) || psi.some(x => !Number.isFinite(x) || x <= 0))
+      return { value: Infinity, gradient };
+    const loadings = Array.from({ length: p }, (_, j) => parameters.slice(j * k, (j + 1) * k));
+    let value = 0;
+    try {
+      for (const group of patterns) {
+        const ix = group.indices, m = ix.length, count = group.rows.length;
+        const w = ix.map(j => loadings[j].map(x => x / psi[j]));
+        const h = Array.from({ length: k }, (_, a) => Array.from({ length: k }, (_, b) => a === b ? 1 : 0));
+        let logDet = 0;
+        ix.forEach((j, i) => {
+          logDet += Math.log(psi[j]);
+          for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) h[a][b] += loadings[j][a] * w[i][b];
+        });
+        const hi = positiveInverse(h); logDet += hi.logDet;
+        const b = w.map(row => Array.from({ length: k }, (_, a) => row.reduce((sum, x, c) => sum + x * hi.inverse[c][a], 0)));
+        const invDiag = ix.map((j, i) => 1 / psi[j] - w[i].reduce((sum, x, a) => sum + x * b[i][a], 0));
+        value += count * (logDet + m * Math.log(2 * Math.PI));
+        ix.forEach((j, i) => {
+          for (let a = 0; a < k; a++) gradient[j * k + a] += count * b[i][a];
+          gradient[p * k + j] += .5 * count * invDiag[i] * psi[j];
+        });
+        if (group.covariance && group.mean) {
+          const delta = group.mean.map((x, i) => x - means[ix[i]]);
+          const cross = group.covariance.map((row, i) => row.map((x, j) => x + delta[i] * delta[j]));
+          const cw = cross.map(row => Array.from({ length: k }, (_, a) => row.reduce((sum, x, j) => sum + x * w[j][a], 0)));
+          const small = Array.from({ length: k }, (_, a) => Array.from({ length: k }, (_, c) => w.reduce((sum, row, i) => sum + row[a] * cw[i][c], 0)));
+          let quadratic = ix.reduce((sum, j, i) => sum + cross[i][i] / psi[j], 0);
+          for (let a = 0; a < k; a++) for (let c = 0; c < k; c++) quadratic -= hi.inverse[a][c] * small[c][a];
+          value += count * quadratic;
+          const cb = cw.map(row => Array.from({ length: k }, (_, a) => row.reduce((sum, x, c) => sum + x * hi.inverse[c][a], 0)));
+          const wcb = Array.from({ length: k }, (_, a) => Array.from({ length: k }, (_, c) => w.reduce((sum, row, i) => sum + row[a] * cb[i][c], 0)));
+          const projectedMean = Array.from({ length: k }, (_, a) => delta.reduce((sum, x, i) => sum + x * b[i][a], 0));
+          ix.forEach((j, i) => {
+            for (let a = 0; a < k; a++) {
+              let asb = cb[i][a] / psi[j];
+              for (let c = 0; c < k; c++) asb -= b[i][c] * wcb[c][a];
+              gradient[j * k + a] -= count * asb;
+            }
+            let asa = cross[i][i] / (psi[j] * psi[j]);
+            for (let a = 0; a < k; a++) {
+              asa -= 2 * b[i][a] * cw[i][a] / psi[j];
+              for (let c = 0; c < k; c++) asa += b[i][a] * small[a][c] * b[i][c];
+            }
+            gradient[p * k + j] -= .5 * count * asa * psi[j];
+            const q = (delta[i] - loadings[j].reduce((sum, x, a) => sum + x * projectedMean[a], 0)) / psi[j];
+            gradient[p * k + p + j] -= count * q;
+          });
+        } else {
+          for (const values of group.values) {
+            const delta = values.map((x, i) => x - means[ix[i]]);
+            const factors = Array.from({ length: k }, (_, a) => delta.reduce((sum, x, i) => sum + x * b[i][a], 0));
+            ix.forEach((j, i) => {
+              const q = (delta[i] - loadings[j].reduce((sum, x, a) => sum + x * factors[a], 0)) / psi[j];
+              value += delta[i] * q;
+              for (let a = 0; a < k; a++) gradient[j * k + a] -= q * factors[a];
+              gradient[p * k + j] -= .5 * q * q * psi[j];
+              gradient[p * k + p + j] -= q;
+            });
+          }
+        }
+      }
+    } catch { return { value: Infinity, gradient: gradient.map(() => 0) }; }
+    return { value: value / (2 * nRows), gradient: gradient.map(x => x / nRows) };
+  };
+  return { p, k, nRows, observedCells, allMissingRows, patterns, centers, scales, objective };
+}
+
+const dot = (a: number[], b: number[]) => a.reduce((sum, x, i) => sum + x * b[i], 0);
+function minimizeLikelihood(problem: LikelihoodProblem, initial: number[], settings: Required<EfaLikelihoodSettings>, progress?: Progress) {
+  const { p, k, objective } = problem, lower = Math.log(settings.uniquenessFloor), history: { s: number[]; y: number[]; rho: number }[] = [];
+  let parameters = initial.slice(), state = objective(parameters), iteration = 0;
+  const projected = (x: number[], g: number[]) => g.map((v, i) => i >= p * k && i < p * (k + 1) && x[i] <= lower + 1e-12 && v > 0 ? 0 : v);
+  const norm = (g: number[]) => g.reduce((maximum, x) => Math.max(maximum, Math.abs(x)), 0);
+  for (; iteration < settings.maxIterations; iteration++) {
+    const pg = projected(parameters, state.gradient), gradient = norm(pg);
+    progress?.({ stage: `ML · gradient ${gradient.toExponential(3)}`, completed: iteration, total: settings.maxIterations });
+    if (Number.isFinite(state.value) && gradient <= settings.tolerance) break;
+    let direction = pg.slice();
+    const alpha: number[] = [];
+    for (let h = history.length - 1; h >= 0; h--) {
+      alpha[h] = history[h].rho * dot(history[h].s, direction);
+      direction = direction.map((x, i) => x - alpha[h] * history[h].y[i]);
+    }
+    const last = history.at(-1), scale = last ? dot(last.s, last.y) / dot(last.y, last.y) : 1;
+    direction = direction.map(x => x * scale);
+    for (let h = 0; h < history.length; h++) {
+      const beta = history[h].rho * dot(history[h].y, direction);
+      direction = direction.map((x, i) => x + history[h].s[i] * (alpha[h] - beta));
+    }
+    direction = direction.map(x => -x);
+    if (dot(direction, pg) >= 0) direction = pg.map(x => -x);
+    let step = 1, accepted = false, next = state, candidate = parameters;
+    for (let line = 0; line < 50; line++) {
+      candidate = parameters.map((x, i) => {
+        const value = x + step * direction[i];
+        return i >= p * k && i < p * (k + 1) ? Math.max(lower, value) : value;
+      });
+      next = objective(candidate);
+      const slope = dot(state.gradient, candidate.map((x, i) => x - parameters[i]));
+      if (Number.isFinite(next.value) && (next.value <= state.value + 1e-4 * slope ||
+        (next.value <= state.value + 64 * Number.EPSILON * Math.max(1, Math.abs(state.value)) && norm(projected(candidate, next.gradient)) < gradient * .99))) {
+        accepted = true; break;
+      }
+      step *= .5;
+    }
+    if (!accepted || candidate.every((x, i) => x === parameters[i])) break;
+    const s = candidate.map((x, i) => x - parameters[i]), y = next.gradient.map((x, i) => x - state.gradient[i]), sy = dot(s, y);
+    if (sy > 1e-20) { history.push({ s, y, rho: 1 / sy }); if (history.length > 20) history.shift(); }
+    parameters = candidate; state = next;
+  }
+  const gradient = norm(projected(parameters, state.gradient));
+  return { parameters, value: state.value, converged: Number.isFinite(state.value) && gradient <= settings.tolerance, iterations: iteration, gradient };
+}
+
+export function fitMaximumLikelihood(data: EfaPreparedData, spec: EfaSpec, correlation?: EfaCorrelations, progress?: Progress): EfaExtraction {
+  if (spec.extraction !== 'ml' || !['complete', 'mean', 'median', 'fiml'].includes(spec.missing))
+    throw new EfaError('likelihood-method', 'Gaussian ML requires an explicit ML extractor and complete cases, column imputation, or FIML.');
+  if (spec.missing !== 'fiml' && !data.imputation && data.observed.some(value => value === 0))
+    throw new EfaError('likelihood-missing', 'Incomplete observations require FIML; complete-data ML cannot silently discard or fill them.');
+  const settings = likelihoodSettings(spec.likelihood), problem = createLikelihoodProblem(data, spec, correlation), { p, k } = problem;
+  const initialMatrix = correlation?.matrix ?? Array.from({ length: p }, (_, i) => Array.from({ length: p }, (_, j) => i === j ? 1 : 0));
+  const spectral = eigen(new Matrix(initialMatrix));
+  const tail = spectral.values.slice(k).reduce((sum, x) => sum + Math.max(x, .01), 0) / (p - k);
+  const base = Array.from({ length: p }, (_, j) => Array.from({ length: k }, (_, a) => spectral.vectors.get(j, a) * Math.sqrt(Math.max(.05, spectral.values[a] - tail))));
+  for (const row of base) {
+    const size = dot(row, row);
+    if (size > .85) for (let a = 0; a < k; a++) row[a] *= Math.sqrt(.85 / size);
+  }
+  const random = mulberry32(spec.seed), fits: ReturnType<typeof minimizeLikelihood>[] = [];
+  for (let start = 0; start < settings.starts; start++) {
+    const loading = base.map(row => row.map(x => start === 0 ? x : x * (.7 + .6 * random()) + .2 * (random() - .5)));
+    const psi = loading.map(row => Math.max(.1, 1 - dot(row, row)));
+    const initial = [...loading.flat(), ...psi.map(Math.log), ...Array(p).fill(0)];
+    fits.push(minimizeLikelihood(problem, initial, settings, value => progress?.({ ...value, stage: `Start ${start + 1}/${settings.starts}: ${value.stage}` })));
+  }
+  const successful = fits.map((fit, i) => ({ ...fit, start: i })).filter(fit => fit.converged).sort((a, b) => a.value - b.value);
+  const best = successful[0];
+  if (!best) {
+    const closest = fits.slice().sort((a, b) => a.value - b.value)[0];
+    throw new EfaError('ml-nonconvergence', `ML did not converge in ${settings.starts} starts (best mean negative log likelihood ${closest.value}, projected gradient ${closest.gradient}). Increase the explicit iteration budget or review model identification; no alternative extractor was substituted.`, fits.map((fit, i) => ({ code: 'ml-start', message: `Start ${i + 1}: objective ${fit.value}, gradient ${fit.gradient}, iterations ${fit.iterations}.` })));
+  }
+  const rawLoadings = Array.from({ length: p }, (_, j) => best.parameters.slice(j * k, (j + 1) * k).map(x => x * problem.scales[j]));
+  const residualVariances = best.parameters.slice(p * k, p * (k + 1)).map((x, j) => Math.exp(x) * problem.scales[j] ** 2);
+  const covariance = rawLoadings.map((row, i) => rawLoadings.map((other, j) => dot(row, other) + (i === j ? residualVariances[i] : 0)));
+  const modelSds = covariance.map((row, j) => Math.sqrt(row[j]));
+  // ML identifies the common covariance, not an orthogonal factor basis. Give
+  // rotation a canonical descending spectral basis instead of optimizer history.
+  const standardized = new Matrix(rawLoadings.map((row, j) => row.map(x => x / modelSds[j])));
+  const gram = eigen(standardized.transpose().mmul(standardized));
+  const canonical = standardized.mmul(gram.vectors).to2DArray();
+  for (let a = 0; a < k; a++) {
+    const largest = canonical.reduce((best, row, j) => Math.abs(row[a]) > Math.abs(canonical[best][a]) ? j : best, 0);
+    if (canonical[largest][a] < 0) canonical.forEach(row => { row[a] *= -1; });
+  }
+  const means = best.parameters.slice(p * (k + 1)).map((x, j) => problem.centers[j] + x * problem.scales[j]);
+  // A fixed scale transformation contributes one log(scale) per observed cell.
+  const jacobian = problem.patterns.reduce((sum, group) => sum + group.rows.length * group.indices.reduce((s, j) => s + Math.log(problem.scales[j]), 0), 0);
+  const logLikelihood = -best.value * problem.nRows - jacobian;
+  const parameters = p * k + 2 * p - k * (k - 1) / 2;
+  const likelihood = {
+    kind: spec.missing === 'fiml' ? 'fiml' as const : 'ml' as const, settings, logLikelihood,
+    nRows: problem.nRows, observedCells: problem.observedCells, allMissingRows: problem.allMissingRows, patternCount: problem.patterns.length,
+    means, covariance, residualVariances, parameters, df: p * (p + 3) / 2 - parameters,
+    aic: -2 * logLikelihood + 2 * parameters, bic: -2 * logLikelihood + Math.log(problem.nRows) * parameters,
+    selectedStart: best.start + 1, starts: fits.map(fit => ({ converged: fit.converged, iterations: fit.iterations, objective: Number.isFinite(fit.value) ? fit.value : null, gradient: Number.isFinite(fit.gradient) ? fit.gradient : null })),
+  };
+  return {
+    estimator: 'ml', likelihood,
+    method: `${spec.missing === 'fiml' ? 'Observed-data FIML' : 'Gaussian ML'}; analytic-gradient L-BFGS; ${settings.starts} seeded starts; observed-scale conditioning; residual floor ${settings.uniquenessFloor}; tolerance ${settings.tolerance}; all missing respondents contribute no likelihood`,
+    loadings: canonical,
+    uniquenessParameters: residualVariances.map((x, j) => x / covariance[j][j]),
+    eigenvalues: spectral.values,
+    boundaryItems: residualVariances.flatMap((x, j) => x <= settings.uniquenessFloor * problem.scales[j] ** 2 * 1.001 ? [j] : []),
+    convergence: { converged: true, iterations: best.iterations, objective: best.value, gradient: best.gradient, maxIterations: settings.maxIterations },
+  };
+}
+
+/** Exact conditional Gaussian mean; not an additional imputation likelihood. */
+export function conditionalGaussianMean(values: (number | null)[], means: number[], covariance: number[][]): number[] | null {
+  const observed = values.flatMap((value, i) => value === null ? [] : [i]);
+  if (!observed.length) return null;
+  if (observed.length === values.length) return values as number[];
+  const inverse = positiveInverse(observed.map(i => observed.map(j => covariance[i][j]))).inverse;
+  const residual = observed.map(i => values[i]! - means[i]);
+  const solved = inverse.map(row => dot(row, residual));
+  return values.map((value, i) => value ?? means[i] + observed.reduce((sum, j, a) => sum + covariance[i][j] * solved[a], 0));
+}
+
+/** Reuses small latent-space solves for respondents with the same observed mask. */
+export function createConditionalProjector(result: EfaResult) {
+  const model = result.likelihood;
+  if (!model) throw new EfaError('completion-method', 'Conditional Gaussian projection requires a saved ML/FIML model.');
+  const p = model.means.length, k = result.rotation.phi.length;
+  const phiInverse = positiveInverse(result.rotation.phi).inverse;
+  const loadings = result.rotation.pattern.map((row, j) => row.map(value => value * result.sds[j]));
+  const cache = new Map<string, { indices: number[]; inverse: number[][] }>();
+  return (values: (number | null)[]) => {
+    if (values.length !== p || values.some(value => value !== null && !Number.isFinite(value)))
+      throw new EfaError('completion-data', 'Conditional inputs must match the fitted finite numeric items.');
+    const indices = values.flatMap((value, j) => value === null ? [] : [j]);
+    if (!indices.length) return null;
+    const key = indices.join(',');
+    let entry = cache.get(key);
+    if (!entry) {
+      const h = phiInverse.map(row => row.slice());
+      for (const j of indices) for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) h[a][b] += loadings[j][a] * loadings[j][b] / model.residualVariances[j];
+      entry = { indices, inverse: positiveInverse(h).inverse };
+      // Bound retained pattern solves on heavily fragmented large datasets.
+      if (cache.size >= 1024) cache.delete(cache.keys().next().value!);
+      cache.set(key, entry);
+    }
+    const right = Array(k).fill(0);
+    for (const j of indices) for (let a = 0; a < k; a++) right[a] += loadings[j][a] * (values[j]! - model.means[j]) / model.residualVariances[j];
+    const factors = entry.inverse.map(row => dot(row, right));
+    return { factors, means: values.map((value, j) => value ?? model.means[j] + dot(loadings[j], factors)) };
+  };
+}
+
+export interface ConditionalCompletion {
+  columns: string[];
+  rows: number[];
+  /** Per selected column: original-scale values, retaining null for wholly missing rows. */
+  values: (number | null)[][];
+  /** Column-major flags within rows; true only for newly calculated cells. */
+  filled: boolean[][];
+  completedCells: number;
+  uninformativeRows: number[];
+  method: 'conditional-gaussian-mean';
+}
+export function conditionalCompletion(table: DataTable, spec: EfaSpec, result: EfaResult): ConditionalCompletion {
+  const model = result.likelihood;
+  if (!model || spec.extraction !== 'ml') throw new EfaError('completion-method', 'Conditional completion requires a saved Gaussian ML/FIML fit.');
+  const columns = spec.items.map(item => item.column), rows = result.fittingRows.slice();
+  if (table.nRows !== result.originalRowCount || columns.some(column => !table.columns.includes(column)))
+    throw new EfaError('completion-data', 'The saved fit and current dataset dimensions do not match.');
+  const values = columns.map(() => Array<number | null>(rows.length).fill(null)), filled = columns.map(() => Array<boolean>(rows.length).fill(false));
+  let completedCells = 0;
+  const uninformativeRows: number[] = [];
+  const project = createConditionalProjector(result), offsets = result.numericReverseOffsets ?? result.imputation?.reverseOffsets;
+  rows.forEach((row, at) => {
+    const original = columns.map(column => {
+      const raw = table.data[column][row];
+      if (raw == null || raw === '') return null;
+      if (typeof raw !== 'number' || !Number.isFinite(raw)) throw new EfaError('completion-data', 'Conditional completion requires the original finite numeric items.');
+      return raw;
+    });
+    const transformed = original.map((value, j) => value === null ? null : offsets?.[j] == null ? value : offsets[j]! - value);
+    const complete = project(transformed)?.means;
+    if (!complete) uninformativeRows.push(row);
+    original.forEach((value, j) => {
+      if (value !== null) values[j][at] = value;
+      else if (complete) {
+        values[j][at] = offsets?.[j] == null ? complete[j] : offsets[j]! - complete[j];
+        filled[j][at] = true; completedCells++;
+      }
+    });
+  });
+  return { columns, rows, values, filled, completedCells, uninformativeRows, method: 'conditional-gaussian-mean' };
+}
+
+/** Worker variant after its input fingerprint has been checked against the fit. */
+export function conditionalCompletionPrepared(data: EfaPreparedData, result: EfaResult): ConditionalCompletion {
+  if (!data.numeric || !result.likelihood) throw new EfaError('completion-method', 'Conditional completion requires a numeric ML/FIML fit.');
+  const columns = data.items.map(item => item.column), rows = data.rows.slice(), n = rows.length;
+  const values = columns.map(() => Array<number | null>(n).fill(null)), filled = columns.map(() => Array<boolean>(n).fill(false));
+  const offsets = result.numericReverseOffsets ?? result.imputation?.reverseOffsets;
+  const preparationOffsets = data.numericReverseOffsets ?? data.imputation?.reverseOffsets;
+  const project = createConditionalProjector(result), uninformativeRows: number[] = [];
+  let completedCells = 0;
+  for (let i = 0; i < n; i++) {
+    const original = columns.map((_, j) => !data.observed[j * n + i] ? null : preparationOffsets?.[j] == null ? data.numeric![j * n + i] : preparationOffsets[j]! - data.numeric![j * n + i]);
+    const transformed = original.map((value, j) => value === null ? null : offsets?.[j] == null ? value : offsets[j]! - value);
+    const completed = project(transformed)?.means;
+    if (!completed) uninformativeRows.push(rows[i]);
+    original.forEach((value, j) => {
+      if (value !== null) values[j][i] = value;
+      else if (completed) {
+        values[j][i] = offsets?.[j] == null ? completed[j] : offsets[j]! - completed[j];
+        filled[j][i] = true; completedCells++;
+      }
+    });
+  }
+  return { columns, rows, values, filled, completedCells, uninformativeRows, method: 'conditional-gaussian-mean' };
+}

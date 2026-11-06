@@ -1,0 +1,12 @@
+{
+  "name": "scatter-lab-workspace",
+  "private": true,
+  "workspaces": ["packages/statistics"],
+  "scripts": {
+    "build:stats": "npm run build --workspace=@scatterlab/stats",
+    "test:stats": "npm run test --workspace=@scatterlab/stats",
+    "check:package": "node packages/statistics/scripts/check-package.mjs",
+    "setup": "npm ci && npm --prefix frontend ci",
+    "check": "npm run build:stats && npm run test:stats && npm --prefix frontend run ci:fast && npm --prefix frontend run ci:numerical && npm run check:package"
+  }
+}

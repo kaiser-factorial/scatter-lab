@@ -1,4 +1,4 @@
-import { compareGroups, type GroupComparison } from './stats';
+import { correlation, compareGroups, type GroupComparison } from './stats';
 import { valueIsTooRare, isIdentifierColumn, MIN_AGGREGATE_COUNT } from './defaults';
 import type { DataPolicy } from './dataPolicy';
 import type { Cell } from './stats';
@@ -37,6 +37,38 @@ export const numericTails = (
 /** Minimum complete pairs for a correlation to be reported in private mode. */
 export const correlationAllowed = (n: number, policy: DataPolicy): boolean =>
   policy.fullCategories || n >= MIN_AGGREGATE_COUNT;
+
+export type CorrelationReport =
+  | { ok: false; message: string }
+  | { ok: true; message: string; correlation: ReturnType<typeof correlation> };
+
+/** The assistant's correlation summary, with the privacy floor applied before disclosure. */
+export const correlationReport = (
+  colA: string, colB: string, a: Cell[], b: Cell[], policy: DataPolicy,
+): CorrelationReport => {
+  const result = correlation(a, b);
+  const { n, pearson, spearman, chatterjee, chatterjeeReverse } = result;
+  if (!correlationAllowed(n, policy)) {
+    return { ok: false, message: `Not enough complete pairs to correlate ${colA} and ${colB} (fewer than 5 in private mode).` };
+  }
+  if (n < 3) {
+    return { ok: false, message: `Not enough complete pairs to correlate ${colA} and ${colB} (n=${n}; at least 3 required).` };
+  }
+  const coefficient = (value: number | null) =>
+    value == null || !Number.isFinite(value) ? 'undefined' : value.toFixed(3);
+  const xi = (value: number | null) =>
+    value == null ? 'undefined (constant response)' : coefficient(value);
+  const constantNote = chatterjee == null || chatterjeeReverse == null
+    ? ' Pearson and Spearman are undefined when either column is constant.' : '';
+  return {
+    ok: true,
+    correlation: result,
+    message: `${colA} × ${colB}: Pearson r=${coefficient(pearson)}, Spearman rho=${coefficient(spearman)}, ` +
+      `Chatterjee xi(${colA} → ${colB})=${xi(chatterjee)}, xi(${colB} → ${colA})=${xi(chatterjeeReverse)}, ` +
+      `n=${n} (pairwise complete). Xi(X → Y) measures dependence of Y on X, not causation; ` +
+      'predictor ties are averaged over all orderings. No p-value or confidence interval is computed.' + constantNote,
+  };
+};
 
 export type GroupReport =
   | { ok: false; message: string }

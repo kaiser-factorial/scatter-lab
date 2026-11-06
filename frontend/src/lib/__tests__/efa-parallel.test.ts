@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import * as correlation from "../efa/correlation";
+// Spy on the module consumed by the extracted numerical implementation; the
+// frontend compatibility re-export is a separate module namespace.
+import * as correlation from "@scatterlab/stats/internal/efa/correlation";
 import { prepareEfa } from "../efa/prepare";
 import { parallelAnalysis } from "../efa/parallel";
 import type { DataTable } from "../table";

@@ -1,48 +1,135 @@
-name: tests
+name: Application checks
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: application-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
 
 jobs:
-  test:
+  fast:
+    name: Unit, component, worker and type checks
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
         with:
-          node-version: 20
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Install the numerical workspace
+        run: npm ci
+        working-directory: .
+      - name: Build the shared numerical package
+        run: npm run build:stats
+        working-directory: .
+      - name: Install the workbench
+        run: npm ci
+      - name: Library unit tests and packed consumer verification
+        run: npm run test:stats && npm run check:package
+        working-directory: .
+      - run: npm run ci:fast
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: fast-checks
+          path: |
+            frontend/.ci-artifacts/fast/
+            packages/statistics/.test-artifacts/
+            validation/library-migration/.artifacts/
+          include-hidden-files: true
+          retention-days: 14
 
-      - run: npx vitest run
+  numerical:
+    name: Saved R numerical contracts (448 groups)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Install the numerical workspace
+        run: npm ci
+        working-directory: .
+      - name: Build the shared numerical package
+        run: npm run build:stats
+        working-directory: .
+      - name: Install the workbench
+        run: npm ci
+      - run: npm run ci:numerical
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: saved-r-numerical-contracts
+          path: frontend/.ci-artifacts/numerical/
+          include-hidden-files: true
+          retention-days: 14
 
-      # The workflow used to stop at the line above, so a type error or a broken
-      # build reached the preview deployment before it reached CI (finding E3).
-      # These are the same three commands the review ran by hand every time.
-      - name: Typecheck
-        run: npx tsc --noEmit
-
-      - name: Build
-        run: npx next build
-
-      # eslint carries a known backlog (mostly no-explicit-any in code that
-      # predates the review), so failing on any problem would fail every run.
-      # Gate on the count instead: it may fall, never rise. Lower BASELINE when
-      # you clear some — that is the point of pinning it.
-      - name: Lint (no regressions)
+  build-and-lint:
+    name: Production build and no new lint findings
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Install the numerical workspace
+        run: npm ci
+        working-directory: .
+      - name: Build the shared numerical package
+        run: npm run build:stats
+        working-directory: .
+      - name: Install the workbench
+        run: npm ci
+      - name: Resolve comparison base
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          BASELINE=123
-          COUNT=$(npx eslint . -f json \
-            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);console.log(r.reduce((n,f)=>n+f.errorCount+f.warningCount,0))})")
-          echo "eslint problems: $COUNT (baseline $BASELINE)"
-          if [ "$COUNT" -gt "$BASELINE" ]; then
-            echo "::error::eslint problems rose from $BASELINE to $COUNT"
-            npx eslint . || true
-            exit 1
+          base="${PR_BASE_SHA:-${PUSH_BEFORE_SHA:-}}"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git rev-parse HEAD^)"
           fi
+          git rev-parse --verify "$base^{commit}"
+          echo "CI_BASE_SHA=$base" >> "$GITHUB_ENV"
+      - run: npm run ci:lint
+      - name: Build including vendored Plotly preparation
+        run: npm run build
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: lint-comparison
+          path: frontend/.ci-artifacts/lint/
+          include-hidden-files: true
+          retention-days: 14

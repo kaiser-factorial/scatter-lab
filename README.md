@@ -114,24 +114,37 @@ ephemeral highlight while explaining it. Interpretation questions are grounded i
 a curated, citation-backed methods reference that ships with the app. Asked for a
 demo, it offers the scripted walkthrough above rather than improvising one.
 
+- **Implementation knowledge:** a compact app guide and relevant implementation
+  notes are injected automatically. The assistant can also search and read
+  numbered source excerpts from `@scatterlab/stats` and its package documentation
+  shipped with the build. The inspectable snapshot is limited to that package;
+  app guidance remains authored context. These read-only tools use a local,
+  versioned snapshot, with no embedding service or access to user files.
+  See [assistant reference scope and verification](docs/ASSISTANT-REFERENCE.md).
+- **Correlations:** ask for Pearson, Spearman, or Chatterjee's ξ between any two
+  numeric variables. The `correlate` tool returns all three, with Chatterjee's ξ
+  in both directions, using pairwise-complete observations under the active row
+  filter. Predictor ties are averaged over all orderings for reproducible
+  results. These are descriptive coefficients; no p-value or confidence interval
+  is computed.
 - **One-click OpenRouter connect** (OAuth PKCE) or paste any key; any
   OpenAI-compatible endpoint works, including local runtimes (Ollama) for a
   fully offline assistant. Keys live in your browser only
-- **Privacy contract:** requests carry column names and aggregate statistics —
-  never raw data rows. A categorical value is only named if it covers at least
-  five rows, so an email address, a participant name or a free-text answer is
-  counted but never sent
+- **Privacy contract:** Private mode exposes permitted column metadata and
+  aggregate statistics, with small-group/category suppression and no raw rows.
+  Explicit Public/open mode enables bounded row-reading tools only when every
+  loaded dataset is open. One private dataset keeps the conversation private.
 - **Undo** for anything the assistant changes; optional thumbs-up/down feedback
   per reply (stored write-only, used to improve the assistant)
 - Dockable right/bottom or floating, resizable, markdown-rendering chat
 
 ## Methods, stated in the app
 
-Because users never see the code, the choices the app makes on their behalf are
+The choices the app makes on users' behalf are
 written into the interface: small **(i)** markers next to the controls they
 apply to, and an **About** page reachable from the header. Both read from one
-source (`src/lib/disclosures.ts`), so a tooltip, the About page and the
-assistant's own reference cannot drift apart. They cover the things that change
+source (`src/lib/disclosures.ts`). The assistant's guide and source references
+also need to be kept current as implementations change. They cover the things that change
 an answer — that K-Means here is the deterministic variant, that clustering runs
 on the plotted axes only, what standardizing does, and which of the two
 conventions the reported loadings follow.
@@ -139,16 +152,23 @@ conventions the reported loadings follow.
 ## Development
 
 ```bash
-cd frontend
-npm install
+npm run setup     # root numerical workspace, then frontend dependencies
+npm run build:stats
 dev start frontend --detach --json --yes  # prints the ready URL
-npx vitest run     # unit tests
-npx tsc --noEmit   # types
-npx next build     # production build
+npm run check     # library, app, numerical references and packed consumer
+npm --prefix frontend run build  # production build
 ```
 
-CI runs all four on every push and pull request, plus a lint gate that allows
-the existing warning count to fall but never rise.
+The app consumes the local [`@scatterlab/stats`](packages/statistics/README.md)
+package. Its public API separates fitting from scoring new rows, retains full
+precision and training preprocessing, and has no Next.js, React or R runtime
+dependency. The frontend keeps workspace state, workers, optional backends,
+assistant policy and UI formatting. During development, library source changes
+rebuild automatically and Next reloads the emitted modules.
+
+CI checks both library and app, numerical reference coverage, source contracts,
+production builds and newly introduced lint findings. See [CI.md](docs/CI.md)
+and [the library architecture](docs/STATISTICS-LIBRARY.md) for commands and scope.
 
 Feedback storage is env-gated: copy `.env.local.example` to `.env.local` and
 fill the Supabase values to enable it (unset = feedback UI hidden). Pushes to

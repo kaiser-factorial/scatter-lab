@@ -3,6 +3,8 @@ import { EFA_ENGINE } from "./types";
 import { correlationMethod, preparedCorrelation } from './correlation-method';
 import { validateSpec } from './prepare';
 import { inferMeasurement } from '../measurement';
+import { likelihoodSettings, type ConditionalCompletion } from './maximum-likelihood';
+import { convergenceIssueSummary, type ConvergenceIssue } from '../convergence';
 import { computeSettings, type CompanionConnection, type CompanionSession } from "./backends/types";
 import { connectCompanion, createCompanionSession, closeCompanionSession, companionRequest } from "./backends/companion";
 import type { DataTable } from "../table";
@@ -53,6 +55,8 @@ export interface EfaJob<T = unknown> {
   status: EfaJobStatus;
   progress: EfaProgress;
   error?: string;
+  /** Aggregate diagnostics for an explicit optimizer stop, never cancellation. */
+  convergenceIssue?: ConvergenceIssue;
   result?: T;
   promise: Promise<T>;
   cancel: () => void;
@@ -105,7 +109,8 @@ class WorkerClient {
       if (p.op === "rotation-batch" && !error) trace.received(value.values.byteLength);
       if (p.op === "fit-cache" && !error) trace.received(value.inference.covariance.byteLength);
       if (error)
-        p.reject(new EfaError(error.code, error.message, error.diagnostics));
+        p.reject(new EfaError(error.code, error.message, error.diagnostics,
+          error.convergenceIssue ? convergenceIssueSummary(error.convergenceIssue) : undefined));
       else p.resolve(value);
     };
     this.worker.onerror = (event) => {
@@ -320,6 +325,8 @@ export class EfaService {
         if (job.status !== "cancelled") {
           job.status = "failed";
           job.error = error instanceof Error ? error.message : String(error);
+          if (error instanceof EfaError && error.code !== 'cancelled' && error.convergenceIssue)
+            job.convergenceIssue = convergenceIssueSummary(error.convergenceIssue);
           trace.finish("failed");
         }
         throw error;
@@ -408,7 +415,9 @@ export class EfaService {
       if (inferred.kind !== 'ordinal') throw new EfaError('mice-measurement', `MICE currently requires ordered categorical items. Review the measurement level and category order for ${item.column}.`);
       return { ...item, categories: inferred.categories, measurement: 'ordinal' as const };
     });
-    if (snapshot.missing !== "pairwise")
+    if (snapshot.extraction === 'ml' && (snapshot.correlation !== 'pearson' || snapshot.missing !== 'complete'))
+      throw new EfaError('mice-likelihood', 'ML after ordinal MICE requires explicit Pearson correlations and complete-data ML for each completed chain.');
+    if (snapshot.missing !== "pairwise" && !(snapshot.extraction === 'ml' && snapshot.missing === 'complete'))
       throw new EfaError(
         "mice-population",
         "MICE keeps incomplete respondents. Choose the pairwise/eligible population before starting imputation; complete-case deletion would remove its targets.",
@@ -424,7 +433,8 @@ export class EfaService {
             ),
             nRows: table.nRows,
           },
-          spec: { ...snapshot, items: miceItems, correlation: 'polychoric' },
+          spec: { ...snapshot, items: miceItems, correlation: 'polychoric', missing: 'pairwise',
+            ...(snapshot.extraction === 'ml' ? { extraction: 'minres', likelihood: undefined } : {}) },
           rows: membership,
         });
       progress({ stage: "Original observed support", completed: 0, total: 1 });
@@ -754,6 +764,7 @@ export class EfaService {
         reuse.spec.nFactors === snapshot.nFactors &&
         (reuse.spec.extraction ?? "minres") ===
           (snapshot.extraction ?? "minres") &&
+        (snapshot.extraction !== 'ml' || JSON.stringify(likelihoodSettings(reuse.spec.likelihood)) === JSON.stringify(likelihoodSettings(snapshot.likelihood))) &&
         JSON.stringify({
           items: reuse.spec.items,
           missing: reuse.spec.missing,
@@ -867,6 +878,28 @@ export class EfaService {
       return worker.request({ op: "score", result });
     });
   }
+  complete(table: DataTable, run: EfaRun): EfaJob<ConditionalCompletion> {
+    const spec = structuredClone(run.spec), rows = run.result.fittingRows.slice(), result = run.result;
+    if (spec.extraction !== 'ml' || !result.likelihood) throw new EfaError('completion-method', 'Conditional completion requires a saved ML/FIML fit.');
+    return this.launch(async workers => {
+      const worker = this.client(workers);
+      await worker.request({ op: 'prepare', table: {
+        columns: spec.items.map(item => item.column),
+        data: Object.fromEntries(spec.items.map(item => [item.column, table.data[item.column]])),
+        nRows: table.nRows,
+      }, spec, rows });
+      const completion = await worker.request<ConditionalCompletion>({ op: 'complete', result });
+      // Reverse-key arithmetic can lose one bit when inverted. The immutable
+      // input table is authoritative for every observed cell, including exports.
+      completion.columns.forEach((column, j) => completion.rows.forEach((row, at) => {
+        if (!completion.filled[j][at]) {
+          const original = table.data[column][row];
+          completion.values[j][at] = typeof original === 'number' ? original : null;
+        }
+      }));
+      return completion;
+    });
+  }
   parallel(
     table: DataTable,
     spec: EfaSpec,
@@ -942,7 +975,7 @@ export class EfaService {
         }),
       );
       if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
-      return summarizeParallel(
+      const result = summarizeParallel(
         observed,
         results.filter((x): x is number[] => !!x),
         failures.sort((a, b) => a.replicate - b.replicate),
@@ -952,6 +985,9 @@ export class EfaService {
         data.imputation?.method,
         preparedCorrelation(data),
       );
+      if (snapshot.missing === 'fiml' && result.provenance)
+        result.provenance.extraction += '; FIML setup: this factor-count reference uses observed-pair Pearson correlations and one-factor MINRES, not an FIML likelihood or model comparison';
+      return result;
     });
   }
 }

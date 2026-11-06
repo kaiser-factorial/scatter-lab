@@ -204,6 +204,16 @@ export function EfaResults({ state, activeId, onSelect, actions, onClose, table,
       <label>Saved run <select className={control + " max-w-52"} value={base.id} aria-label="Saved run" onChange={e => onSelect(e.target.value)}>{state.runs.map(r => <option key={r.id} value={r.id}>{r.spec.label} r{r.revision} · {r.kind}</option>)}</select></label>
       <label>Compare with <select className={control + " max-w-44"} value={compareId} aria-label="Compare with" onChange={e => setCompareId(e.target.value)}><option value="">No comparison</option>{state.runs.filter(r => r.id !== rawRun.id).map(r => <option key={r.id} value={r.id}>{r.spec.label} r{r.revision}</option>)}</select></label>
       <button className={button} disabled={!!candidate || dirty || busy} title={candidate ? "Save the candidate before adding scores" : undefined} onClick={() => void execute(() => actions.addScores(base.id))}>Add scores to dataset</button>
+      {rawRun.result.likelihood && actions.complete && <details className="relative"><summary className={button + " cursor-pointer"}>Complete missing values</summary>
+        <div className="absolute left-0 top-full z-40 min-w-72 max-w-sm border-2 border-[var(--border)] bg-[var(--card)] p-2 flex flex-col gap-2">
+          <p>Conditional predictions from the saved ML/FIML model. The operation uses its fixed fitting rows and preserves observed values.</p>
+          {([['columns', 'Add completed item columns'], ['csv', 'Completed values · CSV'], ['operation', 'Saved operation + input · JSON'], ['code', 'Replay operation · R code']] as const).map(([destination, label]) => <button key={destination} className={button} disabled={!!candidate || dirty || busy} onClick={e => {
+            e.currentTarget.closest('details')?.removeAttribute('open');
+            void execute(() => actions.complete!(base.id, destination));
+          }}>{label}</button>)}
+          <span className="opacity-70">The R code replays the saved model with the operation JSON. It does not refit the model.</span>
+        </div>
+      </details>}
       <details className="relative"><summary className={button + " cursor-pointer"}>Export</summary><div className="absolute left-0 top-full z-40 min-w-64 border-2 border-[var(--border)] bg-[var(--card)] p-2 flex flex-col gap-2">
         <button className={button} onClick={e => { download(rawRun.spec.label + ".csv", serializeEfaCsv({ ...rawRun, reviews }), "text/csv;charset=utf-8"); e.currentTarget.closest("details")?.removeAttribute("open"); }}>Loadings and item statistics · CSV</button>
         <button className={button} onClick={e => { download(rawRun.spec.label + ".efa.json", JSON.stringify({ format: 1, run: { ...rawRun, reviews }, split: state.splits.find(s => s.id === rawRun.spec.sample.splitId) }, null, 2), "application/json"); e.currentTarget.closest("details")?.removeAttribute("open"); }}>Complete analysis · JSON</button>

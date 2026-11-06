@@ -1,0 +1,8 @@
+enable_experimental;
+import "FimlCellContract.cry" as F;
+let main : TopLevel [Theorem] = do {
+  observed <- prove_print z3 {{ F::preservesObserved }};
+  missing <- prove_print z3 {{ F::fillsMissing }};
+  summarize_verification;
+  return [observed,missing];
+};

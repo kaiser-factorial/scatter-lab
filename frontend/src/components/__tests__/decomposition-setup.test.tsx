@@ -40,10 +40,10 @@ async function select(label: string, value: string) {
 function current(): SharedAnalysisSetup {
   return JSON.parse(document.querySelector("output")!.textContent!);
 }
-async function mount() {
+async function mount(externalRun?: { seq: number; vars: string[]; label: string; missing: SharedAnalysisSetup['missing']; measurements?: SharedAnalysisSetup['measurements'] }) {
   function Harness() {
     const [method, setMethod] = useState<"pca" | "efa">("pca");
-    return <DecompositionSetup table={table} method={method} onMethodChange={setMethod} ownedScores={["savedFactor"]}>
+    return <DecompositionSetup table={table} method={method} onMethodChange={setMethod} ownedScores={["savedFactor"]} externalRun={externalRun}>
       {setup => <output>{JSON.stringify(setup)}</output>}
     </DecompositionSetup>;
   }
@@ -100,7 +100,7 @@ it("preserves setup across methods and exposes all missing methods except iterat
   expect(current()).toEqual(previous);
   expect(button("EFA").getAttribute("aria-pressed")).toBe("true");
   expect(button("PCA").getAttribute("aria-pressed")).toBe("false");
-  expect(Array.from(control<HTMLSelectElement>("Missing values").options, option => option.value)).toEqual(allMissing.slice(0, -1));
+  expect(Array.from(control<HTMLSelectElement>("Missing values").options, option => option.value)).toEqual([...allMissing.slice(0, -1), "fiml"]);
   for (const method of allMissing.slice(0, -1)) { await select("Missing values", method); expect(current().missing).toBe(method); }
   await click(button("PCA")); await select("Missing values", "iterative"); await click(button("EFA"));
   expect(current().missing).toBe("median");
@@ -114,4 +114,9 @@ it("delivers per-item measurement overrides to the selected analysis", async () 
   await click(button("EFA"));
   expect(current().measurements).toEqual({ itemA: "continuous", itemB: "ordinal" });
   await select("Item type itemA", "auto"); expect(current().measurements.itemA).toBe("auto");
+});
+
+it('displays an assistant setup that was already supplied when the dataset panel mounts', async () => {
+  await mount({ seq: 4, vars: ['itemB', 'itemC'], label: 'Assistant fit', missing: 'mean', measurements: { itemB: 'continuous' } });
+  expect(current()).toEqual({ selected: ['itemB', 'itemC'], label: 'Assistant fit', missing: 'mean', measurements: { itemB: 'continuous' } });
 });

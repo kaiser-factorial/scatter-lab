@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/corinakaiser/Projects/pca-workbench/frontend
+
+
+ Test Files  4 passed (4)
+      Tests  22 passed (22)
+   Start at  04:19:17
+   Duration  3.64s (transform 1.96s, setup 0ms, import 2.87s, tests 1.72s, environment 1.46s)
+

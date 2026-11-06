@@ -1,0 +1,44 @@
+{
+  "recordedAt": "2026-11-06T12:20:21.174Z",
+  "status": "timeout",
+  "method": "fiml-fragmented",
+  "runtime": "v26.8.1",
+  "dimensions": {
+    "respondents": 20000,
+    "items": 500,
+    "factors": 5
+  },
+  "dataSeed": 8801,
+  "timingsMs": {
+    "generation": 1494.1709999999998,
+    "preparation": 3347.0925829999996,
+    "correlation": 14871.465333
+  },
+  "qualification": "Single isolated Node CPU run; runtime and execution qualification only. Not browser responsiveness, R speed comparison, or full-size cross-implementation accuracy proof.",
+  "stage": "ML extraction and Promax",
+  "peakRssKiB": 413216,
+  "missingCells": 500028,
+  "missingness": "independent MCAR .05, mulberry32 seed73291",
+  "settings": {
+    "extraction": "ml",
+    "correlation": "pearson",
+    "missing": "fiml",
+    "rotation": "promax",
+    "seed": 8801,
+    "likelihood": {
+      "starts": 3,
+      "maxIterations": 2000,
+      "tolerance": 1e-7,
+      "uniquenessFloor": 0.000001
+    }
+  },
+  "progress": {
+    "stage": "Start 1/3: ML · gradient 1.083e-4",
+    "completed": 8,
+    "total": 2000
+  },
+  "limits": {
+    "wallSeconds": 90,
+    "rssGiB": 3
+  }
+}

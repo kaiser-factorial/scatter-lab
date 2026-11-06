@@ -3,12 +3,19 @@ backend/venv/
 .DS_Store
 frontend/public/vendor/
 frontend/public/efa-qualification/
+frontend/public/assistant-reference/
+frontend/src/lib/generated/app-reference-manifest.ts
 node_modules/
 .next/
 __pycache__/
 *.pyc
 *.tsbuildinfo
+.ci-artifacts/
 next-env.d.ts
 
 # Real participant-derived view data — keep out of version control
 LS_pca_workbench_views copy/
+node_modules/
+packages/statistics/dist/
+packages/statistics/.test-artifacts/
+validation/library-migration/.artifacts/

@@ -5,13 +5,13 @@ import { createRoot, type Root } from "react-dom/client";
 import { EfaPanel, type EfaActions, type EfaSetup } from "../EfaPanel";
 import { emptyEfaState } from "../../lib/efa/state";
 import type { EfaSpec, ParallelResult } from "../../lib/efa/types";
-import type { EfaService } from "../../lib/efa/service";
+import { EfaService } from "../../lib/efa/service";
 
 const columns = ["A", "B", "C", "D", "E", "F"];
 const table = { columns, nRows: 30, data: Object.fromEntries(columns.map((column, j) => [column,
   Array.from({ length: 30 }, (_, i) => i === 4 ? null : i * 0.23 + j),
 ])) };
-const state = emptyEfaState(), service = {} as EfaService;
+const state = emptyEfaState(), service = new EfaService();
 let root: Root | undefined;
 beforeEach(() => vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true));
 afterEach(async () => { await act(async () => root?.unmount()); root = undefined; document.body.replaceChildren(); vi.unstubAllGlobals(); });
@@ -42,16 +42,16 @@ async function setup(initialSample: EfaSpec["sample"] = { partition: "all" }, co
 
 it.each(["mean", "median"] as const)("keeps missing %s independent of the explicit correlation/extraction choice", async missing => {
   const { actions } = await setup();
-  await select("EFA correlations", "polychoric"); await extraction("dwls");
+  await select("EFA correlations", "polychoric"); await extraction("wlsmv");
   await select("Missing values", missing);
-  expect(document.querySelector<HTMLInputElement>("input[value='dwls']")?.checked).toBe(true);
-  expect(document.querySelector<HTMLInputElement>("input[value='dwls']")?.disabled).toBe(false);
+  expect(document.querySelector<HTMLInputElement>("input[value='wlsmv']")?.checked).toBe(true);
+  expect(document.querySelector<HTMLInputElement>("input[value='wlsmv']")?.disabled).toBe(false);
   for (const column of columns) await act(async () => {
     const label = Array.from(document.querySelectorAll("label")).find(el => el.textContent?.trim() === column)!;
     label.querySelector<HTMLInputElement>("input[type=checkbox]")!.click();
   });
   await click("Preview sample"); await click("Run EFA");
-  expect(actions.run).toHaveBeenCalledWith(expect.objectContaining({ missing, extraction: "dwls", correlation: "polychoric" }));
+  expect(actions.run).toHaveBeenCalledWith(expect.objectContaining({ missing, extraction: "wlsmv", correlation: "polychoric" }));
 });
 
 it("uses the shared label and item setup without rendering duplicate controls", async () => {
@@ -64,6 +64,25 @@ it("uses the shared label and item setup without rendering duplicate controls", 
   expect(actions.run).toHaveBeenCalledWith(expect.objectContaining({ label: "Reasoning", missing: "median", correlation: "auto", items: expect.arrayContaining([expect.objectContaining({ column: "A", measurement: "continuous" })]) }));
   await render({ partition: "all" }, shared, "new-row-filter");
   expect(button("Run EFA").disabled).toBe(true);
+});
+
+it('offers ML instead of DWLS and passes the FIML hyperparameters without changing incompatible choices silently', async () => {
+  const shared: EfaSetup = { label: 'Likelihood', selected: columns, missing: 'fiml' };
+  const { actions } = await setup({ partition: 'all' }, shared);
+  expect(document.querySelector("input[name='efa-extraction'][value='dwls']")).toBeNull();
+  expect(button('Preview sample').disabled).toBe(true);
+  expect(document.querySelector('[role="alert"]')?.textContent).toContain('FIML requires');
+  await extraction('ml');
+  for (const [label, value] of [['ML starts', '4'], ['ML maximum iterations', '1500'], ['ML tolerance', '0.000001'], ['ML uniqueness floor', '0.00001']]) {
+    const field = document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, value);
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  await click('Preview sample'); await click('Run EFA');
+  expect(actions.run).toHaveBeenLastCalledWith(expect.objectContaining({ extraction: 'ml', missing: 'fiml',
+    likelihood: { starts: 4, maxIterations: 1500, tolerance: 1e-6, uniquenessFloor: 1e-5 } }));
 });
 
 it("places rotation radios directly after extraction and defaults new runs to Promax", async () => {
@@ -95,6 +114,55 @@ it("invalidates a preview when the parent changes the fitting sample", async () 
   expect(actions.run).toHaveBeenLastCalledWith(expect.objectContaining({ sample: holdout }));
 });
 
+it("preserves an external fitting sample across preview, run and parallel analysis while explicit parent scope takes precedence", async () => {
+  const actions = { preview: vi.fn(async () => ({ nRows: 6, counts: columns.map(() => [6]) })),
+    run: vi.fn(async () => "run"), parallel: vi.fn(async () => simulation) } as unknown as EfaActions;
+  const fixed: EfaSpec["sample"] = { partition: "all", fixedRows: [0, 1, 2, 3, 5, 6] };
+  const development: EfaSpec["sample"] = { splitId: "saved", partition: "development" };
+  const holdout: EfaSpec["sample"] = { splitId: "saved", partition: "holdout" };
+  const spec: EfaSpec = { label: "Captured sample", items: columns.map(column => ({ column, measurement: "continuous", categories: [], reverse: false })),
+    correlation: "pearson", missing: "mean", extraction: "minres", rotation: "promax", nFactors: 2, seed: 41, sample: fixed };
+  const shared: EfaSetup = { label: spec.label, selected: columns, missing: spec.missing,
+    measurements: Object.fromEntries(columns.map(column => [column, "continuous" as const])) };
+  const mount = document.createElement("div"); document.body.append(mount); root = createRoot(mount);
+  const render = async (seq: number, externalSample: EfaSpec["sample"], parentSample?: EfaSpec["sample"]) => {
+    await act(async () => root!.render(<EfaPanel service={service} table={table} state={state} actions={actions}
+      setup={shared} sample={parentSample} externalSpec={{ seq, spec: { ...spec, sample: externalSample } }} />));
+  };
+  await render(1, fixed);
+  expect(document.querySelector('[aria-label="EFA sample scope"]')?.textContent).toBe("Fitting scope: 6 fixed rows");
+  await click("Preview sample"); await click("Run EFA"); await click("Run parallel analysis");
+  expect(actions.preview).toHaveBeenLastCalledWith(expect.objectContaining({ sample: fixed }));
+  expect(actions.run).toHaveBeenLastCalledWith(expect.objectContaining({ sample: fixed }));
+  expect(actions.parallel).toHaveBeenLastCalledWith(expect.objectContaining({ sample: fixed }), 100);
+  expect(document.querySelector("figure[aria-label='Parallel analysis histogram']")).not.toBeNull();
+  await render(1, { ...fixed, fixedRows: fixed.fixedRows!.slice() });
+  expect(button("Run EFA").disabled).toBe(false);
+
+  await render(2, development);
+  expect(document.querySelector('[aria-label="EFA sample scope"]')?.textContent).toBe("Fitting scope: Development partition");
+  expect(button("Run EFA").disabled).toBe(true);
+  expect(document.querySelector("figure[aria-label='Parallel analysis histogram']")).toBeNull();
+  await click("Preview sample"); await click("Run EFA"); await click("Run parallel analysis");
+  expect(actions.run).toHaveBeenLastCalledWith(expect.objectContaining({ sample: development }));
+  expect(actions.parallel).toHaveBeenLastCalledWith(expect.objectContaining({ sample: development }), 100);
+
+  await render(2, development, holdout);
+  expect(document.querySelector('[aria-label="EFA sample scope"]')?.textContent).toBe("Fitting scope: Holdout partition");
+  expect(button("Run EFA").disabled).toBe(true);
+  expect(document.querySelector("figure[aria-label='Parallel analysis histogram']")).toBeNull();
+  await click("Preview sample"); await click("Run EFA"); await click("Run parallel analysis");
+  expect(actions.preview).toHaveBeenLastCalledWith(expect.objectContaining({ sample: holdout }));
+  expect(actions.run).toHaveBeenLastCalledWith(expect.objectContaining({ sample: holdout }));
+  expect(actions.parallel).toHaveBeenLastCalledWith(expect.objectContaining({ sample: holdout }), 100);
+
+  await render(2, development, { partition: "all" });
+  expect(document.querySelector('[aria-label="EFA sample scope"]')).toBeNull();
+  expect(button("Run EFA").disabled).toBe(true);
+  await click("Preview sample");
+  expect(actions.preview).toHaveBeenLastCalledWith(expect.objectContaining({ sample: { partition: "all" } }));
+});
+
 it("shows the actual parallel histogram only for matching current inputs", async () => {
   const shared: EfaSetup = { label: "PA", selected: columns, missing: "mean" };
   const { actions, render } = await setup({ partition: "all" }, shared);
@@ -103,4 +171,22 @@ it("shows the actual parallel histogram only for matching current inputs", async
   expect(document.querySelector("figure[aria-label='Parallel analysis histogram']")).not.toBeNull();
   await render({ partition: "all" }, { ...shared, missing: "median" });
   expect(document.querySelector("figure[aria-label='Parallel analysis histogram']")).toBeNull();
+});
+
+it("applies the adviser's extraction and correlation together without fitting and requires a fresh preview", async () => {
+  const shared: EfaSetup = { label: "Suggested", selected: columns, missing: "median" };
+  const { actions, render } = await setup({ partition: "all" }, shared);
+  await click("Preview sample");
+  expect(button("Run EFA").disabled).toBe(false);
+  await render({ partition: "all" }, { ...shared, missing: "fiml", advice: { seq: 1, patch: { correlation: "pearson", extraction: "ml", missing: "fiml" } } });
+  expect(document.querySelector<HTMLSelectElement>("select[aria-label='EFA correlations']")?.value).toBe("pearson");
+  expect(document.querySelector<HTMLInputElement>("input[value='ml']")?.checked).toBe(true);
+  expect(button("Run EFA").disabled).toBe(true);
+  expect(actions.run).not.toHaveBeenCalled();
+  await click("Preview sample"); await click("Run EFA");
+  expect(actions.run).toHaveBeenLastCalledWith(expect.objectContaining({ correlation: "pearson", extraction: "ml", missing: "fiml" }));
+  // Ordinary parent renders must not reapply advice over a later manual choice.
+  await extraction("minres");
+  await render({ partition: "all" }, { ...shared, advice: { seq: 1, patch: { correlation: "pearson", extraction: "ml" } } });
+  expect(document.querySelector<HTMLInputElement>("input[value='minres']")?.checked).toBe(true);
 });

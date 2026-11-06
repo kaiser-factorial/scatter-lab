@@ -5,7 +5,8 @@ import { InfoTip } from "./InfoTip";
 import { mvRuntimeAdvice } from "@/lib/efa/runtime-advice";
 import type { EfaService } from "@/lib/efa/service";
 import type { EfaComputeSettings } from "@/lib/efa/backends/types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { AdvicePatch } from '@/lib/decomposition-advice';
 import type { DataTable } from "@/lib/table";
 import { proposedCategories } from "@/lib/efa/prepare";
 import type { EfaJob } from "@/lib/efa/service";
@@ -58,6 +59,7 @@ export interface EfaActions {
   cancelRefitPreview: (options?: { preserveCompleted?: boolean }) => void;
   saveRefitPreview: (previewId: string, reviews?: Record<string, ItemReview>, reasons?: string) => Promise<string>;
   addScores: (id: string) => Promise<string>;
+  complete?: (id: string, destination: 'columns' | 'csv' | 'operation' | 'code') => Promise<string>;
   parallel: (spec: EfaSpec, replicates: number) => Promise<ParallelResult>;
   preview: (spec: EfaSpec) => Promise<{
     nRows: number;
@@ -94,6 +96,7 @@ export interface EfaSetup {
   selected: string[];
   missing: EfaSpec["missing"] | "mice";
   measurements?: Record<string, MeasurementChoice>;
+  advice?: { seq: number; patch: AdvicePatch };
 }
 
 export function EfaPanel({
@@ -102,10 +105,13 @@ export function EfaPanel({
   state,
   actions,
   job,
-  sample = { partition: "all" },
+  sample,
   setup,
   contextKey = "",
   itemTable = table,
+  externalSpec,
+  recoveredRunId,
+  onOrdersChange,
 }: {
   service: EfaService;
   table: DataTable;
@@ -116,7 +122,14 @@ export function EfaPanel({
   setup?: EfaSetup;
   contextKey?: string;
   itemTable?: DataTable;
+  externalSpec?: { seq: number; spec: EfaSpec } | null;
+  recoveredRunId?: string | null;
+  onOrdersChange?: (orders: Record<string, OrdinalCategory[]>) => void;
 }) {
+  const effectiveSample = sample ?? externalSpec?.spec.sample ?? { partition: "all" };
+  const sampleScope = effectiveSample.fixedRows
+    ? `${effectiveSample.fixedRows.length} fixed rows${effectiveSample.partition === "all" ? "" : ` · ${effectiveSample.partition} partition`}`
+    : effectiveSample.partition === "all" ? "" : `${effectiveSample.partition === "development" ? "Development" : "Holdout"} partition`;
   const proposed = useMemo(
     () =>
       Object.fromEntries(
@@ -131,6 +144,7 @@ export function EfaPanel({
     [orders, setOrders] = useState<Record<string, string>>({}),
     [reverse, setReverse] = useState<Record<string, boolean>>({});
   const [compute, setCompute] = useState<EfaComputeSettings>({ backend: "cpu" });
+  const [likelihood, setLikelihood] = useState({ maxIterations: 2000, tolerance: 1e-7, starts: 3, uniquenessFloor: 1e-6 });
   const [factors, setFactors] = useState(2),
     [extraction, setExtraction] = useState<EfaEstimator>("minres"),
     [rotation, setRotation] = useState<Rotation>("promax"),
@@ -165,6 +179,35 @@ export function EfaPanel({
   const selected = setup?.selected ?? localSelected,
     missing = setup?.missing ?? localMissing,
     label = setup?.label ?? localLabel;
+  const [externalSeq, setExternalSeq] = useState(0);
+  const [adviceSeq, setAdviceSeq] = useState(0);
+  const [seenRecovery, setSeenRecovery] = useState('');
+  if (recoveredRunId && seenRecovery !== recoveredRunId && state.runs.some(run => run.id === recoveredRunId)) {
+    setSeenRecovery(recoveredRunId); setResults(recoveredRunId);
+  }
+  if (setup?.advice && adviceSeq !== setup.advice.seq) {
+    setAdviceSeq(setup.advice.seq);
+    if (setup.advice.patch.correlation) setCorrelation(setup.advice.patch.correlation);
+    if (setup.advice.patch.extraction) setExtraction(setup.advice.patch.extraction);
+  }
+  useEffect(() => {
+    const parsed: Record<string, OrdinalCategory[]> = {};
+    for (const [column, text] of Object.entries(orders)) {
+      try { const value = JSON.parse(text); if (Array.isArray(value)) parsed[column] = value; } catch { /* Invalid drafts remain in the editor. */ }
+    }
+    onOrdersChange?.(parsed);
+  }, [orders, onOrdersChange]);
+  if (externalSpec && externalSeq !== externalSpec.seq) {
+    const spec = externalSpec.spec;
+    setExternalSeq(externalSpec.seq);
+    setSelected(spec.items.map(item => item.column));
+    setOrders(Object.fromEntries(spec.items.filter(item => item.categories.length).map(item => [item.column, JSON.stringify(item.categories)])));
+    setReverse(Object.fromEntries(spec.items.map(item => [item.column, item.reverse])));
+    setFactors(spec.nFactors); setExtraction(spec.extraction ?? 'minres'); setRotation(spec.rotation);
+    setCorrelation(spec.correlation ?? 'auto'); setMissing(spec.missing); setLabel(spec.label); setSeed(spec.seed);
+    setCompute(spec.compute ?? { backend: 'cpu' });
+    setLikelihood({ maxIterations: 2000, tolerance: 1e-7, starts: 3, uniquenessFloor: 1e-6, ...spec.likelihood });
+  }
   const predictorTarget = selected.includes(target) ? target : selected[0],
     targetPredictors =
       predictors[predictorTarget] ??
@@ -180,7 +223,16 @@ export function EfaPanel({
   const resolvedCorrelation = correlation === "auto" ? inferred.some(item => item.kind === "continuous") ? "pearson" : "polychoric" : correlation;
   const numericData = resolvedCorrelation === "pearson";
   const needsCategories = !numericData || missing === "mice";
-  const incompatibleEstimator = numericData && extraction !== "minres";
+  const incompatibility = missing === "fiml" && extraction !== "ml"
+    ? "FIML requires Maximum Likelihood extraction. Select ML below."
+    : extraction === "ml" && !numericData
+      ? "ML models numeric spacing. Select Pearson correlations to treat these items as continuous, or choose another extraction method."
+      : extraction === "ml" && missing === "pairwise"
+        ? "ML requires FIML, complete cases, or a completed dataset. Choose a compatible missing-value method."
+        : numericData && extraction !== "minres" && extraction !== "ml"
+          ? "Choose MINRES or ML for Pearson correlations, or select Polychoric to retain WLSMV."
+          : "";
+  const incompatibleEstimator = !!incompatibility;
   const setupKey = JSON.stringify({
     compute,
     selected,
@@ -188,12 +240,13 @@ export function EfaPanel({
     reverse,
     factors,
     extraction,
+    likelihood,
     rotation,
     correlation,
     missing,
     label,
     seed,
-    sample,
+    sample: effectiveSample,
     contextKey,
     measurements: setup?.measurements,
   });
@@ -222,12 +275,13 @@ export function EfaPanel({
     nFactors: factors,
     compute: extraction === "wlsmv" ? compute : { backend: "cpu" },
     extraction,
+    ...(extraction === "ml" ? { likelihood } : {}),
     rotation,
     correlation,
-    missing: missing === "mice" ? "pairwise" : missing,
+    missing: missing === "mice" ? (extraction === "ml" ? "complete" : "pairwise") : missing,
     seed,
     label: label.trim() || "EFA",
-    sample,
+    sample: effectiveSample,
   });
   const parallelKey = (spec: EfaSpec, count: number) => JSON.stringify({
     items: spec.items, missing: spec.missing,
@@ -361,11 +415,11 @@ export function EfaPanel({
           <div className="flex flex-wrap gap-x-3 gap-y-2">
             {([
               ["minres", "MINRES", "Estimates loadings by minimizing off-diagonal correlation residuals. Available for Pearson and polychoric correlations."],
-              ["dwls", "DWLS", "Fits polychoric correlations with diagonal variance weights. With filled ordinal cells, uncertainty is conditional on those replacements."],
+              ["ml", "ML", "Maximum Likelihood fits a Gaussian factor model to numeric values. Use Pearson correlations; FIML includes incomplete respondents directly in the likelihood. Complete-case and single-imputation fits are also available."],
               ["wlsmv", "WLSMV", "Uses the DWLS solution with robust mean/variance-adjusted inference and rotated standard errors. Requires polychoric correlations; single-imputation uncertainty is not propagated."],
             ] as const).map(([method, name, help]) => <div className="flex items-center" key={method}>
-              <label className={`flex items-center gap-1 cursor-pointer ${numericData && method !== "minres" ? "opacity-45" : ""}`}>
-                <input type="radio" name="efa-extraction" value={method} checked={extraction === method} disabled={numericData && method !== "minres"} onChange={() => setExtraction(method)} />
+              <label className={`flex items-center gap-1 cursor-pointer ${numericData && method === "wlsmv" ? "opacity-45" : ""}`}>
+                <input type="radio" name="efa-extraction" value={method} checked={extraction === method} disabled={numericData && method === "wlsmv"} onChange={() => setExtraction(method)} />
                 {name}
               </label>
               <InfoTip label={`About ${name}`} text={help} />
@@ -385,7 +439,16 @@ export function EfaPanel({
             </label>)}
           </div>
         </fieldset>
-        {incompatibleEstimator && <p role="alert" className="col-span-2">Choose MINRES to use Pearson correlations, or select Polychoric to retain {extraction.toUpperCase()}.</p>}
+        {incompatibleEstimator && <p role="alert" className="col-span-2">{incompatibility}</p>}
+        {(extraction === "ml" || missing === "fiml") && <details className="col-span-2">
+          <summary className="cursor-pointer">{missing === "fiml" ? "FIML" : "ML"} hyperparameters<InfoTip label="Likelihood settings" text="Control the iterative likelihood fit. Multiple deterministic starts reduce sensitivity to initialization. The uniqueness floor is relative to each item’s observed variance. The saved analysis records the settings and whether optimization converged." /></summary>
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            <label>Iterations<input aria-label="ML maximum iterations" className={control} type="number" min={10} max={20000} step={10} value={likelihood.maxIterations} onChange={e => setLikelihood(v => ({ ...v, maxIterations: +e.target.value }))} /></label>
+            <label>Starts<input aria-label="ML starts" className={control} type="number" min={1} max={20} value={likelihood.starts} onChange={e => setLikelihood(v => ({ ...v, starts: +e.target.value }))} /></label>
+            <label>Tolerance<input aria-label="ML tolerance" className={control} type="number" min={1e-10} max={0.001} step="any" value={likelihood.tolerance} onChange={e => setLikelihood(v => ({ ...v, tolerance: +e.target.value }))} /></label>
+            <label>Uniqueness floor<input aria-label="ML uniqueness floor" className={control} type="number" min={1e-8} max={0.1} step="any" value={likelihood.uniquenessFloor} onChange={e => setLikelihood(v => ({ ...v, uniquenessFloor: +e.target.value }))} /></label>
+          </div>
+        </details>}
         {extraction === "wlsmv" && <EfaBackendControls value={compute} onChange={setCompute} service={service} disabled={!!busy} />}
         {extraction === "wlsmv" && compute.backend !== "cpu" && missing === "mice" && <p role="alert" className="col-span-2 text-xs">Accelerated MICE is not connected yet. Select Browser CPU explicitly to run imputation.</p>}
         {!setup && <>
@@ -397,6 +460,7 @@ export function EfaPanel({
               <option value="mean">Mean</option>
               <option value="median">Median</option>
               <option value="mice">MICE</option>
+              <option value="fiml">FIML</option>
             </select>
           </label>
           <label className="col-span-2">Run label<input className={control} value={label} onChange={e => setLabel(e.target.value)} /></label>
@@ -542,7 +606,7 @@ export function EfaPanel({
         )}
         <p>
           Compare observed factor eigenvalues with a shuffled-data reference.
-          <InfoTip label="About factor parallel analysis" text="Uses the same one-factor MINRES communality convention for observed and shuffled data. The reference is the 95th percentile across successful permutations." />
+          <InfoTip label="About factor parallel analysis" text="Uses the same bounded one-factor MINRES communality convention for observed and shuffled data. The reference is the 95th percentile across successful permutations. Weak shuffled matrices can yield different solutions from psych defaults; inspect the spectrum and nearby factor counts. With FIML, this uses pairwise Pearson spectra, not likelihood-ratio tests." />
         </p>
         <label>
           Permutations
@@ -620,6 +684,7 @@ export function EfaPanel({
           />
         </label>
       </div>
+      {sampleScope && <p className="text-xs opacity-70" aria-label="EFA sample scope">Fitting scope: {sampleScope}</p>}
       <div className="flex gap-2">
         <button
           className={button}

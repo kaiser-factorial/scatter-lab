@@ -3,6 +3,7 @@ import { computeSettings } from "./backends/types";
 import type { EfaState } from "./types";
 import { validateSpec } from "./prepare";
 import { correlationMethod } from './correlation-method';
+import { likelihoodSettings } from './maximum-likelihood';
 import { validateMiceOptions } from "./mice";
 import { validateStability } from "./stability";
 const record = (v: unknown): v is Record<string, unknown> =>
@@ -127,6 +128,23 @@ export function validateEfaState(value: unknown, nRows: number) {
     const p = run.spec.items.length,
       k = run.spec.nFactors,
       r = run.result;
+    if (run.completions !== undefined) {
+      if (!Array.isArray(run.completions)) return fail();
+      const completionIds = new Set<string>();
+      for (const completion of run.completions) {
+        if (!record(completion) || typeof completion.id !== 'string' || !completion.id || completionIds.has(completion.id)
+          || completion.runId !== run.id || completion.method !== 'conditional-gaussian-mean'
+          || typeof completion.createdAt !== 'string' || typeof completion.sourceFingerprint !== 'string' || !completion.sourceFingerprint
+          || completion.sourceFingerprint !== r.provenance?.inputSha256 || !r.likelihood
+          || !rows(completion.rows) || JSON.stringify(completion.rows) !== JSON.stringify(r.fittingRows)
+          || !Number.isSafeInteger(completion.filledCells) || completion.filledCells < 1 || completion.filledCells > r.fittingRows.length * p
+          || !record(completion.columns) || Object.keys(completion.columns).length !== p
+          || run.spec.items.some(item => typeof completion.columns[item.column] !== 'string' || !completion.columns[item.column]
+            || run.spec.items.some(source => source.column === completion.columns[item.column]))
+          || new Set(Object.values(completion.columns)).size !== p) return fail();
+        completionIds.add(completion.id);
+      }
+    }
     const execution = r.provenance?.execution;
     const settings = computeSettings(run.spec);
     const backend = settings.backend;
@@ -216,11 +234,40 @@ export function validateEfaState(value: unknown, nRows: number) {
     } else if (r.imputation !== undefined) return fail();
     if (
       (r.extraction.estimator ?? "minres") !==
-      (estimator === "minres" ? "minres" : "dwls")
+      (estimator === "minres" || estimator === 'ml' ? estimator : "dwls")
     )
       return fail();
-    if (estimator === "minres" && r.weighted !== undefined) return fail();
-    if (estimator !== "minres") {
+    if ((estimator === "minres" || estimator === 'ml') && r.weighted !== undefined) return fail();
+    if (estimator === 'ml') {
+      const ml = r.likelihood;
+      if (!ml || resolved !== 'pearson' || ml.kind !== (run.spec.missing === 'fiml' ? 'fiml' : 'ml') ||
+        JSON.stringify(ml) !== JSON.stringify(r.extraction.likelihood) ||
+        !numeric(ml.means, p) || !numeric(ml.residualVariances, p) || ml.residualVariances.some(v => v <= 0) ||
+        !matrix(ml.covariance, p, p) || ml.covariance.some((row, i) => row[i] <= 0 || row.some((v, j) => Math.abs(v - ml.covariance[j][i]) > 1e-9 * Math.max(1, Math.abs(v)))) ||
+        ![ml.logLikelihood, ml.aic, ml.bic].every(Number.isFinite) ||
+        !Number.isInteger(ml.nRows) || ml.nRows < 3 || ml.nRows > r.fittingRows.length ||
+        !Number.isInteger(ml.allMissingRows) || ml.allMissingRows !== r.fittingRows.length - ml.nRows ||
+        !Number.isInteger(ml.observedCells) || ml.observedCells < ml.nRows || ml.observedCells > ml.nRows * p ||
+        !Number.isInteger(ml.patternCount) || ml.patternCount < 1 || ml.patternCount > ml.nRows ||
+        ml.parameters !== p * k + 2 * p - k * (k - 1) / 2 || ml.df !== p * (p + 3) / 2 - ml.parameters ||
+        !Number.isInteger(ml.selectedStart) || ml.selectedStart < 1 ||
+        !Array.isArray(ml.starts) || ml.starts.length !== ml.settings?.starts || ml.selectedStart > ml.starts.length ||
+        ml.starts.some(start => !start || typeof start.converged !== 'boolean' || !Number.isInteger(start.iterations) || start.iterations < 0 || start.iterations > ml.settings.maxIterations ||
+          start.objective !== null && !Number.isFinite(start.objective) || start.gradient !== null && (!Number.isFinite(start.gradient) || start.gradient < 0)) ||
+        !ml.starts[ml.selectedStart - 1].converged || !r.extraction.convergence.converged) return fail();
+      try {
+        const settings = likelihoodSettings(ml.settings), requested = likelihoodSettings(run.spec.likelihood);
+        if (JSON.stringify(settings) !== JSON.stringify(requested)) return fail();
+      } catch { return fail(); }
+      for (let i = 0; i < p; i++) {
+        if (r.means[i] !== ml.means[i] || Math.abs(r.sds[i] ** 2 - ml.covariance[i][i]) > 1e-8 * Math.max(1, ml.covariance[i][i])) return fail();
+        for (let j = 0; j < p; j++) {
+          const implied = r.reproduced[i][j] * r.sds[i] * r.sds[j] + (i === j ? ml.residualVariances[i] : 0);
+          if (Math.abs(implied - ml.covariance[i][j]) > 1e-7 * Math.max(1, Math.abs(ml.covariance[i][j]))) return fail();
+        }
+      }
+    } else if (r.likelihood !== undefined || r.extraction.likelihood !== undefined) return fail();
+    if (estimator === 'dwls' || estimator === 'wlsmv') {
       const w = r.weighted,
         m = (p * (p - 1)) / 2,
         q = p * k - (k * (k - 1)) / 2,
@@ -399,7 +446,7 @@ export function validateEfaState(value: unknown, nRows: number) {
           (!Number.isInteger(r.observedPairFloor) ||
             r.observedPairFloor < 0 ||
             r.observedPairFloor > 5)) ||
-        run.spec.missing !== "pairwise" ||
+        (run.spec.missing !== "pairwise" && !(run.spec.extraction === 'ml' && run.spec.missing === 'complete' && run.spec.correlation === 'pearson')) ||
         !Number.isInteger(run.revision) ||
         run.revision < 1 ||
         typeof run.createdAt !== "string" ||

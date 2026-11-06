@@ -1,6 +1,6 @@
 # Weighted ordinal EFA: numerical engine and qualification
 
-The native numerical implementation passes the independent R qualification described below. DWLS and WLSMV are now selectable in the EFA panel, with worker execution, preflight estimates, persistence, scoring, exports and assistant inspection. MICE, resampling and the full parallel-analysis batch passed their gate on 2026-10-31. R remains a development/reference dependency; the application remains native TypeScript in browser workers.
+The native numerical implementation passes the independent R qualification described below. WLSMV is selectable in the EFA panel, with worker execution, preflight estimates, persistence, scoring, exports and assistant inspection; DWLS remains supported by saved runs and programmatic tools. MICE, resampling and the full parallel-analysis batch passed their gate on 2026-10-31. R remains a development/reference dependency; the application remains native TypeScript in browser workers.
 
 ## Preserve the meaning of the input correlations
 

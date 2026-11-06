@@ -1,0 +1,6 @@
+enable_experimental;
+import "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64/lib/Float.cry";
+let main : TopLevel () = do {
+  p <- prove_print z3 {{ \(x : Float64) -> x =.= x }};
+  return ();
+};

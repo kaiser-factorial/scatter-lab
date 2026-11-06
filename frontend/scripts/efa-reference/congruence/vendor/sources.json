@@ -1,0 +1,22 @@
+[
+  {
+    "package": "missMDA",
+    "version": "1.20",
+    "archiveUrl": "https://cloud.r-project.org/src/contrib/Archive/missMDA/missMDA_1.20.tar.gz",
+    "archiveSha256": "f90110e5530ed0c0f2703c405d689f574637623c547cd4e8c3366e7f846ffd30",
+    "files": {
+      "missMDA-imputePCA.R": "dceabe174004c08b0c3ae29f54fffabaca9ce085589b952679db34929be816d1",
+      "missMDA-DESCRIPTION": "ce3fe117b2a28f72fc71d2ea4d4551a012a54fd5186ad0ae19f6d2a6a240eb48"
+    }
+  },
+  {
+    "package": "FactoMineR",
+    "version": "2.12",
+    "archiveUrl": "https://cloud.r-project.org/src/contrib/Archive/FactoMineR/FactoMineR_2.12.tar.gz",
+    "archiveSha256": "c064aee58cc485017b2d860616f13529ca1791ef14094d21643a0e6d62f2b6a2",
+    "files": {
+      "FactoMineR-svd.triplet.R": "187219a8ddc2d3666b73123afe0d8484d7c1c7615b089ee6f01f853c85c495fb",
+      "FactoMineR-DESCRIPTION": "d1e3d361de2e3d563b0daf145b805e52408d7dd3398ed6f5207b7662bccae10d"
+    }
+  }
+]

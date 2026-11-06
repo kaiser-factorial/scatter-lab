@@ -1,4 +1,5 @@
 import { validateSpec } from "./prepare";
+import { addCompletionColumns, completionOperation, serializeCompletionCsv, COMPLETION_REPLAY_R, type EfaCompletionRecord } from './completion';
 import {
   inspectItems,
   inspectedFit,
@@ -20,6 +21,7 @@ import {
 import { compareEfaRuns } from "./compare";
 import type { MiceOptions } from "./mice";
 import type { StabilityOptions } from "./stability";
+import type { ConvergenceRetrySettings } from '../convergence';
 import {
   EfaError,
   type EfaSpec,
@@ -54,6 +56,8 @@ export interface EfaAdapter {
     runId: string,
     columns: string[],
   ) => void;
+  complete?: (datasetId: number, expectedTable: DataTable, table: DataTable, runId: string, record: EfaCompletionRecord) => void;
+  download?: (filename: string, content: string, mime: string) => void;
 }
 type RefitPreview = {
   context: EfaContext;
@@ -67,6 +71,7 @@ export class EfaController {
   private generation = 0;
   private published = new Map<string, Promise<string>>();
   private simulations = new Map<string, Promise<string>>();
+  private convergenceRetries = new Map<string, { context: EfaContext; generation: number; rows: number[]; spec: EfaSpec; options: Parameters<EfaController['start']>[1] }>();
   private refitPreview?: RefitPreview;
   private completedRuns = new Map<
     string,
@@ -96,6 +101,7 @@ export class EfaController {
     this.cancelRefitPreview();
     this.service.releaseRefitBaseline();
     this.generation++;
+    this.convergenceRetries.clear();
     this.completedRuns.clear();
     this.reviewed.clear();
     this.service.cancelAll();
@@ -335,6 +341,8 @@ export class EfaController {
       kind === "rotation" ? parent : undefined,
       options.assistant && context.privateMode ? 5 : 0,
     );
+    this.convergenceRetries.clear();
+    this.convergenceRetries.set(job.id, { context, generation, rows: rows.slice(), spec, options });
     const completion = job.promise.then((result) => {
       this.assertCurrent(context, generation);
       const id = crypto.randomUUID(),
@@ -394,6 +402,29 @@ export class EfaController {
     spec: EfaSpec,
     options?: Parameters<EfaController["start"]>[1],
   ) => this.start(spec, options).completion;
+  /** Only the latest failed fit can be retried, against its exact captured input. */
+  convergenceRetry = (jobId: string) => {
+    const saved = this.convergenceRetries.get(jobId), job = this.service.getJob(jobId);
+    if (!saved || job?.status !== 'failed' || !job.convergenceIssue) return undefined;
+    try {
+      this.assertCurrent(saved.context, saved.generation);
+      const current = this.current();
+      if (JSON.stringify(fittingRows(current.eligibleRows, saved.spec, current.state.splits)) !== JSON.stringify(saved.rows)) return undefined;
+    } catch { return undefined; }
+    if (saved.options?.kind && !['fit', 'items'].includes(saved.options.kind)) return undefined;
+    return { issue: job.convergenceIssue, spec: structuredClone(saved.spec), assistantSafe: !this.current().privateMode || (saved.options?.assistant === true && saved.context.privateMode) };
+  };
+  retryNonconverged = (jobId: string, settings: ConvergenceRetrySettings, assistant = false) => {
+    const saved = this.convergenceRetries.get(jobId);
+    if (!saved || !this.convergenceRetry(jobId)) throw new EfaError('stale', 'This failed fit is no longer current. Run again from the current setup.');
+    if (!settings || typeof settings !== 'object') throw new EfaError('settings', 'Supply explicit retry iteration and tolerance settings.');
+    const spec: EfaSpec = { ...structuredClone(saved.spec), likelihood: {
+      maxIterations: settings.maxIterations, tolerance: settings.tolerance,
+      starts: settings.starts ?? saved.spec.likelihood?.starts ?? 3,
+      uniquenessFloor: settings.uniquenessFloor ?? saved.spec.likelihood?.uniquenessFloor ?? 1e-6,
+    } };
+    return this.start(spec, { ...saved.options, assistant: assistant || saved.options?.assistant });
+  };
   addScores = async (id: string, assistant = false) => {
     const context = this.current(),
       run = this.findRun(context, id);
@@ -425,7 +456,9 @@ export class EfaController {
       );
       return run.result.imputation
         ? `Added ${result.columns.join(", ")}. Linear score approximations use fitted column ${run.result.imputation.method} replacements; excluded rows remain unscored.`
-        : `Added ${result.columns.join(", ")}. Ordinal linear score approximations; incomplete and excluded rows remain unscored.`;
+        : run.result.likelihood
+          ? `Added ${result.columns.join(", ")}. Gaussian conditional factor scores use each respondent's observed items; excluded and wholly missing rows remain unscored.`
+          : `Added ${result.columns.join(", ")}. Linear regression score approximations; incomplete and excluded rows remain unscored.`;
     });
     this.service.trackPublication(job, completion);
     return completion;
@@ -433,6 +466,40 @@ export class EfaController {
   preview = async (spec: EfaSpec) => {
     const { context, rows } = this.input(spec);
     return this.service.preview(context.table, spec, rows).promise;
+  };
+  complete = async (id: string, destination: 'columns' | 'csv' | 'operation' | 'code', assistant = false) => {
+    const context = this.current(), run = this.findRun(context, id);
+    if (!run) throw new EfaError('run', 'EFA run not found.');
+    if (!run.result.likelihood) throw new EfaError('completion-method', 'Choose a saved ML/FIML fit for conditional completion.');
+    if (assistant) requireAggregate(run, context.privateMode);
+    if (!['columns', 'csv', 'operation', 'code'].includes(destination)) throw new EfaError('completion-destination', 'Choose columns, csv, operation or code.');
+    const allowed = new Set(context.eligibleRows);
+    if (run.result.fittingRows.some(row => !allowed.has(row)))
+      throw new EfaError('filter', 'Restore this fit’s original fitting population before completing or exporting its values.');
+    const name = run.spec.label.replace(/[^\w-]/g, '_') || 'EFA';
+    if (destination === 'code') {
+      if (!this.adapter().download) throw new EfaError('download', 'Local downloads are unavailable.');
+      this.adapter().download!(`${name}.completion.R`, COMPLETION_REPLAY_R, 'text/plain;charset=utf-8');
+      return 'Downloaded R code to replay conditional completion from an operation JSON. It uses the saved fitted parameters without refitting.';
+    }
+    const generation = ++this.generation, job = this.service.complete(context.table, run);
+    const publication = job.promise.then(completion => {
+      this.assertCurrent(context, generation);
+      if (destination === 'columns') {
+        if (!this.adapter().complete) throw new EfaError('completion-publish', 'Publishing completed columns is unavailable.');
+        const added = addCompletionColumns(context.table, run, completion);
+        this.adapter().complete!(context.datasetId, context.table, added.table, run.id, added.record);
+        return `Added completed item columns: ${Object.values(added.record.columns).join(', ')}. Conditional predictions fill missing fitting cells; source columns and observed values are preserved.`;
+      }
+      if (!this.adapter().download) throw new EfaError('download', 'Local downloads are unavailable.');
+      const artifact = destination === 'csv'
+        ? { ext: 'completed.csv', text: serializeCompletionCsv(completion), mime: 'text/csv;charset=utf-8' }
+        : { ext: 'completion.json', text: JSON.stringify(completionOperation(context.table, run, completion), null, 2), mime: 'application/json' };
+      this.adapter().download!(`${name}.${artifact.ext}`, artifact.text, artifact.mime);
+      return `Downloaded ${artifact.ext} locally for the saved fitting rows. No respondent values were returned to the assistant.`;
+    });
+    this.service.trackPublication(job, publication);
+    return publication;
   };
   private startParallel(spec: EfaSpec, replicates: number, assistant = false) {
     spec = structuredClone(spec);
@@ -560,7 +627,7 @@ export class EfaController {
     options: MiceOptions,
     changes: Parameters<EfaController["startImputation"]>[2] = {},
   ) => this.startImputation(spec, options, changes).completion;
-  stability = async (
+  private startStability = (
     runId: string,
     options: Omit<StabilityOptions, "groups">,
     groupColumn?: string,
@@ -610,8 +677,10 @@ export class EfaController {
     this.simulations.set(job.id, completion);
     this.service.trackPublication(job, completion);
     void completion.catch(() => {});
-    return completion;
+    return { job, completion };
   };
+  stability = async (runId: string, options: Omit<StabilityOptions, 'groups'>, groupColumn?: string) =>
+    this.startStability(runId, options, groupColumn).completion;
   imputationReviews = (id: string, reviews: Record<string, ItemReview>) =>
     this.saveReviews(id, reviews);
   split = (options: {
@@ -873,6 +942,13 @@ export class EfaController {
             "Poll efa_job for completion. No score columns are added automatically.",
         });
       }
+      if (action === 'impute_efa') {
+        const spec = args.spec as EfaSpec;
+        const options = args.options as MiceOptions;
+        if (!spec || !options) throw new EfaError('imputation-options', 'Supply an EFA spec and complete MICE options.');
+        const { job } = this.startImputation(spec, options, { assistant: true });
+        return JSON.stringify({ jobId: job.id, status: job.status, message: 'Poll efa_job, then inspect the saved imputation analysis. Fits remain separate.' });
+      }
       if (action === "efa_job") {
         const job = this.service.getJob(String(args.jobId));
         if (!job) throw new EfaError("job", "Job not found.");
@@ -906,8 +982,13 @@ export class EfaController {
             ? { completed: job.progress.completed, total: job.progress.total }
             : job.progress,
           compute: (() => { const e = this.service.report(job.id)?.execution; return e ? { backend: e.backend, state: e.state, selfCheck: e.selfCheck, failure: e.failure } : undefined; })(),
+          ...(job.convergenceIssue && this.convergenceRetry(job.id)?.assistantSafe ? { convergence: job.convergenceIssue, nextAction: 'Adjust explicit likelihood settings and retry the saved failed job with retry_efa. No unconverged EFA result was published.' } : {}),
           ...(!privateMode && job.error ? { error: job.error } : {}),
         });
+      }
+      if (action === 'retry_efa') {
+        const { job } = this.retryNonconverged(String(args.jobId), args.settings as ConvergenceRetrySettings, true);
+        return JSON.stringify({ jobId: job.id, status: job.status, message: 'Retrying the same fitting input with explicit numerical settings. Poll efa_job.' });
       }
       if (action === "parallel_efa") {
         const spec = args.spec as EfaSpec,
@@ -920,6 +1001,35 @@ export class EfaController {
       }
       const run = this.findAnalysis(c, args.runId);
       if (!run) throw new EfaError("run", "EFA run not found.");
+      if (action === 'complete_efa_values') {
+        if (isImputation(run)) throw new EfaError('completion-method', 'Select a saved ML/FIML fit, not a MICE batch.');
+        return await this.complete(run.id, args.destination as 'columns' | 'csv' | 'operation' | 'code', true);
+      }
+      if (action === 'stability_efa') {
+        requireAggregate(run, privateMode);
+        if (isImputation(run)) throw new EfaError('stability-method', 'Resample a saved individual fit, not a MICE summary.');
+        const { job } = this.startStability(run.id, args.options as Omit<StabilityOptions, 'groups'>, typeof args.groupColumn === 'string' ? args.groupColumn : undefined);
+        return JSON.stringify({ jobId: job.id, status: job.status, message: 'Poll efa_job for resampling completion.' });
+      }
+      if (action === 'get_efa_stability') {
+        requireAggregate(run, privateMode);
+        this.openHoldout(run.id);
+        const saved = c.state.stabilityRuns?.filter(s => s.runId === run.id && (args.stabilityId === undefined || s.id === args.stabilityId)).at(-1);
+        if (!saved) throw new EfaError('stability', 'No matching saved stability analysis. Run stability_efa first.');
+        const result = saved.result, offset = pageInteger(args.offset, 0, 0, run.spec.items.length), limit = pageInteger(args.limit, 20, 1, 20);
+        const factorOffset = pageInteger(args.factorOffset, 0, 0, run.spec.nFactors), factorLimit = pageInteger(args.factorLimit, 12, 1, 12);
+        return JSON.stringify({ runId: run.id, stabilityId: saved.id, requested: result.requested, completed: result.completed,
+          failed: result.failures.length, provisional: result.provisional, confidence: result.options.confidence,
+          seed: result.options.seed, grouped: !!saved.groupColumn, crossLoadingThreshold: result.options.crossLoadingThreshold,
+          offset, nextOffset: offset + limit < run.spec.items.length ? offset + limit : null, factorOffset,
+          items: run.spec.items.slice(offset, offset + limit).map((item, at) => ({ column: item.column,
+            pattern: result.pattern[offset + at]?.slice(factorOffset, factorOffset + factorLimit),
+            structure: result.structure[offset + at]?.slice(factorOffset, factorOffset + factorLimit),
+            communality: result.communalities[offset + at], uniqueness: result.uniquenesses[offset + at],
+            primaryAgreement: result.primaryAgreement[offset + at], crossLoadingFrequency: result.crossLoadingFrequency[offset + at],
+          })),
+        });
+      }
       if (action === "get_efa_diagnostics") {
         this.openHoldout(run.id);
         return JSON.stringify(runOverview(run, privateMode));

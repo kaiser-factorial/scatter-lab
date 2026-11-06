@@ -152,8 +152,10 @@ describe("Independent pinned R ordinal uncertainty", () => {
     });
 });
 describe("Independent pinned R WLSMV correction", () => {
+  // This accuracy check refits several rotations and numerical derivatives.
+  // Allow slower CI/shared hosts; performance has its own benchmark suite.
   for (const name of ["normal", "heavy-tail", "skew", "pairwise", "complete"])
-    it(name, () => {
+    it(name, { timeout: 20000 }, () => {
       const { ref, data, correlation } = weightedFixture(name),
         moments = weightedMoments(data, correlation),
         fit = extractDwls(correlation.matrix, moments, 2),
