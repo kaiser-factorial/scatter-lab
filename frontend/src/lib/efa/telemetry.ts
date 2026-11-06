@@ -133,7 +133,7 @@ export class ComputeTrace {
       operation, items: spec.items.length, eligibleRows: rows, factors: spec.nFactors,
       extraction: known(spec.extraction ?? "minres", ["minres", "dwls", "wlsmv"]),
       rotation: known(spec.rotation, ["oblimin", "promax", "varimax"]),
-      missing: known(spec.missing, ["pairwise", "complete"]),
+      missing: known(spec.missing, ["pairwise", "complete", "mean", "median"]),
       partition: known(spec.sample.partition, ["all", "development", "holdout"]),
     });
   }

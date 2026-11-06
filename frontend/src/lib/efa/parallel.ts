@@ -1,6 +1,7 @@
 import { mulberry32 } from "../random";
 import { Matrix, eigen } from "./math";
 import { correlate } from "./correlation";
+import { preparedCorrelation } from './correlation-method';
 import { extractMinres, MINRES_METHOD } from "./extraction";
 import {
   EfaError,
@@ -21,6 +22,7 @@ export function permutedData(
   seed: number,
 ): EfaPreparedData {
   const codes = data.codes.slice(),
+    numeric = data.numeric?.slice(),
     random = mulberry32(seed),
     n = data.nRows;
   for (let j = 0; j < data.items.length; j++) {
@@ -32,9 +34,10 @@ export function permutedData(
         a = indices[i],
         b = indices[k];
       [codes[a], codes[b]] = [codes[b], codes[a]];
+      if (numeric) [numeric[a], numeric[b]] = [numeric[b], numeric[a]];
     }
   }
-  return { ...data, codes };
+  return { ...data, codes, ...(numeric ? { numeric } : {}) };
 }
 export function parallelAnalysis(
   data: EfaPreparedData,
@@ -69,6 +72,8 @@ export function parallelAnalysis(
     seed,
     replicates,
     data.fingerprint,
+    data.imputation?.method,
+    preparedCorrelation(data),
   );
 }
 export function validateReplicates(replicates: number, seed?: number) {
@@ -120,6 +125,8 @@ export function summarizeParallel(
   seed: number,
   replicates: number,
   inputSha256?: string,
+  imputation?: "mean" | "median",
+  correlation: 'pearson' | 'polychoric' = imputation ? 'pearson' : 'polychoric',
 ): ParallelResult {
   if (nullEigenvalues.length + failures.length !== replicates)
     throw new EfaError(
@@ -144,7 +151,7 @@ export function summarizeParallel(
     provenance: {
       inputSha256,
       engine: EFA_ENGINE,
-      correlation: "Two-step pair-margin polychoric; maxcor=.9999",
+      correlation: `${correlation === 'pearson' ? 'Pearson; numeric values' : 'Two-step pair-margin polychoric; maxcor=.9999'}${imputation ? `; column ${imputation} imputation on fitting rows` : ''}`,
       extraction: MINRES_METHOD,
       nullModel:
         "Within-item observed-response permutations with fixed missingness masks",

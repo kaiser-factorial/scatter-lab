@@ -45,7 +45,7 @@ export function runMetadata(run: InspectableRun) {
     reviewRevision: run.reviewRevision ?? 0,
     parentId: run.parentId,
     parentReviewRevision: run.parentReviewRevision,
-    type: isImputation(run) ? "mice" : "observed",
+    type: isImputation(run) ? "mice" : run.result.imputation ? "column-imputed" : "observed",
     extraction: run.spec.extraction ?? "minres",
     backend: run.spec.compute?.backend ?? "cpu",
     mvCorrection: run.spec.extraction === "wlsmv" ? run.spec.compute?.correction ?? "exact" : undefined,
@@ -69,7 +69,7 @@ export function inspectedFit(
     if (imputation !== undefined)
       throw new EfaError(
         "imputation",
-        "An observed-data run has no imputations.",
+        "This single fitted run has no separate MICE imputations.",
       );
     return run.result;
   }
@@ -256,7 +256,7 @@ export function inspectItems(
       ? "Aligned to first successful imputation by signs/permutation"
       : "This fit's saved factor order and signs",
     interpretation:
-      "Primary/next/gap use absolute pattern loadings across ALL factors, even when factor columns are paged. No threshold deletes or assigns an item. Related-item correlations are polychoric.",
+      `Primary/next/gap use absolute pattern loadings across ALL factors, even when factor columns are paged. No threshold deletes or assigns an item. Related-item correlations are ${(fit.correlationMethod ?? (fit.imputation && fit.imputation.kind !== 'ordinal' ? 'pearson' : 'polychoric')) === 'pearson' ? "Pearson" : "polychoric"}.`,
     uncertainty: summary
       ? "Between-imputation dispersion, not a pooled SE; related correlations are descriptive means"
       : "Standard errors, when available, belong to this individual fit",

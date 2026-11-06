@@ -1,4 +1,5 @@
 import { bivariateGrid, normalCDF } from "./math";
+import { fittingMask } from './correlation-method';
 import {
   EfaError,
   type EfaPreparedData,
@@ -40,11 +41,12 @@ export function pairInfluence(
   const {
       i,
       j,
-      n,
       rho,
       observedCategoriesX: cx,
       observedCategoriesY: cy,
     } = pair,
+    n = pair.fittingN ?? pair.n,
+    fitting = fittingMask(data),
     nx = cx.length,
     ny = cy.length,
     fullY = data.items[j].categories.length,
@@ -54,8 +56,8 @@ export function pairInfluence(
   let observed = 0;
   for (let row = 0; row < data.nRows; row++) {
     if (
-      !data.observed[i * data.nRows + row] ||
-      !data.observed[j * data.nRows + row]
+      !fitting[i * data.nRows + row] ||
+      !fitting[j * data.nRows + row]
     )
       continue;
     const a = mapX.get(data.codes[i * data.nRows + row]),
@@ -178,7 +180,7 @@ export function weightedMoments(
     pairs,
     weights: Float64Array.from(pairs, (p) => 1 / p.variance),
     nRows: data.nRows,
-    method: ORDINAL_UNCERTAINTY_METHOD,
+    method: ORDINAL_UNCERTAINTY_METHOD + (data.imputation ? '; conditional on single-imputation replacements; does not propagate imputation uncertainty' : ''),
   };
 }
 
@@ -189,7 +191,8 @@ export function influenceAt(
 ): number {
   const x = pair.i * data.nRows + row,
     y = pair.j * data.nRows + row;
-  return data.observed[x] && data.observed[y]
+  const fitting = fittingMask(data);
+  return fitting[x] && fitting[y]
     ? pair.values[data.codes[x] * pair.columns + data.codes[y]]
     : 0;
 }

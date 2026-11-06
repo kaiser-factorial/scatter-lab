@@ -1,5 +1,7 @@
 import { correlate } from "./correlation";
 import { fitEfa } from "./fit";
+import { prepareNumericImputation } from './numeric-imputation';
+import { correlationMethod } from './correlation-method';
 import {
   imputeMice,
   type MiceOptions,
@@ -101,6 +103,18 @@ export function imputationWorkingSet(
   );
 }
 /** One independent chain per worker keeps resident completed data bounded. */
+export function imputationFitData(complete: EfaPreparedData, spec: EfaSpec): EfaPreparedData {
+  if (correlationMethod(spec) !== 'pearson') return complete;
+  const table = { columns: complete.items.map(item => item.column), nRows: complete.nRows,
+    data: Object.fromEntries(complete.items.map((item, j) => [item.column, Array.from({ length: complete.nRows }, (_, i) => {
+      const code = complete.codes[j * complete.nRows + i];
+      return item.categories[item.reverse ? item.categories.length - 1 - code : code];
+    })])) };
+  const numeric = prepareNumericImputation(table, { ...spec, correlation: 'pearson', missing: 'complete', items: complete.items },
+    Array.from({ length: complete.nRows }, (_, i) => i));
+  return { ...numeric, rows: complete.rows.slice(), originalRowCount: complete.originalRowCount };
+}
+
 export function fitImputationChain(
   source: EfaPreparedData,
   spec: EfaSpec,
@@ -119,9 +133,10 @@ export function fitImputationChain(
     };
   const complete = imputed.completed[0].data;
   try {
+    const fitting = imputationFitData(complete, spec);
     const result = fitEfa(
-      complete,
-      correlate(complete, progress),
+      fitting,
+      correlate(fitting, progress),
       spec,
       progress,
     );

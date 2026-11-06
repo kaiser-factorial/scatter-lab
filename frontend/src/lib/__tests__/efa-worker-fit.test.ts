@@ -5,10 +5,10 @@ import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { EfaService } from "../efa/service";
-import { fitEfa } from "../efa/fit";
+import { fitEfa, scoreEfa } from "../efa/fit";
 import { correlate } from "../efa/correlation";
 import { prepareEfa } from "../efa/prepare";
-import type { EfaSpec } from "../efa/types";
+import type { EfaSpec, EfaRun } from "../efa/types";
 import type { DataTable } from "../table";
 const directory = mkdtempSync(join(tmpdir(), "efa-worker-fit-"));
 const entry = join(directory, "worker.mjs");
@@ -57,6 +57,40 @@ it("production workers finish weighted fits with exact serial SEs, bounded concu
   expect(report.numerical).toBeDefined();
   // Reused correlations must take the same continuation path.
   expect((await h.service.fit(input, spec, rows).promise).weighted).toEqual(result.weighted);
+}, 30000);
+it("production workers fit, permute and score numeric column imputation with the same serial semantics", async () => {
+  const table = structuredClone(input);
+  table.data[table.columns[0]][0] = null;
+  table.data[table.columns[1]][1] = null;
+  const numeric: EfaSpec = { ...spec, extraction: "minres", missing: "median", items: spec.items.map(item => ({ ...item, categories: [] })) },
+    data = prepareEfa(table, numeric, rows), serial = fitEfa(data, correlate(data), numeric), h = harness(),
+    job = h.service.fit(table, numeric, rows), result = await job.promise;
+  expect(result.rotation).toEqual(serial.rotation); expect(result.imputation).toEqual(serial.imputation);
+  expect(h.service.report(job.id)?.transport.receivedTypedBufferBytes).toBe(data.codes.byteLength + data.observed.byteLength + data.numeric!.byteLength);
+  const parallel = await h.service.parallel(table, numeric, rows, 2).promise;
+  expect(parallel.completed).toBe(2); expect(parallel.provenance?.correlation).toContain("Pearson");
+  const run: EfaRun = { id: "numeric", revision: 1, createdAt: "2026-11-06", datasetRevision: "fixture", spec: numeric,
+    result, eligibleRows: rows, kind: "fit", reviews: {}, reasons: "", revisedAfterHoldout: false, scoreColumns: [] };
+  expect(await h.service.scores(table, run).promise).toEqual(scoreEfa(data, serial));
+  expect(h.active()).toBe(0);
+}, 30000);
+it("production workers carry category median fills through WLSMV, scoring and original-support privacy gates", async () => {
+  const table = structuredClone(input);
+  table.data[table.columns[0]][0] = null;
+  table.data[table.columns[1]][1] = null;
+  const ordinal: EfaSpec = { ...spec, correlation: 'polychoric', missing: 'median' },
+    data = prepareEfa(table, ordinal, rows), serial = fitEfa(data, correlate(data), ordinal), h = harness(),
+    result = await h.service.fit(table, ordinal, rows).promise;
+  expect(result.rotation).toEqual(serial.rotation);
+  expect(result.weighted).toEqual(serial.weighted);
+  expect(result.weighted?.uncertaintyMethod).toContain('conditional on single-imputation');
+  expect(result.correlation.pairs[0].n).toBeLessThan(rows.length);
+  expect(result.correlation.pairs[0].fittingN).toBe(rows.length);
+  const run: EfaRun = { id: 'ordinal', revision: 1, createdAt: '2026-11-06', datasetRevision: 'fixture', spec: ordinal,
+    result, eligibleRows: rows, kind: 'fit', reviews: {}, reasons: '', revisedAfterHoldout: false, scoreColumns: [] };
+  expect(await h.service.scores(table, run).promise).toEqual(scoreEfa(data, serial));
+  await expect(h.service.fit(table, ordinal, rows, undefined, rows.length).promise).rejects.toThrow(/private aggregate floor/);
+  expect(h.active()).toBe(0);
 }, 30000);
 it("cancelling during derivatives terminates peers and prevents result publication", async () => {
   const h = harness(), job = h.service.fit(input, spec, rows);

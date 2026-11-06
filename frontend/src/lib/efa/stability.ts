@@ -3,6 +3,8 @@ import { matchFactors } from "./compare";
 import { correlate } from "./correlation";
 import { fitEfa } from "./fit";
 import { preparedSample } from "./prepared-sample";
+import { completeNumericSample } from "./numeric-imputation";
+import { completeOrdinalSample } from './ordinal-imputation';
 import { MINRES_METHOD } from "./extraction";
 import { DWLS_METHOD } from "./dwls";
 import {
@@ -238,19 +240,24 @@ export function resampleData(source: EfaPreparedData, indices: number[]) {
   )
     throw new EfaError("resample", "Invalid respondent resample.");
   const codes = new Uint16Array(n * p),
-    observed = new Uint8Array(n * p);
+    observed = new Uint8Array(n * p),
+    numeric = source.numeric ? new Float64Array(n * p) : undefined;
   for (let j = 0; j < p; j++)
     for (let i = 0; i < n; i++) {
       codes[j * n + i] = source.codes[j * source.nRows + indices[i]];
       observed[j * n + i] = source.observed[j * source.nRows + indices[i]];
+      if (numeric) numeric[j * n + i] = source.numeric![j * source.nRows + indices[i]];
     }
-  return preparedSample(
-    source,
+  if (numeric) return completeNumericSample({ ...source, codes, observed, nRows: n,
+    rows: indices.map((_, i) => i), originalRowCount: n }, numeric);
+  const sample = preparedSample(
+    { ...source, fittingObserved: undefined },
     codes,
     observed,
     indices.map((_, i) => i),
     n,
   );
+  return source.imputation?.kind === 'ordinal' ? completeOrdinalSample(sample) : sample;
 }
 export function bootstrapStability(
   source: EfaPreparedData,

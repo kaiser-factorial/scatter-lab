@@ -1,5 +1,8 @@
 import { FitInvariantCache, type FitInvariant } from "./fit-cache";
 import { EFA_ENGINE } from "./types";
+import { correlationMethod, preparedCorrelation } from './correlation-method';
+import { validateSpec } from './prepare';
+import { inferMeasurement } from '../measurement';
 import { computeSettings, type CompanionConnection, type CompanionSession } from "./backends/types";
 import { connectCompanion, createCompanionSession, closeCompanionSession, companionRequest } from "./backends/companion";
 import type { DataTable } from "../table";
@@ -96,7 +99,7 @@ class WorkerClient {
       });
       if (p.op === "prepare" && !error) {
         trace.prepared(value.nRows, value.items.length, value.fingerprint);
-        trace.received(value.codes.byteLength + value.observed.byteLength);
+        trace.received(value.codes.byteLength + value.observed.byteLength + (value.numeric?.byteLength ?? 0));
       }
       if ((p.op === "fit" || p.op === "fit-finish") && !error && value?.extraction) trace.numerical(value);
       if (p.op === "rotation-batch" && !error) trace.received(value.values.byteLength);
@@ -123,7 +126,7 @@ class WorkerClient {
       if (request.op === "prepare") this.trace.spec(request.spec, request.rows.length, "prepare");
       if (request.op === "initialize") {
         this.trace.prepared(request.data.nRows, request.data.items.length, request.data.fingerprint);
-        this.trace.sent(request.data.codes.byteLength + request.data.observed.byteLength);
+        this.trace.sent(request.data.codes.byteLength + request.data.observed.byteLength + (request.data.numeric?.byteLength ?? 0));
       }
       if (request.op === "rotation-accept") this.trace.sent(request.batch.values.byteLength);
       if (request.op === "fit" && request.invariant?.inference) this.trace.sent(request.invariant.inference.covariance.byteLength);
@@ -171,6 +174,10 @@ export class EfaService {
   private jobs = new Map<string, EfaJob>();
   private listeners = new Set<() => void>();
   private cache = new WeakMap<DataTable, CacheEntry[]>();
+  // A live item-selection session keeps its original superset available even
+  // after the ordinary two-entry cache has moved through several subsets.
+  // Keep only one extra entry and release it with the controller/session.
+  private refitBaseline?: { table: DataTable; parentId: string; entry: CacheEntry };
   private invariantCache = new FitInvariantCache();
   private completedCaches = new WeakMap<WorkerClient[], () => void>();
   private revisionIds = new WeakMap<DataTable, string>();
@@ -233,6 +240,17 @@ export class EfaService {
     }
     return id;
   }
+  retainRefitBaseline(table: DataTable, parent: EfaRun) {
+    if (this.refitBaseline?.table === table && this.refitBaseline.parentId === parent.id) return;
+    const entry = this.cache.get(table)?.find((candidate) =>
+      JSON.parse(candidate.key).missing === parent.spec.missing &&
+      JSON.parse(candidate.key).correlation === correlationMethod(parent.spec) &&
+      JSON.stringify(candidate.data.rows) === JSON.stringify(parent.result.fittingRows) &&
+      JSON.stringify(JSON.parse(candidate.key).items) === JSON.stringify(parent.spec.items),
+    );
+    this.refitBaseline = entry ? { table, parentId: parent.id, entry } : undefined;
+  }
+  releaseRefitBaseline() { this.refitBaseline = undefined; }
   cancelAll() {
     for (const job of this.jobs.values())
       if (job.status === "running") job.cancel();
@@ -379,7 +397,17 @@ export class EfaService {
       membership = rows.slice(),
       settings = structuredClone(options);
     if (computeSettings(snapshot).backend !== "cpu") throw new EfaError("backend-batch", "Accelerated MICE is not connected yet. Select Browser CPU explicitly for imputation.");
+    validateSpec(snapshot);
     validateMiceOptions(settings, snapshot.items.length);
+    // MICE's conditional models are ordinal even when the completed fit uses
+    // Pearson. Do not silently recode a continuous item into many categories.
+    const miceItems = snapshot.items.map(item => {
+      if (item.measurement === 'continuous') throw new EfaError('mice-measurement', 'MICE currently requires ordered categorical items. Continuous-item MICE is not implemented.');
+      if (snapshot.correlation === undefined || snapshot.correlation === 'polychoric') return item;
+      const inferred = inferMeasurement(membership.map(row => table.data[item.column]?.[row]), { measurement: item.measurement, categories: item.categories });
+      if (inferred.kind !== 'ordinal') throw new EfaError('mice-measurement', `MICE currently requires ordered categorical items. Review the measurement level and category order for ${item.column}.`);
+      return { ...item, categories: inferred.categories, measurement: 'ordinal' as const };
+    });
     if (snapshot.missing !== "pairwise")
       throw new EfaError(
         "mice-population",
@@ -396,7 +424,7 @@ export class EfaService {
             ),
             nRows: table.nRows,
           },
-          spec: snapshot,
+          spec: { ...snapshot, items: miceItems, correlation: 'polychoric' },
           rows: membership,
         });
       progress({ stage: "Original observed support", completed: 0, total: 1 });
@@ -572,6 +600,7 @@ export class EfaService {
     const key = JSON.stringify({
       items: snapshot.items,
       missing: snapshot.missing,
+      correlation: correlationMethod(snapshot),
       rows: membership,
     });
     // Only selected columns are cloned into the preparation worker. Source arrays
@@ -585,7 +614,9 @@ export class EfaService {
     };
     return this.launch(async (workers, progress, live) => {
       const first = this.client(workers),
-        entries = this.cache.get(table) ?? [],
+        recent = this.cache.get(table) ?? [],
+        baseline = this.refitBaseline?.table === table ? this.refitBaseline.entry : undefined,
+        entries = baseline && !recent.includes(baseline) ? [...recent, baseline] : recent,
         cached = entries.find((e) => e.key === key);
       const trace = this.traces.get(workers)!;
       trace.event("cache", cached ? "correlations hit: identical preprocessing and rows" : "correlations miss");
@@ -603,6 +634,9 @@ export class EfaService {
       if (!correlation) {
         const subset = entries.find(
           (entry) =>
+            entry.data.imputation?.method === data.imputation?.method &&
+            preparedCorrelation(entry.data) === preparedCorrelation(data) &&
+            JSON.parse(entry.key).correlation === correlationMethod(snapshot) &&
             JSON.stringify(entry.data.rows) === JSON.stringify(data.rows) &&
             data.items.every((item) =>
               entry.data.items.some(
@@ -723,6 +757,7 @@ export class EfaService {
         JSON.stringify({
           items: reuse.spec.items,
           missing: reuse.spec.missing,
+          correlation: correlationMethod(reuse.spec),
           rows: reuse.eligibleRows,
         }) === key
       )
@@ -914,6 +949,8 @@ export class EfaService {
         snapshot.seed,
         replicates,
         data.fingerprint,
+        data.imputation?.method,
+        preparedCorrelation(data),
       );
     });
   }

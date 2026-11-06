@@ -6,6 +6,7 @@ import type { RotatedUncertainty } from "./weighted-rotation";
 export type OrdinalCategory = string | number;
 export type Rotation = "oblimin" | "varimax" | "promax";
 export type EfaEstimator = "minres" | "dwls" | "wlsmv";
+export type EfaCorrelationMethod = "polychoric" | "pearson";
 export type ItemReview = {
   status: "retain" | "investigate" | "exclude";
   note: string;
@@ -14,15 +15,18 @@ export interface EfaItem {
   column: string;
   categories: OrdinalCategory[];
   reverse: boolean;
+  measurement?: import('../measurement').MeasurementChoice;
 }
 export interface EfaSpec {
   compute?: import("./backends/types").EfaComputeSettings;
   /** Absent in older workspaces: MINRES. WLSMV uses the DWLS point fit. */
   extraction?: EfaEstimator;
+  /** Missing in legacy fits: mean/median used Pearson; other policies used polychoric. */
+  correlation?: EfaCorrelationMethod | 'auto';
   items: EfaItem[];
   nFactors: number;
   rotation: Rotation;
-  missing: "pairwise" | "complete";
+  missing: "pairwise" | "complete" | "mean" | "median";
   seed: number;
   label: string;
   sample: {
@@ -71,15 +75,37 @@ export interface EfaPreparedData {
   /** Column-major ordinal ranks, zero based. Missingness is separate, never a category. */
   codes: Uint16Array;
   observed: Uint8Array;
+  /** Completed ordinal fitting mask; observed always retains original support. */
+  fittingObserved?: Uint8Array;
+  /** Completed numeric values for Pearson mean/median fits. Original observed mask stays intact. */
+  numeric?: Float64Array;
+  numericReverseOffsets?: (number | null)[];
+  imputation?: EfaColumnImputation;
   means: number[];
   sds: number[];
   counts: number[][];
   diagnostics: EfaDiagnostic[];
 }
+export interface EfaColumnImputation {
+  method: "mean" | "median";
+  /** Legacy absent values are numeric. Ordinal values are one-based analysis ranks. */
+  kind?: "numeric" | "ordinal";
+  medianRule?: "empirical-lower-category";
+  measurements?: ('ordinal' | 'continuous')[];
+  categoryValues?: OrdinalCategory[][];
+  rules?: string[];
+  /** Replacement values on the analysis scale, fitted on these rows only. */
+  values: number[];
+  missingCounts: number[];
+  /** Numeric reversal uses min + max - value; null means no reversal. */
+  reverseOffsets: (number | null)[];
+}
 export interface PairEstimate {
   i: number;
   j: number;
   n: number;
+  /** Numeric imputation uses all fitting rows; n remains original observed-pair support. */
+  fittingN?: number;
   rho: number;
   thresholdsX: number[];
   thresholdsY: number[];
@@ -101,7 +127,7 @@ export interface Convergence {
   objective: number;
   gradient: number;
 }
-export const EFA_ENGINE = "scatter-efa/8";
+export const EFA_ENGINE = "scatter-efa/9";
 export interface EfaExtraction {
   estimator?: "minres" | "dwls";
   method?: string;
@@ -123,6 +149,9 @@ export interface EfaRotation {
   starts: number;
 }
 export interface EfaResult {
+  correlationMethod?: EfaCorrelationMethod;
+  numericReverseOffsets?: (number | null)[];
+  imputation?: EfaColumnImputation;
   weighted?: {
     estimator: "dwls" | "wlsmv";
     samplingVariances: number[];

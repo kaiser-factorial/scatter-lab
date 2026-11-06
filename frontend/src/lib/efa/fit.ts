@@ -4,6 +4,7 @@ import { Matrix, solve } from "./math";
 import { checkCorrelation, extractMinres } from "./extraction";
 import { rotate } from "./rotation";
 import { EFA_ENGINE, EfaError } from "./types";
+import { correlationDescription, preparedCorrelation } from './correlation-method';
 import { extractDwls } from "./dwls";
 import { weightedMoments } from "./weighted-moments";
 import { planWeightedInference, weightedInference } from "./weighted-inference";
@@ -47,6 +48,8 @@ export function* fitEfaSteps(
     pointEstimator = estimator === "minres" ? "minres" : "dwls";
   if (!["minres", "dwls", "wlsmv"].includes(estimator))
     throw new EfaError("method", "Unsupported EFA extractor.");
+  if (data.numeric && estimator !== "minres")
+    throw new EfaError("imputation-method", "Pearson correlations use MINRES in this workbench. Select polychoric correlations to use an ordinal weighted estimator.");
   if (extraction && (extraction.estimator ?? "minres") !== pointEstimator)
     throw new EfaError(
       "extraction-reuse",
@@ -133,6 +136,9 @@ export function* fitEfaSteps(
     }
   }
   return {
+    correlationMethod: preparedCorrelation(data),
+    ...(data.numericReverseOffsets ? { numericReverseOffsets: data.numericReverseOffsets.slice() } : {}),
+    ...(data.imputation ? { imputation: structuredClone(data.imputation) } : {}),
     ...(weighted ? { weighted } : {}),
     correlation,
     extraction: unrotated,
@@ -153,6 +159,7 @@ export function* fitEfaSteps(
     diagnostics: [
       ...data.diagnostics,
       ...correlation.diagnostics,
+      ...(weighted && data.imputation ? [{ code: 'conditional-imputation-uncertainty', message: 'Weighted fit statistics and standard errors condition on the filled categories; they do not propagate uncertainty in single mean/median replacements.' }] : []),
       ...(conditionNumber > 1e6
         ? [
             {
@@ -184,14 +191,12 @@ export function* fitEfaSteps(
       inputSha256: data.fingerprint,
       engine: EFA_ENGINE,
       matrix: "ml-matrix/6.12.1",
-      correlation:
-        "two-step polychoric; pair margins; maxcor=.9999; no smoothing",
+      correlation: correlationDescription(data),
       extraction:
         unrotated.method ??
         "Reused saved MINRES extraction; see the originating run for optimizer provenance",
       rotation: `${spec.rotation}; oblimin delta=0 unnormalized; varimax normalized; promax power=4${estimator !== "minres" ? "; weighted varimax convergence 1e-14; no additional observed-variable rescaling" : ""}`,
-      scoring:
-        "linear regression approximation: ordinal ranks standardized on fitting sample; R^-1 × structure; complete rows only",
+      scoring: `linear regression approximation: ${data.numeric ? 'numeric values' : 'ordinal ranks'} standardized on fitting sample; R^-1 × structure; ${data.imputation ? `missing cells use fitted column ${data.imputation.method}` : 'complete rows only'}`,
       seed: spec.seed,
     },
   };
@@ -220,6 +225,9 @@ export function scoreEfa(
   data: EfaPreparedData,
   result: EfaResult,
 ): (number | null)[][] {
+  const resultMethod = result.correlationMethod ?? (result.imputation && result.imputation.kind !== 'ordinal' ? 'pearson' : 'polychoric');
+  if (preparedCorrelation(data) !== resultMethod)
+    throw new EfaError("scoring-method", "The score inputs must use the saved fit's numeric or ordinal preparation method.");
   const k = result.weights[0].length,
     p = data.items.length,
     n = data.nRows,
@@ -233,10 +241,15 @@ export function scoreEfa(
         complete = false;
         break;
       }
-    if (!complete) continue;
+    if (!complete && !result.imputation) continue;
     const values = Array(k).fill(0);
     for (let j = 0; j < p; j++) {
-      const z = (data.codes[j * n + row] + 1 - result.means[j]) / result.sds[j];
+      const value = data.numeric
+        ? data.observed[j * n + row]
+          ? data.numeric[j * n + row] + ((result.numericReverseOffsets ?? result.imputation?.reverseOffsets)?.[j] ?? 0) - ((data.numericReverseOffsets ?? data.imputation?.reverseOffsets)?.[j] ?? 0)
+          : result.imputation!.values[j]
+        : data.observed[j * n + row] ? data.codes[j * n + row] + 1 : result.imputation!.values[j];
+      const z = (value - result.means[j]) / result.sds[j];
       for (let f = 0; f < k; f++) values[f] += z * result.weights[j][f];
     }
     scores[data.rows[row]] = values;

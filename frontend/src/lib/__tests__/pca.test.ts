@@ -279,3 +279,40 @@ describe('runPCA — complete-case analysis', () => {
       .toThrow(/Complete-case analysis leaves only 0 rows/);
   });
 });
+
+describe('runPCA — column mean and median fills', () => {
+  it.each([
+    ['mean', 3, 16 / 3],
+    ['median', 1, 4],
+  ] as const)('matches an explicitly %s-filled dataset without changing observed input', (missing, fillX, fillY) => {
+    const incomplete: DataTable = {
+      columns: ['x', 'y'],
+      // Trailing cells are outside the four-row fitting dataset and must not
+      // contribute to column statistics or missing-cell accounting.
+      data: { x: [0, '1', 8, null, 10000], y: [2, null, 4, 10, -10000] },
+      nRows: 4,
+    };
+    const before = structuredClone(incomplete);
+    const completed: DataTable = {
+      columns: ['x', 'y'],
+      data: { x: [0, 1, 8, fillX], y: [2, fillY, 4, 10] },
+      nRows: 4,
+    };
+    const actual = runPCA(incomplete, ['x', 'y'], { missing, k: 2, standardize: false });
+    const expected = runPCA(completed, ['x', 'y'], { missing: 'complete', k: 2, standardize: false });
+    for (const column of actual.columns)
+      actual.table.data[column].forEach((value, i) => expect(value).toBeCloseTo(expected.table.data[column][i], 12));
+    actual.eigenvalues.forEach((value, i) => expect(value).toBeCloseTo(expected.eigenvalues[i], 12));
+    expect(actual.missing).toMatchObject({ strategy: missing, imputedCells: 2, totalCells: 8, rowsUsed: 4, rowsDropped: 0 });
+    expect(incomplete).toEqual(before);
+    expect(actual.table.data.x).toEqual(before.data.x);
+    expect(actual.table.data.y).toEqual(before.data.y);
+  });
+
+  it.each(['mean', 'median'] as const)('rejects an unobserved column under %s imputation', (missing) => {
+    const empty: DataTable = {
+      columns: ['x', 'y'], data: { x: [null, null, null], y: [1, 2, 3] }, nRows: 3,
+    };
+    expect(() => runPCA(empty, empty.columns, { missing })).toThrow('"x" has no numeric values.');
+  });
+});

@@ -2,12 +2,14 @@ import { it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { EfaService } from "../efa/service";
 import { prepareEfa } from "../efa/prepare";
+import { correlate, estimatePair } from "../efa/correlation";
+import { fitEfa } from "../efa/fit";
 import {
   fitImputationChain,
   observedPairFloor,
 } from "../efa/imputation-analysis";
 import type { WorkerRequest } from "../efa/efa.worker";
-import type { EfaPreparedData, EfaSpec } from "../efa/types";
+import type { EfaPreparedData, EfaSpec, EfaRun } from "../efa/types";
 import type { DataTable } from "../table";
 import type { MiceOptions } from "../efa/mice";
 const fixture = JSON.parse(
@@ -34,7 +36,8 @@ const spec: EfaSpec = {
 };
 function harness(slow = false) {
   const workers: MockWorker[] = [],
-    completed: number[] = [];
+    completed: number[] = [],
+    estimatedPairs: [number, number][] = [];
   class MockWorker {
     onmessage: ((event: { data: unknown }) => void) | null = null;
     onerror: ((event: { message: string }) => void) | null = null;
@@ -61,6 +64,12 @@ function harness(slow = false) {
                 this.prepared = request.data;
                 value = true;
               }
+              if (request.op === "pairs") {
+                estimatedPairs.push(...request.pairs);
+                value = request.pairs.map(([i, j]) => estimatePair(this.prepared!, i, j));
+              }
+              if (request.op === "fit")
+                value = fitEfa(this.prepared!, request.correlation, request.spec, undefined, request.extraction);
               if (request.op === "observed-support")
                 value = observedPairFloor(this.prepared!);
               if (request.op === "imputation") {
@@ -109,8 +118,74 @@ function harness(slow = false) {
     workers.push(worker);
     return worker as unknown as Worker;
   }, 99);
-  return { service, workers, completed };
+  return { service, workers, completed, estimatedPairs };
 }
+
+it("retains the original correlation pool through repeated exclusions and reinclusion, but never across changed rows", async () => {
+  const table = JSON.parse(readFileSync(new URL("./fixtures/efa/mixed.input.json", import.meta.url), "utf8")) as DataTable & { categories: number[][] };
+  const full: EfaSpec = { ...spec, items: table.columns.map((column, i) => ({ column, categories: table.categories[i], reverse: false })) };
+  const rows = Array.from({ length: table.nRows }, (_, i) => i), h = harness();
+  const baseline = await h.service.fit(table, full, rows).promise;
+  const parent: EfaRun = {
+    id: "original", revision: 1, createdAt: "2026-11-06", datasetRevision: h.service.revision(table),
+    spec: full, result: baseline, eligibleRows: rows, kind: "fit", reviews: {}, reasons: "", revisedAfterHoldout: false, scoreColumns: [],
+  };
+  const initialPairs = h.estimatedPairs.length;
+  expect(initialPairs).toBe(28);
+  h.service.retainRefitBaseline(table, parent);
+  for (const count of [7, 6, 5, 8]) {
+    const job = h.service.fit(table, { ...full, items: full.items.slice(0, count) }, rows);
+    const fit = await job.promise;
+    expect(fit.correlation.matrix).toHaveLength(count);
+    expect(h.estimatedPairs).toHaveLength(initialPairs);
+  }
+  const changed = await h.service.fit(table, { ...full, items: full.items.slice(0, 5) }, rows.slice(1)).promise;
+  expect(h.estimatedPairs).toHaveLength(initialPairs + 10);
+  expect(changed.fittingRows).toEqual(rows.slice(1));
+});
+it("never reuses ordinal or different-imputation pairs, but reuses numeric subset pairs on fixed rows", async () => {
+  const table = structuredClone(fixture.table), rows = Array.from({ length: table.nRows }, (_, i) => i), h = harness();
+  const ordinal = await h.service.fit(table, spec, rows).promise;
+  const pairCount = ordinal.correlation.pairs.length;
+  for (const missing of ["mean", "median"] as const) {
+    const next = { ...spec, missing }, prepared = prepareEfa(table, next, rows),
+      result = await h.service.fit(table, next, rows).promise;
+    expect(result.correlation).toEqual(correlate(prepared));
+    expect(result.imputation?.method).toBe(missing);
+  }
+  expect(h.estimatedPairs).toHaveLength(pairCount * 3);
+  const reduced = { ...spec, missing: "median" as const, items: spec.items.slice(0, -1) },
+    result = await h.service.fit(table, reduced, rows).promise;
+  expect(result.correlation).toEqual(correlate(prepareEfa(table, reduced, rows)));
+  expect(h.estimatedPairs).toHaveLength(pairCount * 3);
+});
+it("column imputation cannot inflate original observed support past the private floor", async () => {
+  const table = structuredClone(fixture.table), rows = Array.from({ length: table.nRows }, (_, i) => i), h = harness();
+  table.data[table.columns[0]] = rows.map(i => i < 4 ? i : null);
+  await expect(h.service.fit(table, { ...spec, missing: "mean" }, rows, undefined, 5).promise)
+    .rejects.toThrow(/private aggregate floor/);
+  expect(h.workers.every(w => w.terminated)).toBe(true);
+});
+it('separates explicit correlation caches while preserving an auto-inferred refit baseline', async () => {
+  const table = structuredClone(fixture.table), rows = Array.from({ length: table.nRows }, (_, i) => i), h = harness(),
+    automatic: EfaSpec = { ...spec, correlation: 'auto', missing: 'median' };
+  const baseline = await h.service.fit(table, automatic, rows).promise, pairCount = baseline.correlation.pairs.length;
+  expect(baseline.correlationMethod).toBe('polychoric');
+  const parent: EfaRun = { id: 'auto', revision: 1, createdAt: '2026-11-06', datasetRevision: h.service.revision(table),
+    spec: automatic, result: baseline, eligibleRows: rows, kind: 'fit', reviews: {}, reasons: '', revisedAfterHoldout: false, scoreColumns: [] };
+  h.service.retainRefitBaseline(table, parent);
+  const numeric = { ...automatic, correlation: 'pearson' as const };
+  const pearson = await h.service.fit(table, numeric, rows).promise;
+  expect(pearson.correlationMethod).toBe('pearson'); expect(h.estimatedPairs).toHaveLength(pairCount * 2);
+  const subset = { ...automatic, items: automatic.items.slice(0, -1) };
+  expect((await h.service.fit(table, subset, rows).promise).correlation).toEqual(correlate(prepareEfa(table, subset, rows)));
+  expect(h.estimatedPairs).toHaveLength(pairCount * 2);
+});
+it('rejects continuous ordinal-MICE inputs before creating workers', () => {
+  const h = harness(), rows = Array.from({ length: fixture.table.nRows }, (_, i) => i);
+  expect(() => h.service.impute(fixture.table, { ...spec, correlation: 'auto', items: spec.items.map((item, i) => ({ ...item, measurement: i === 0 ? 'continuous' : 'auto' })) }, rows, fixture.options)).toThrow(/ordered categorical items/);
+  expect(h.workers).toHaveLength(0);
+});
 it("bounds imputation workers and preserves independent chain order despite out-of-order completion", async () => {
   const h = harness(),
     rows = Array.from({ length: fixture.table.nRows }, (_, i) => i),

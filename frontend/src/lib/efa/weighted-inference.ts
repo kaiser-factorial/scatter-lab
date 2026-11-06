@@ -318,7 +318,7 @@ export function* weightedInferenceSteps(
       projectionCorrection = next - projectionNorm - term; projectionNorm = next;
     }
     trace = m - projectionNorm;
-    const source = { nRows: n, codes: data.codes, observed: data.observed, pairs: moments.pairs, rootWeights, projection: z };
+    const source = { nRows: n, codes: data.codes, observed: data.fittingObserved ?? data.observed, pairs: moments.pairs, rootWeights, projection: z };
     if (options.correction === "estimated") {
       const estimate = yield { kind: "estimate", source, probes: options.probes ?? 128, seed: options.probeSeed ?? 61001 };
       if (!isTraceEstimate(estimate) || estimate.probes !== (options.probes ?? 128) || estimate.requestedProbes !== estimate.probes || estimate.seed !== (options.probeSeed ?? 61001) || !(estimate.traceSquared >= 0) || !Number.isFinite(estimate.traceSquared))

@@ -16,12 +16,14 @@ const spec = {
             items: { anyOf: [{ type: "string" }, { type: "number" }] },
           },
           reverse: { type: "boolean" },
+          measurement: { type: 'string', enum: ['auto', 'ordinal', 'continuous'] },
         },
         required: ["column", "categories", "reverse"],
         additionalProperties: false,
       },
     },
     extraction: { type: "string", enum: ["minres", "dwls", "wlsmv"] },
+    correlation: { type: 'string', enum: ['auto', 'polychoric', 'pearson'], description: 'Independent of missing-value policy. Auto detects fitting-sample measurement levels; all ordinal items use polychoric, numeric continuous/mixed items use Pearson. Use explicit item measurement/category overrides when known.' },
     compute: { type: "object", properties: {
       backend: { type: "string", enum: ["cpu", "webgpu", "scala"] },
       blockSize: { type: "integer", enum: [32, 64, 128, 256] },
@@ -32,7 +34,7 @@ const spec = {
     }, required: ["backend"], additionalProperties: false },
     nFactors: { type: "integer", minimum: 1 },
     rotation: { type: "string", enum: ["oblimin", "promax", "varimax"] },
-    missing: { type: "string", enum: ["pairwise", "complete"] },
+    missing: { type: "string", enum: ["pairwise", "complete", "mean", "median"], description: "Separate from correlation choice. Ordinal median stays in category; ordinal mean maps to nearest declared category, ties lower order. Continuous items keep exact numeric means/medians. Replacements use fitting respondents only." },
     seed: { type: "integer" },
     label: { type: "string" },
     sample: {
@@ -86,7 +88,7 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
   ),
   tool(
     "get_efa_items",
-    "Read at most 20 items × 12 factors from a saved EFA. Includes pattern/structure coefficients, primary and next absolute pattern loadings, gap, communality, uniqueness, related-item polychoric correlations, review status and available within-fit SEs. Factors are one-based in output; offsets are zero-based. Primary/next scan all factors. MICE view=imputation-summary returns aligned descriptive dispersion, NOT pooled SEs; view=fit can select a one-based imputation. Failed imputations stay recorded. Private mode never returns local notes, thresholds, replacements or respondent scores. Read reviewRevision before changing items.",
+    "Read at most 20 items × 12 factors from a saved EFA. Includes pattern/structure coefficients, primary and next absolute pattern loadings, gap, communality, uniqueness, related-item correlations (polychoric or Pearson, as recorded in the fit), review status and available within-fit SEs. Factors are one-based in output; offsets are zero-based. Primary/next scan all factors. MICE view=imputation-summary returns aligned descriptive dispersion, NOT pooled SEs; view=fit can select a one-based imputation. Failed imputations stay recorded. Private mode never returns local notes, thresholds, replacements or respondent scores. Read reviewRevision before changing items.",
     {
       runId: { type: "string" },
       columns: {
@@ -147,7 +149,7 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
 
   tool(
     "run_efa",
-    "Start native ordinal EFA: two-step polychoric (tetrachoric for binary), MINRES by default, or DWLS/WLSMV; oblimin by default. Require explicitly reviewed category orders; never infer text order. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel; this tool currently runs observed-data fits. Select compute.backend explicitly for WLSMV trace acceleration: webgpu or scala; cpu is the default. Scala requires an already paired local companion; tools cannot pair it or provide endpoints or tokens. Accelerated fits must pass a synthetic numerical self-check. WLSMV applies MV correction and rotated standard errors. compute.correction defaults to exact; estimated requires WebGPU and uses fixed-budget random probes (compute.probes 16–4096, default 128; compute.probeSeed default 61001). Report its approximation label and Monte Carlo uncertainty with the corrected test. Both modes apply MV correction; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
+    "Start EFA. Correlation choice is independent of missing-value handling. Set correlation=auto to infer measurement levels from the fitting sample: all ordinal items use two-step polychoric (tetrachoric for binary); numeric continuous or mixed items use Pearson. Explicit ordinal/continuous item overrides and category orders take precedence; never infer text order. Polychoric supports MINRES, DWLS and WLSMV; Pearson supports MINRES. Column median chooses the lower ordered category for ordinal items, and column mean chooses the nearest declared category (ties lower); continuous columns retain exact numeric replacements. Replacements use fitting respondents only. Weighted uncertainty after single imputation is conditional on the fixed filled categories, without imputation-variance propagation. Omitted correlation preserves legacy missing-policy defaults. The sidebar defaults to Promax; always supply the requested rotation explicitly. Return a job id; poll efa_job. No scores are added automatically. Saved fits are exploratory. Rotation comparisons reuse a parent extraction; structure-replication freezes a development parent and refits its saved holdout. Ordinal MICE and resampling stability are available in the local EFA panel. Select compute.backend explicitly for WLSMV trace acceleration: webgpu or scala; cpu is the default. Scala requires an already paired local companion; tools cannot pair it or provide endpoints or tokens. Accelerated fits must pass a synthetic numerical self-check. WLSMV applies MV correction and rotated standard errors. compute.correction defaults to exact; estimated requires WebGPU and uses fixed-budget random probes (compute.probes 16–4096, default 128; compute.probeSeed default 61001). Report its approximation label and Monte Carlo uncertainty with the corrected test. Both modes apply MV correction; large jobs can be expensive. Use refit_efa_selection to refine a saved observed or MICE run.",
     {
       spec,
       parentId: { type: "string" },
@@ -179,7 +181,7 @@ export const EFA_TOOLS: ChatCompletionTool[] = [
   ),
   tool(
     "add_efa_scores",
-    "Explicitly add ordinal linear regression-score approximations from a saved run. Complete fitting rows only; source columns are never overwritten. Returns column names, never respondent scores.",
+    "Explicitly add linear regression-score approximations from a saved run. Unimputed fits score complete fitting rows; column mean/median fits use saved fitting replacements and the recorded correlation/scoring scale. Excluded rows remain unscored and source columns are never overwritten. Returns column names, never respondent scores.",
     { runId: { type: "string" } },
     ["runId"],
   ),

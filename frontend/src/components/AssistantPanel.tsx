@@ -91,7 +91,7 @@ const AssistantMarkdown = memo(({ text }: { text: string }) => (
 ));
 AssistantMarkdown.displayName = 'AssistantMarkdown';
 
-const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef, accessMode = 'private', onAccessClick }: {
+const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef, accessMode = 'private', onAccessClick, undoScopeKey = '[]' }: {
   bridgeRef: React.MutableRefObject<AppBridge>,
   theme: string | undefined,
   askRef?: React.MutableRefObject<((q: string) => void) | null>,
@@ -113,6 +113,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // Opens the access-info dialog for the active dataset (the mode itself is
   // locked at upload); absent = nothing loaded to describe.
   onAccessClick?: () => void,
+  undoScopeKey?: string,
 }) => {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -129,7 +130,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   const panelRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<Layout>(DEFAULT_LAYOUT);
   // Undo: view-state snapshot taken before the last mutating turn
-  const [undoSnap, setUndoSnap] = useState<unknown>(null);
+  const [undoSnap, setUndoSnap] = useState<{ snapshot: unknown; scope: string } | null>(null);
   // OAuth failure to surface inside the settings view (chat may be hidden there)
   const [authError, setAuthError] = useState('');
   // Per-message feedback state, keyed by chat index
@@ -311,7 +312,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     } finally {
       // drop an empty trailing assistant bubble if the turn ended on a tool/error
       setChat(prev => prev.filter((e, i) => !(i === prev.length - 1 && e.kind === 'assistant' && e.text === '')));
-      setUndoSnap(mutated ? snapBefore : null);
+      setUndoSnap(mutated ? { snapshot: snapBefore, scope: undoScopeKey } : null);
       setBusy(false);
       onConversationChange?.();
     }
@@ -356,8 +357,8 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   };
 
   const undo = () => {
-    if (!undoSnap) return;
-    bridgeRef.current.restore(undoSnap);
+    if (!undoSnap || undoSnap.scope !== undoScopeKey) return;
+    bridgeRef.current.restore(undoSnap.snapshot);
     setUndoSnap(null);
     setChat(prev => [...prev, { kind: 'tool', text: 'reverted the assistant’s changes' }]);
     onConversationChange?.();
@@ -739,7 +740,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
                 ↩ Restore my pre-walkthrough workspace
               </button>
             )}
-            {undoSnap != null && !busy && (
+            {undoSnap != null && undoSnap.scope === undoScopeKey && !busy && (
               <button
                 onClick={undo}
                 className={`w-full py-1 text-[10px] font-bold uppercase tracking-wider cursor-pointer ${primary

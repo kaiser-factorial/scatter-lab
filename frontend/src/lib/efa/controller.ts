@@ -24,6 +24,7 @@ import {
   EfaError,
   type EfaSpec,
   type EfaRun,
+  type EfaResult,
   type EfaImputationRun,
   type EfaState,
   type ItemReview,
@@ -54,10 +55,19 @@ export interface EfaAdapter {
     columns: string[],
   ) => void;
 }
+type RefitPreview = {
+  context: EfaContext;
+  generation: number;
+  parent: EfaRun;
+  parentSelection: string;
+  job: EfaJob<EfaResult>;
+  run?: EfaRun;
+};
 export class EfaController {
   private generation = 0;
   private published = new Map<string, Promise<string>>();
   private simulations = new Map<string, Promise<string>>();
+  private refitPreview?: RefitPreview;
   private completedRuns = new Map<
     string,
     { datasetId: number; table: DataTable; run: EfaRun }
@@ -83,6 +93,8 @@ export class EfaController {
     this.adapterValue = adapter;
   }
   cancel = () => {
+    this.cancelRefitPreview();
+    this.service.releaseRefitBaseline();
     this.generation++;
     this.completedRuns.clear();
     this.reviewed.clear();
@@ -155,6 +167,103 @@ export class EfaController {
       );
     return { context, rows };
   }
+  private refitSelectionKey(parent: EfaRun, reviews: Record<string, ItemReview>) {
+    return JSON.stringify(parent.spec.items
+      .filter((item) => reviews[item.column]?.status !== "exclude")
+      .map((item) => item.column));
+  }
+  private assertRefitPreview(preview: RefitPreview) {
+    this.assertCurrent(preview.context, preview.generation);
+    const parent = this.findRun(this.current(), preview.parent.id);
+    if (this.refitPreview !== preview || !parent ||
+      parent.spec !== preview.parent.spec || parent.result !== preview.parent.result ||
+      this.refitSelectionKey(parent, parent.reviews) !== preview.parentSelection)
+      throw new EfaError("stale", "The item selection or parent run changed. This preview is no longer current.");
+  }
+  /** Selection changes invalidate immediately, including during a UI debounce.
+   * Turning live updates off may retain an already completed candidate. */
+  cancelRefitPreview = (options: { preserveCompleted?: boolean } = {}) => {
+    if (options.preserveCompleted && this.refitPreview?.run) return;
+    const previous = this.refitPreview;
+    this.refitPreview = undefined;
+    if (previous?.job.status === "running") previous.job.cancel();
+  };
+  previewRefit = async (
+    parentId: string,
+    columns: string[],
+    reviews: Record<string, ItemReview>,
+  ): Promise<EfaRun> => {
+    this.cancelRefitPreview();
+    const context = this.current(), parent = this.findRun(context, parentId);
+    if (!parent) throw new EfaError("parent", "Live refits require a saved parent run.");
+    const selected = new Set(columns), pool = new Set(parent.spec.items.map((item) => item.column));
+    if (selected.size !== columns.length || columns.some((column) => !pool.has(column)))
+      throw new EfaError("items", "A live refit can only select unique items from its original run.");
+    const snapshot = structuredClone(parent.spec);
+    snapshot.items = snapshot.items.filter((item) => selected.has(item.column));
+    snapshot.sample.fixedRows = parent.result.fittingRows.slice();
+    validateSpec(snapshot);
+    const allowed = new Set(fittingRows(context.eligibleRows, snapshot, context.state.splits));
+    if (parent.result.fittingRows.some((row) => !allowed.has(row)))
+      throw new EfaError("filter", "Restore the original fitting rows before using live refits.");
+    const reviewSnapshot = Object.fromEntries(parent.spec.items.map((item) => {
+      const review = reviews[item.column] ?? { status: "retain", note: "" };
+      return [item.column, {
+        status: selected.has(item.column) ? (review.status === "investigate" ? "investigate" : "retain") : "exclude",
+        note: review.note,
+      } satisfies ItemReview];
+    }));
+    this.service.retainRefitBaseline(context.table, parent);
+    const generation = ++this.generation,
+      rows = parent.result.fittingRows.slice(),
+      job = this.service.fit(context.table, snapshot, rows),
+      preview: RefitPreview = {
+        context, generation, parent, job,
+        parentSelection: this.refitSelectionKey(parent, parent.reviews),
+      };
+    this.refitPreview = preview;
+    const result = await job.promise;
+    this.assertRefitPreview(preview);
+    if (JSON.stringify(result.fittingRows) !== JSON.stringify(rows))
+      throw new EfaError("sample", "The live refit changed its original fitting rows and was discarded.");
+    const run: EfaRun = {
+      id: crypto.randomUUID(),
+      revision: Math.max(0, ...context.state.runs.map((run) => run.revision)) + 1,
+      createdAt: new Date().toISOString(),
+      datasetRevision: this.service.revision(context.table),
+      spec: snapshot, result, eligibleRows: rows,
+      parentId: parent.id, kind: "items", reviews: reviewSnapshot,
+      reviewRevision: 0, parentReviewRevision: parent.reviewRevision ?? 0,
+      reasons: "Live item selection; original fitting rows preserved",
+      revisedAfterHoldout: context.state.splits.some((split) => !!split.holdoutOpenedAt),
+      scoreColumns: [],
+    };
+    preview.run = run;
+    return run;
+  };
+  saveRefitPreview = async (previewId: string, reviews?: Record<string, ItemReview>, reasons?: string): Promise<string> => {
+    const preview = this.refitPreview;
+    if (!preview?.run || preview.run.id !== previewId)
+      throw new EfaError("stale", "There is no completed current preview to save.");
+    this.assertRefitPreview(preview);
+    const context = this.current(), candidate = preview.run;
+    const selected = JSON.stringify(candidate.spec.items.map((item) => item.column));
+    if (reviews && this.refitSelectionKey(preview.parent, reviews) !== selected)
+      throw new EfaError("stale", "The selected items changed. Wait for their completed preview before saving.");
+    const run: EfaRun = {
+      ...candidate,
+      revision: Math.max(0, ...context.state.runs.map((run) => run.revision)) + 1,
+      reviews: structuredClone(reviews ?? candidate.reviews),
+      reasons: reasons?.trim() || candidate.reasons,
+      parentReviewRevision: this.findRun(context, preview.parent.id)?.reviewRevision ?? candidate.parentReviewRevision,
+      revisedAfterHoldout: candidate.revisedAfterHoldout || context.state.splits.some((split) => !!split.holdoutOpenedAt),
+    };
+    // Consume before publishing so double clicks cannot append the same candidate.
+    this.refitPreview = undefined;
+    this.completedRuns.set(run.id, { datasetId: context.datasetId, table: context.table, run });
+    this.adapter().state(context.datasetId, context.table, (state) => ({ ...state, runs: [...state.runs, run] }));
+    return run.id;
+  };
   start(
     spec: EfaSpec,
     options: {
@@ -166,6 +275,8 @@ export class EfaController {
       assistant?: boolean;
     } = {},
   ) {
+    this.cancelRefitPreview();
+    this.service.releaseRefitBaseline();
     spec = structuredClone(spec);
     options = structuredClone(options);
     const { context, rows } = this.input(spec, options.assistant),
@@ -312,7 +423,9 @@ export class EfaController {
       this.adapter().scores(
         context.datasetId, context.table, result.table, run.id, result.columns,
       );
-      return `Added ${result.columns.join(", ")}. Ordinal linear score approximations; incomplete and excluded rows remain unscored.`;
+      return run.result.imputation
+        ? `Added ${result.columns.join(", ")}. Linear score approximations use fitted column ${run.result.imputation.method} replacements; excluded rows remain unscored.`
+        : `Added ${result.columns.join(", ")}. Ordinal linear score approximations; incomplete and excluded rows remain unscored.`;
     });
     this.service.trackPublication(job, completion);
     return completion;

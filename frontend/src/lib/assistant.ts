@@ -1,5 +1,6 @@
 import type OpenAIType from 'openai';
 import { EFA_TOOLS } from './efa/tools';
+import { HEATMAP_PALETTES, type HeatmapPalette } from './clusterBreakdown';
 
 // The OpenAI client is loaded on FIRST USE, not at module load (finding F1).
 //
@@ -77,11 +78,11 @@ export type AppBridge = {
     // Active display filter (null = none) and how many rows it leaves visible.
     rowFilter?: { conditions: FilterCondition[]; shown: number | string; total: number } | null;
     clusterSettings: { method: string; eps: number; minSamples: number; k: number; standardize: boolean };
-    clusterBreakdown: { attribute: string; direction: 'cluster' | 'group'; palette: 'Viridis' | 'Inferno' | 'Greens' };
+    clusterBreakdown: { attribute: string; direction: 'cluster' | 'group'; palette: HeatmapPalette };
     pcaRuns: {
       label: string; columns: string[]; variables: string[];
       standardize: boolean; savedAt: string; varianceExplained: number[];
-      missing?: { strategy: 'median' | 'complete' | 'iterative'; imputedCells: number; rowsUsed: number; rowsDropped: number };
+      missing?: { strategy: 'mean' | 'median' | 'complete' | 'pairwise' | 'iterative' | 'mice'; imputedCells: number; rowsUsed: number; rowsDropped: number };
       /** Row filter the run was fitted under; rows outside it have no score. */
       filter?: FilterCondition[];
     }[];
@@ -90,7 +91,7 @@ export type AppBridge = {
   setPlot: (opts: { x?: string; y?: string; z?: string; color_by?: string; shape_by?: string; view_mode?: '2D' | '3D' }) => string;
   runClustering: (method: 'DBSCAN' | 'KMEANS', opts: { eps?: number; min_samples?: number; k?: number; standardize?: boolean }) => string;
   getClusterBreakdown: (attribute: string) => string;
-  saveClusterHeatmap: (opts: { attribute: string; direction?: 'cluster' | 'group'; palette?: 'Viridis' | 'Inferno' | 'Greens' }) => Promise<string>;
+  saveClusterHeatmap: (opts: { attribute: string; direction?: 'cluster' | 'group'; palette?: HeatmapPalette }) => Promise<string>;
   saveRotatingGif: () => Promise<string>;
   saveActiveViewPng: () => Promise<string>;
   saveInteractiveHtml: () => Promise<string>;
@@ -98,7 +99,7 @@ export type AppBridge = {
   pinView: () => string;
   loadDemoData: (mode?: DataMode) => Promise<string>;
   // analysis (aggregates only)
-  runPCA: (opts: { variables?: string[]; n_components?: number; standardize?: boolean; label?: string; missing?: 'median' | 'complete' | 'iterative' }) => string;
+  runPCA: (opts: { variables?: string[]; n_components?: number; standardize?: boolean; label?: string; missing?: 'mean' | 'median' | 'complete' | 'pairwise' | 'iterative' | 'mice'; measurements?: Record<string, 'auto' | 'ordinal' | 'continuous'> }) => string;
   efa?: (action:string, args:Record<string,unknown>) => Promise<string>;
   correlate: (colA: string, colB: string) => string;
   compareGroups: (numericCol: string, groupCol: string) => string;
@@ -175,9 +176,9 @@ export const TUTORIAL: Record<string, string> = {
   plotting:
     'The View section ("5. View") switches 2D/3D, toggles axis grids, renames axis labels for exports, and starts an auto-rotation of the 3D camera. Drag the plot to rotate manually, scroll to zoom. The legend panel on the right can mute (click once) or hide (click twice) individual categories.',
   pca:
-    'The PCA section ("3. PCA") runs a principal component analysis right in the browser: tick which numeric variables to include, choose how many components to keep, and press Run. Standardize (on by default) makes it a correlation-based PCA — the right choice when variables are on different scales. "Missing values" chooses between Median impute (default; keeps every row, shrinks variance), Iterative PCA (reconstructs each gap from the low-rank structure of the other variables — roughly half the error of the median on correlated data), and Complete cases (drops any row with a gap, so those rows get no score); the panel shows how many rows survive, flags any variable over 50% missing, and every run reports what it filled or dropped. A run on a variable subset can be given a label (auto-suggested from the item names): its columns become PC1_<label>…, or COMP_<label> when keeping just the top component — the composite-score workflow for building one named score per item group and plotting them against each other. Re-running a label replaces that run\'s columns (confirmed by a dialog); differently-labeled runs coexist. An unlabeled run adds plain PC1…PCk. The scree bars show variance explained, and "Top PC contributors" lists each component\'s strongest loadings. Alternatively, a precomputed components file can be supplied at upload time.',
+    'The PCA section ("3. PCA") runs a principal component analysis right in the browser: tick which numeric variables to include, choose how many components to keep, and press Run. Standardize (on by default) makes it a correlation-based PCA — the right choice when variables are on different scales. "Missing values" chooses between Column mean or Column median (median is the default; both fill from observed values within each fitting column and keep every row), Iterative PCA (reconstructs each gap from the low-rank structure of the other variables — roughly half the error of the median on correlated data), and Complete cases (drops any row with a gap, so those rows get no score); the panel shows how many rows survive, flags any variable over 50% missing, and every run reports what it filled or dropped. A run on a variable subset can be given a label (auto-suggested from the item names): its columns become PC1_<label>…, or COMP_<label> when keeping just the top component — the composite-score workflow for building one named score per item group and plotting them against each other. Re-running a label replaces that run\'s columns (confirmed by a dialog); differently-labeled runs coexist. An unlabeled run adds plain PC1…PCk. The scree bars show variance explained, and "Top PC contributors" lists each component\'s strongest loadings. Alternatively, a precomputed components file can be supplied at upload time.',
   clustering:
-    'In "4. Cluster", pick DBSCAN (density-based; eps = neighborhood radius, min samples = density threshold; points in no cluster become gray "Noise") or K-Means (choose k). Clustering runs on the currently plotted axes and adds a Cluster column, which also becomes the point coloring. The "Standardize variables (z-score)" checkbox gives every variable equal weight in the distance — its default follows the data: on for mixed scales, off for PC scores and shared-scale items (where it is a deliberate methodological choice). Below the button, "Cluster info by" cross-tabulates clusters against any categorical variable — "% of cluster" shows composition, "% of group" normalizes away base rates. Choose Viridis, Inferno, or Greens and use "Save heatmap" to download a PNG with its 0–100% colour scale legend.',
+    `In "4. Cluster", pick DBSCAN (density-based; eps = neighborhood radius, min samples = density threshold; points in no cluster become gray "Noise") or K-Means (choose k). Clustering runs on the currently plotted axes and adds a Cluster column, which also becomes the point coloring. The "Standardize variables (z-score)" checkbox gives every variable equal weight in the distance — its default follows the data: on for mixed scales, off for PC scores and shared-scale items (where it is a deliberate methodological choice). Below the button, "Cluster info by" cross-tabulates clusters against any categorical variable — "% of cluster" shows composition, "% of group" normalizes away base rates. Choose a palette (${HEATMAP_PALETTES.join(', ')}) and use "Save heatmap" to download a PNG with its 0–100% colour scale legend. PrimaryBlue is the default workbench palette.`,
   analyze:
     'Statistical tests and charts run through YOU, via the run_test and plot_chart tools — there is currently no sidebar section for them, so do not direct the user to one. run_test covers Welch\'s t, Mann–Whitney U, Kruskal–Wallis, Kolmogorov–Smirnov, and chi-square; plot_chart covers ECDF, histogram, box, violin, normal Q–Q, bar (vertical/horizontal), and line over a time column. Results appear as panes on the canvas next to the live view — a results card for tests (exact p bolded below 0.05, effect size, CI; no significance stars) or the drawn chart, each closable with its X. The canvas holds the live view plus 3 extra panes (pins and analyses combined). Separately, "View dataset table" in the Data section opens a read-only, sortable, filterable table of the raw rows — purely local, available in both data modes. To show only a subgroup on the plot ("only people who answered A on Q7", "age 30 and over"), use set_row_filter — the plot and every analysis tool then use those rows only (a chip on the canvas shows the rule and the visible count, and the user can clear it with its X), so a subgroup analysis is: set the filter, then run the analysis. Results and pane titles carry the filter. Column profiles in get_app_state always describe the full dataset.',
   compare_pin:
@@ -275,13 +276,13 @@ const BASE_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'save_cluster_heatmap',
       description:
-        'Configure and download a PNG heatmap of cluster composition by a categorical attribute. Choose whether each row is a cluster or an attribute group, and choose the Viridis, Inferno, or Greens 0–100% colour scale. The image includes a percentage legend and the raw count in every cell.',
+        `Configure and download a PNG heatmap of cluster composition by a categorical attribute. Choose whether each row is a cluster or an attribute group, and choose a 0–100% colour scale: ${HEATMAP_PALETTES.join(', ')}. PrimaryBlue uses the workbench theme. The image includes a percentage legend and the raw count in every cell.`,
       parameters: {
         type: 'object',
         properties: {
           attribute: { type: 'string', description: 'Categorical column to cross-tabulate with Cluster' },
           direction: { type: 'string', enum: ['cluster', 'group'], description: '"cluster" = percent within each cluster; "group" = percent within each attribute group' },
-          palette: { type: 'string', enum: ['Viridis', 'Inferno', 'Greens'], description: 'PNG colour scale; omitted keeps the current selection' },
+          palette: { type: 'string', enum: [...HEATMAP_PALETTES], description: 'PNG colour scale; omitted keeps the current selection' },
         },
         required: ['attribute'],
         additionalProperties: false,
@@ -375,9 +376,10 @@ const BASE_TOOLS: ChatCompletionTool[] = [
           standardize: { type: 'boolean', description: 'Default true (correlation-based PCA)' },
           missing: {
             type: 'string',
-            enum: ['median', 'complete', 'iterative'],
-            description: 'How to handle rows with missing values. "median" (default) fills each gap with that variable\'s median — simple, but ignores the correlation structure. "complete" drops any row with a gap in the selected variables, keeping the covariance honest but reducing n and potentially biasing the sample. "iterative" is regularized iterative PCA (the missMDA imputePCA method): it reconstructs each gap from the low-rank structure of the other variables and iterates to convergence, which recovers missing values far more accurately when variables are correlated, and is marginally worse than median when they are not. All three are single imputation, so none of them propagate uncertainty. With substantial missingness, running more than one and comparing is the recommended check — see get_methods_reference topic pca_caveats.',
+            enum: ['mean', 'median', 'complete', 'pairwise', 'iterative', 'mice'],
+            description: 'Fitting-row missing-value handling. Mean/median preserve observed cells; auto-detected ordered categories use a valid-category median or nearest-category mean (ties to the lower category), while continuous items use ordinary numeric fills. Complete cases drops incomplete rows. Pairwise uses each pair\'s observed rows and leaves incomplete respondents unscored; invalid covariance matrices are rejected without smoothing. Iterative uses regularized iterative PCA. MICE requires the local batch UI, where separate ordinal imputations receive separate PCA fits and the user explicitly chooses a completed fit for scores; this synchronous tool does not run a batch. Single fills do not propagate imputation uncertainty.',
           },
+          measurements: { type: 'object', additionalProperties: { type: 'string', enum: ['auto', 'ordinal', 'continuous'] }, description: 'Optional per-column measurement overrides for mean/median fills. Auto conservatively detects small repeated integer category scales from fitting rows.' },
           label: {
             type: 'string',
             description: 'Short semantic name for a subset run (e.g. "openness"). Letters/digits/underscore. Omit only for a full-variable-set PCA (bare PC1..PCk).',
@@ -762,7 +764,7 @@ ${accessParagraph}
 
 Facts about THIS app that you cannot guess and are likely to get wrong from priors — state them when they come up, without needing to look them up:
 - K-Means here is DETERMINISTIC. It is seeded k-means++ from fixed seeds, best of 10 initialisations, up to 300 iterations, so the same data and the same k always give identical clusters. The usual answer ("no, k-means is randomly initialised") is wrong for this app. Say so, and add that reproducibility is not evidence of stable structure — to test that, vary k and re-run on subsamples.
-- Missing values in CLUSTERING are always median-imputed. In PCA the user chooses: median, regularized iterative PCA (missMDA imputePCA), or complete-case. Every run reports how many cells it filled or how many rows it dropped, and in which variables.
+- Missing values in CLUSTERING are always median-imputed. PCA offers column mean/median, pairwise deletion, complete cases, iterative PCA and separate ordinal MICE fits. The run_pca tool handles the single-fit methods; MICE is started through the local batch UI. Mean/median fill rules respect auto-detected or explicitly overridden categorical versus continuous measurement. Report actual cells filled or rows dropped; pairwise covariance has varying observed support and incomplete rows are unscored.
 - Clustering runs on the two or three columns currently on the X, Y and Z axes — nothing else. Choosing the axes IS choosing the features. Good for PC scores, weak for two arbitrary raw columns.
 - compare_groups reports SAMPLE standard deviations (n-1), the reporting convention; the PCA and projection use population (÷n) internally to match scikit-learn. eta-squared is reported alongside omega-squared, which corrects its upward bias — prefer omega-squared when there are many groups.
 - suggest_eps reads the k-distance curve at the (min_samples - 1)-th neighbour, because dbscan counts the point itself toward min_samples. eps is in the units of the plotted axes, or in standard deviations when standardize is on.

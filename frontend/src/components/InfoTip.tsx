@@ -1,8 +1,8 @@
 "use client";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
-import { DISCLOSURES, emphasisSegments, plainLine, type DisclosureKey } from '@/lib/disclosures';
+import { DISCLOSURES, emphasisSegments, type DisclosureKey } from '@/lib/disclosures';
 
 // A small "(i)" that opens a short methods note.
 //
@@ -32,9 +32,18 @@ export const InfoTip = ({
   label?: string;
 }) => {
   const [open, setOpen] = useState(false);
+  const tooltipId = useId();
+  const [pinned, setPinned] = useState(false);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const keepOpen = () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); setOpen(true); };
+  const leave = () => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    if (!pinned) leaveTimer.current = setTimeout(() => setOpen(false), 140);
+  };
+  useEffect(() => () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); }, []);
 
   // A tooltip shows only what the app DID — `text`. The `more` half of a
   // disclosure (why it matters, what it costs) is About-page-only, because
@@ -42,8 +51,6 @@ export const InfoTip = ({
   const raw = text ?? (topic ? DISCLOSURES[topic].text : []);
   const lines: string[] = (Array.isArray(raw) ? raw : [raw]).filter(Boolean);
   const name = label ?? (topic ? DISCLOSURES[topic].title : 'More information');
-  // The native `title` has no bullets or bold to work with: one flat string.
-  const flat = plainLine(lines.join(' '));
 
   const place = useCallback(() => {
     const r = btn.current?.getBoundingClientRect();
@@ -63,10 +70,10 @@ export const InfoTip = ({
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { btn.current?.focus(); setPinned(false); setOpen(false); } };
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (!btn.current?.contains(t) && !panel.current?.contains(t)) setOpen(false);
+      if (!btn.current?.contains(t) && !panel.current?.contains(t)) { setPinned(false); setOpen(false); }
     };
     const reflow = () => place();
     document.addEventListener('keydown', onKey);
@@ -89,10 +96,14 @@ export const InfoTip = ({
       <button
         ref={btn}
         type="button"
-        onClick={e => { e.stopPropagation(); e.preventDefault(); setOpen(o => !o); }}
+        onMouseEnter={keepOpen}
+        onMouseLeave={leave}
+        onFocus={keepOpen}
+        onBlur={leave}
+        onClick={e => { e.stopPropagation(); e.preventDefault(); setPinned(!pinned); setOpen(!pinned); }}
         aria-expanded={open}
         aria-label={name}
-        title={flat}
+        aria-describedby={open ? tooltipId : undefined}
         className="inline-flex align-middle ml-1 opacity-50 hover:opacity-100 focus-visible:opacity-100 cursor-help"
       >
         <Info className="w-3 h-3" aria-hidden="true" />
@@ -100,7 +111,10 @@ export const InfoTip = ({
       {open && typeof document !== 'undefined' && createPortal(
         <div
           ref={panel}
+          id={tooltipId}
           role="tooltip"
+          onMouseEnter={keepOpen}
+          onMouseLeave={leave}
           onMouseDown={e => e.stopPropagation()}
           style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999, width: 240 }}
           className="scatterlab-infotip fixed z-[400] p-2 text-[11px] leading-snug normal-case tracking-normal font-normal text-left

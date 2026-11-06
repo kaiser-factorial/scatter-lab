@@ -1,5 +1,9 @@
 import { computeSettings } from "./backends/types";
 import type { DataTable } from "../table";
+import { prepareNumericImputation } from "./numeric-imputation";
+import { completeOrdinalSample } from './ordinal-imputation';
+import { correlationMethod } from './correlation-method';
+import { inferMeasurement } from '../measurement';
 import {
   EfaError,
   type EfaSpec,
@@ -39,15 +43,24 @@ export function validateSpec(spec: EfaSpec) {
       `${k} factors are underidentified for ${p} items. Reduce the factor count or add items.`,
     );
   if (
-    !["pairwise", "complete"].includes(spec.missing) ||
+    !["pairwise", "complete", "mean", "median"].includes(spec.missing) ||
     !["minres", "dwls", "wlsmv"].includes(spec.extraction ?? "minres") ||
-    !["oblimin", "varimax", "promax"].includes(spec.rotation)
+    !["oblimin", "varimax", "promax"].includes(spec.rotation) ||
+    (spec.correlation !== undefined && !['auto', 'pearson', 'polychoric'].includes(spec.correlation))
   )
     throw new EfaError("method", "Unsupported EFA method.");
   if (!Number.isSafeInteger(spec.seed))
     throw new EfaError("seed", "Use an integer seed.");
   if (new Set(spec.items.map((i) => i.column)).size !== p)
     throw new EfaError("items", "Selected items must be unique.");
+  if (spec.items.some(item => item.measurement !== undefined && !['auto', 'ordinal', 'continuous'].includes(item.measurement)))
+    throw new EfaError('measurement', 'Unsupported item measurement level.');
+  if (correlationMethod(spec) === 'auto') return;
+  if (correlationMethod(spec) === 'pearson') {
+    if ((spec.extraction ?? "minres") !== "minres")
+      throw new EfaError("imputation-method", "Pearson correlations use MINRES in this workbench. Select MINRES or polychoric correlations; missing-value handling does not change the extractor.");
+    return;
+  }
   for (const item of spec.items) {
     if (
       item.categories.length < 2 ||
@@ -77,6 +90,23 @@ export function prepareEfa(
     eligibleRows.some((r) => !Number.isInteger(r) || r < 0 || r >= table.nRows)
   )
     throw new EfaError("rows", "Invalid fitting row membership.");
+  if (spec.correlation === 'auto') {
+    const inferenceRows = spec.missing === 'complete' ? eligibleRows.filter(row => spec.items.every(item =>
+      table.data[item.column]?.[row] != null && table.data[item.column]?.[row] !== '')) : eligibleRows;
+    const measurements = spec.items.map(item => inferMeasurement(inferenceRows.map(row => table.data[item.column]?.[row]), {
+      measurement: item.measurement, categories: item.categories,
+    }));
+    if (measurements.some(item => item.kind === 'nominal' || item.kind === 'empty'))
+      throw new EfaError('measurement', 'Review the item measurement levels and specify an order for nonnumeric categories.');
+    const method = measurements.every(item => item.kind === 'ordinal') ? 'polychoric' : 'pearson';
+    const resolved = { ...spec, correlation: method as 'polychoric' | 'pearson', items: spec.items.map((item, i) => ({ ...item,
+      measurement: measurements[i].kind as 'ordinal' | 'continuous',
+      categories: measurements[i].kind === 'ordinal' ? measurements[i].categories : [],
+    })) };
+    return prepareEfa(table, resolved, eligibleRows);
+  }
+  if (correlationMethod(spec) === 'pearson')
+    return prepareNumericImputation(table, spec, eligibleRows, spec.missing === 'mean' || spec.missing === 'median' ? spec.missing : undefined);
   const maps = spec.items.map(
     (item) =>
       new Map(
@@ -144,7 +174,7 @@ export function prepareEfa(
     sds.push(Math.sqrt(m2 / (total - 1)));
     counts.push(freq);
   }
-  return {
+  const source: EfaPreparedData = {
     items: structuredClone(spec.items),
     nRows: n,
     originalRowCount: table.nRows,
@@ -156,4 +186,7 @@ export function prepareEfa(
     counts,
     diagnostics: [],
   };
+  return spec.missing === 'mean' || spec.missing === 'median'
+    ? completeOrdinalSample({ ...source, imputation: { method: spec.missing, kind: 'ordinal', values: [], missingCounts: [], reverseOffsets: [] } })
+    : source;
 }

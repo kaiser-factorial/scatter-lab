@@ -5,14 +5,14 @@ import { computeSettings, type CompanionSession, type EfaExecution } from "./bac
 import { weightedInference, weightedInferenceWithKernel, weightedInferenceWithEstimator } from "./weighted-inference";
 import type { DataTable } from "../table";
 import { prepareEfa } from "./prepare";
-import { polychoric } from "./correlation";
+import { estimatePair } from "./correlation";
 import { fitEfa, fitEfaSteps, scoreEfa, type FitRotationTask, type FitTask, type FitContinuation } from "./fit";
 import {
   parallelAnalysis,
   parallelObserved,
   parallelReplicate,
 } from "./parallel";
-import { fitImputationChain, observedPairFloor } from "./imputation-analysis";
+import { fitImputationChain, observedPairFloor, imputationFitData } from "./imputation-analysis";
 import { fingerprintPrepared } from "./fingerprint";
 import { WorkerStageTimer } from "./telemetry";
 import type { MiceOptions } from "./mice";
@@ -155,11 +155,11 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
               if (!prepared.observed[i])
                 codes[i] = chain.fit.replacements[position++];
             chain.fit.result.provenance.inputSha256 = await fingerprintPrepared(
-              {
+              imputationFitData({
                 ...prepared,
                 codes,
                 observed: new Uint8Array(codes.length).fill(1),
-              },
+              }, request.spec),
             );
           }
           value = chain;
@@ -183,7 +183,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           value = parallelReplicate(prepared, request.seed, progress);
           break;
         case "pairs":
-          value = request.pairs.map(([i, j]) => polychoric(prepared!, i, j));
+          value = request.pairs.map(([i, j]) => estimatePair(prepared!, i, j));
           break;
         case "fit":
           if (request.parallelDerivatives && request.spec.extraction === "wlsmv") {

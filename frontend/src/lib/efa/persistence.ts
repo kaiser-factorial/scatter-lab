@@ -2,6 +2,7 @@ import { isTraceEstimate } from "./trace-estimation";
 import { computeSettings } from "./backends/types";
 import type { EfaState } from "./types";
 import { validateSpec } from "./prepare";
+import { correlationMethod } from './correlation-method';
 import { validateMiceOptions } from "./mice";
 import { validateStability } from "./stability";
 const record = (v: unknown): v is Record<string, unknown> =>
@@ -191,6 +192,28 @@ export function validateEfaState(value: unknown, nRows: number) {
     )
       return fail();
     const estimator = run.spec.extraction ?? "minres";
+    const resolved = r.correlationMethod ?? (r.imputation && r.imputation.kind !== 'ordinal' ? 'pearson' : 'polychoric');
+    if (!['pearson', 'polychoric'].includes(resolved) ||
+      (correlationMethod(run.spec) !== 'auto' && resolved !== correlationMethod(run.spec))) return fail();
+    if (r.numericReverseOffsets !== undefined && (!Array.isArray(r.numericReverseOffsets) || r.numericReverseOffsets.length !== p ||
+      r.numericReverseOffsets.some(v => v !== null && (typeof v !== 'number' || !Number.isFinite(v))))) return fail();
+    if (run.spec.missing === "mean" || run.spec.missing === "median") {
+      const imputation = r.imputation;
+      if (!record(imputation) || imputation.method !== run.spec.missing ||
+        !numeric(imputation.values, p) || !numeric(imputation.missingCounts, p) ||
+        imputation.missingCounts.some(v => !Number.isSafeInteger(v) || v < 0 || v > r.fittingRows.length) ||
+        imputation.missingCounts.some((v, i) => r.correlation.counts[i] + v !== r.fittingRows.length) ||
+        r.sds.some(v => v <= 0) ||
+        r.correlation.pairs.some(pair => pair.fittingN !== r.fittingRows.length || pair.n > pair.fittingN) ||
+        !Array.isArray(imputation.reverseOffsets) || imputation.reverseOffsets.length !== p ||
+        imputation.reverseOffsets.some(v => v !== null && (typeof v !== "number" || !Number.isFinite(v)))) return fail();
+      if ((resolved === 'polychoric') !== (imputation.kind === 'ordinal')) return fail();
+      if (imputation.kind === 'ordinal' && (imputation.values.some((value, j) => !Number.isInteger(value) || value < 1 || value > (imputation.categoryValues?.[j]?.length ?? run.spec.items[j].categories.length)) ||
+        imputation.method === 'median' && imputation.medianRule !== 'empirical-lower-category')) return fail();
+      if (imputation.rules !== undefined && (!Array.isArray(imputation.rules) || imputation.rules.length !== p || imputation.rules.some(rule => typeof rule !== 'string'))) return fail();
+      if (imputation.measurements !== undefined && (!Array.isArray(imputation.measurements) || imputation.measurements.length !== p || imputation.measurements.some(kind => !['ordinal', 'continuous'].includes(kind)))) return fail();
+      if (imputation.categoryValues !== undefined && (!Array.isArray(imputation.categoryValues) || imputation.categoryValues.length !== p || imputation.categoryValues.some(categories => !Array.isArray(categories) || categories.some(value => typeof value !== 'string' && (typeof value !== 'number' || !Number.isFinite(value)))))) return fail();
+    } else if (r.imputation !== undefined) return fail();
     if (
       (r.extraction.estimator ?? "minres") !==
       (estimator === "minres" ? "minres" : "dwls")

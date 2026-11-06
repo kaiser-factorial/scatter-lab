@@ -1,6 +1,7 @@
 import { DataTable, asNumber, median, numericValues } from './table';
+import { columnReplacement, type MeasurementChoice, type ReplacementRule } from './measurement';
 
-// In-browser PCA: median imputation → (optional) standardization → covariance/
+// In-browser PCA: missing-value handling → (optional) standardization → covariance/
 // correlation matrix → Jacobi eigendecomposition → scores + loadings.
 // Equivalent to sklearn's PCA on standardized data, up to component sign;
 // signs are fixed so each component's largest-|loading| variable is positive.
@@ -30,22 +31,41 @@ export type PCAResult = {
   missing: MissingReport;
 };
 
-export type MissingStrategy = 'median' | 'complete' | 'iterative';
+export type MissingStrategy = 'mean' | 'median' | 'complete' | 'pairwise' | 'iterative' | 'mice';
+
+export type PCAOptions = {
+  k?: number;
+  standardize?: boolean;
+  label?: string;
+  missing?: MissingStrategy;
+  /** Caller-controlled aggregate floor; pairwise PCA always needs at least 2. */
+  minimumPairN?: number;
+  measurements?: Record<string, MeasurementChoice>;
+};
 
 export type MissingReport = {
   strategy: MissingStrategy;
-  /** Cells filled in (median or iterative PCA). Always 0 under complete-case. */
+  /** Cells filled in by imputation. Always 0 under complete-case or pairwise deletion. */
   imputedCells: number;
   totalCells: number;
   /** Rows missing at least one value, per variable, worst first. */
   byVariable: { var: string; n: number }[];
   /** Rows the decomposition actually used. */
   rowsUsed: number;
-  /** Rows excluded for having any gap. Only non-zero under complete-case. */
+  /** Rows without fitting information: incomplete rows for complete-case, wholly missing rows for pairwise. */
   rowsDropped: number;
   /** Iterative imputation only: how long it ran and whether it settled. */
   iterations?: number;
   converged?: boolean;
+  /** Pairwise support varies by covariance/correlation entry; no cells are filled. */
+  pairCounts?: number[][];
+  /** Pairwise fits only score respondents complete on the selected items. */
+  rowsScored?: number;
+  /** A selected fit from an explicitly separate MICE batch, one-based. */
+  imputation?: number;
+  imputations?: number;
+  seed?: number;
+  fillRules?: { variable: string; measurement: 'ordinal' | 'continuous'; rule: ReplacementRule; value: number }[];
 };
 
 /**
@@ -78,7 +98,7 @@ export const sanitizeLabel = (s: string): string =>
 export const deriveRunLabel = (names: string[]): string | null => {
   if (names.length < 2) return null;
   const shared = (get: (s: string, i: number) => string, len: (s: string) => number) => {
-    let n = Math.min(...names.map(len));
+    const n = Math.min(...names.map(len));
     let out = '';
     for (let i = 0; i < n; i++) {
       const ch = get(names[0], i);
@@ -295,13 +315,52 @@ export const imputeIterativePCA = (
 const transpose = (X: number[][], n: number, p: number): number[][] =>
   Array.from({ length: p }, (_, j) => Array.from({ length: n }, (_, i) => X[i][j]));
 
+/** Each pair uses its own observed respondents, means and (for correlations)
+ * standard deviations. The scoring scale uses each column's observed sample. */
+export function pairwisePcaMatrix(
+  columns: (number | null)[][],
+  names: string[],
+  standardize: boolean,
+  minimumPairN = 2,
+) {
+  if (!Number.isSafeInteger(minimumPairN) || minimumPairN < 2)
+    throw new Error('Pairwise PCA needs an observed-pair floor of at least two.');
+  const p = columns.length, n = columns[0]?.length ?? 0;
+  const matrix = Array.from({ length: p }, () => Array(p).fill(0) as number[]);
+  const counts = Array.from({ length: p }, () => Array(p).fill(0) as number[]);
+  const means = Array(p).fill(0) as number[], sds = Array(p).fill(0) as number[];
+  for (let i = 0; i < p; i++) {
+    for (let j = i; j < p; j++) {
+      let count = 0, mx = 0, my = 0, xx = 0, yy = 0, xy = 0;
+      for (let r = 0; r < n; r++) {
+        const x = columns[i][r], y = columns[j][r];
+        if (x === null || y === null) continue;
+        count++;
+        const dx = x - mx, dy = y - my;
+        mx += dx / count; my += dy / count;
+        xx += dx * (x - mx); yy += dy * (y - my); xy += dx * (y - my);
+      }
+      if (count < minimumPairN) throw new Error(`Too few observed responses for pair "${names[i]}" / "${names[j]}". Choose another missing-value method or revise the item selection.`);
+      if (standardize && (xx <= 0 || yy <= 0)) throw new Error(`"${names[i]}" or "${names[j]}" is constant on their shared observed rows. Pairwise correlation is undefined.`);
+      const value = standardize ? i === j ? 1 : Math.max(-1, Math.min(1, xy / Math.sqrt(xx) / Math.sqrt(yy))) : xy / count;
+      if (!Number.isFinite(value)) throw new Error('Pairwise covariance/correlation exceeded the supported numeric range.');
+      matrix[i][j] = matrix[j][i] = value;
+      counts[i][j] = counts[j][i] = count;
+      if (i === j) { means[i] = mx; sds[i] = Math.sqrt(xx / count); }
+    }
+  }
+  return { matrix, counts, means, sds };
+}
+
 export const runPCA = (
   table: DataTable,
   variables: string[],
-  opts: { k?: number; standardize?: boolean; label?: string; missing?: MissingStrategy } = {},
+  opts: PCAOptions = {},
 ): PCAResult => {
   const standardize = opts.standardize ?? true;
   const strategy: MissingStrategy = opts.missing ?? 'median';
+  if (strategy === 'mice') throw new Error('MICE produces separate PCA fits. Use the MICE batch workflow and choose a completed fit before adding scores.');
+  if (!['mean', 'median', 'complete', 'pairwise', 'iterative'].includes(strategy)) throw new Error('Unsupported PCA missing-value method.');
   const label = sanitizeLabel(opts.label ?? '');
   const p = variables.length;
   if (p < 2) throw new Error('Pick at least two numeric variables for a PCA.');
@@ -318,10 +377,10 @@ export const runPCA = (
   const maxRank = Math.max(1, Math.min(p, n - 1));
   const k = Math.max(1, Math.min(opts.k ?? 3, maxRank));
 
-  // Coerce every selected variable once: null marks "not observed as a number",
-  // which is what both strategies key off.
+  // Coerce the fitting rows once: null marks "not observed as a number".
+  // Cells outside the declared table membership cannot affect the fill values.
   const cols: (number | null)[][] = variables.map(v =>
-    (table.data[v] ?? []).map(asNumber));
+    Array.from({ length: n }, (_, i) => asNumber(table.data[v]?.[i])));
   const missingByVar: { var: string; n: number }[] = [];
   cols.forEach((col, j) => {
     const have = numericValues(col).length;
@@ -342,7 +401,7 @@ export const runPCA = (
 
   const rows: number[] = [];
   for (let i = 0; i < n; i++) {
-    if (strategy !== 'complete' || cols.every(c => typeof c[i] === 'number')) rows.push(i);
+    if (!['complete', 'pairwise'].includes(strategy) || cols.every(c => typeof c[i] === 'number')) rows.push(i);
   }
   if (strategy === 'complete' && rows.length < 3) {
     throw new Error(
@@ -350,33 +409,43 @@ export const runPCA = (
     );
   }
   const m = rows.length;
+  const pairwise = strategy === 'pairwise'
+    ? pairwisePcaMatrix(cols, variables, standardize, opts.minimumPairN)
+    : null;
 
   // centre, optionally scale (population sd, sklearn-style)
   const X: number[][] = Array.from({ length: m }, () => new Array(p));
+  const fillRules: NonNullable<MissingReport['fillRules']> = [];
   for (let j = 0; j < p; j++) {
     const col = cols[j];
-    // Under complete-case the median is never consulted; under imputation it is
-    // computed from the observed values only, which is the standard definition.
-    const med = median(numericValues(col));
+    // Column fills use only observed fitting values and never alter input cells.
+    // Under complete-case the fill is never consulted.
+    const observed = numericValues(col);
+    const replacement = strategy === 'mean' || strategy === 'median'
+      ? columnReplacement(observed, strategy, { measurement: opts.measurements?.[variables[j]] ?? 'auto' })
+      : null;
+    const fill = replacement ? replacement.value as number : median(observed);
+    if (replacement) fillRules.push({ variable: variables[j], measurement: replacement.kind as 'ordinal' | 'continuous', rule: replacement.rule, value: fill });
     const filled = iterative?.columns[j];
     let sum = 0;
     for (let r = 0; r < m; r++) {
-      const v = filled ? filled[rows[r]] : (col[rows[r]] ?? med);
+      const v = filled ? filled[rows[r]] : (col[rows[r]] ?? fill);
       X[r][j] = v;
       sum += v;
     }
-    const mean = sum / m;
+    const mean = pairwise ? pairwise.means[j] : sum / m;
     let sq = 0;
     for (let r = 0; r < m; r++) sq += (X[r][j] - mean) ** 2;
-    const sd = Math.sqrt(sq / m);
+    const sd = pairwise ? pairwise.sds[j] : Math.sqrt(sq / m);
+    if (!Number.isFinite(mean) || !Number.isFinite(sd)) throw new Error(`"${variables[j]}" exceeds the supported numeric range for PCA. Rescale this item before fitting.`);
     if (standardize && sd === 0) throw new Error(`"${variables[j]}" is constant${strategy === 'complete' ? ' across the complete cases' : ''} — drop it or turn off standardization.`);
     const div = standardize ? sd : 1;
     for (let r = 0; r < m; r++) X[r][j] = (X[r][j] - mean) / div;
   }
 
   // covariance (= correlation when standardized) matrix
-  const C: number[][] = Array.from({ length: p }, () => new Array(p).fill(0));
-  for (let i = 0; i < p; i++) {
+  const C: number[][] = pairwise?.matrix ?? Array.from({ length: p }, () => new Array(p).fill(0));
+  for (let i = 0; !pairwise && i < p; i++) {
     for (let j = i; j < p; j++) {
       let s = 0;
       for (let r = 0; r < m; r++) s += X[r][i] * X[r][j];
@@ -385,6 +454,8 @@ export const runPCA = (
   }
 
   const { values, vectors } = jacobiEigen(C);
+  if (pairwise && values.some(v => !Number.isFinite(v) || v < -1e-10 * Math.max(1, ...C.map((row, i) => Math.abs(row[i]))) * p))
+    throw new Error('Pairwise deletion produced a covariance/correlation matrix that is not positive semidefinite. Use complete cases or an explicit imputation method; the matrix was not smoothed.');
   const total = values.reduce((s, v) => s + Math.max(v, 0), 0) || 1;
 
   // deterministic signs: largest-|loading| variable positive per component
@@ -395,7 +466,7 @@ export const runPCA = (
   });
 
   // scores: X̃ · component, written back at the ORIGINAL row positions so the
-  // columnar table keeps its shape. Rows excluded by complete-case get null
+  // columnar table keeps its shape. Incomplete rows under complete-case/pairwise get null
   // rather than a fabricated score — they are genuinely unscored.
   const scoreCols: (number | null)[][] = comps.map(vec => {
     const col = new Array<number | null>(n).fill(null);
@@ -449,11 +520,13 @@ export const runPCA = (
   const byVariable = missingByVar.sort((a, b) => b.n - a.n);
   const missing: MissingReport = {
     strategy,
-    imputedCells: strategy === 'complete' ? 0 : byVariable.reduce((s, v) => s + v.n, 0),
+    imputedCells: strategy === 'complete' || strategy === 'pairwise' ? 0 : byVariable.reduce((s, v) => s + v.n, 0),
     totalCells: n * p,
     byVariable,
-    rowsUsed: m,
-    rowsDropped: n - m,
+    rowsUsed: pairwise ? Array.from({ length: n }, (_, i) => cols.some(c => c[i] !== null)).filter(Boolean).length : m,
+    rowsDropped: pairwise ? Array.from({ length: n }, (_, i) => cols.every(c => c[i] === null)).filter(Boolean).length : n - m,
+    ...(pairwise ? { pairCounts: pairwise.counts, rowsScored: m } : {}),
+    ...(fillRules.length ? { fillRules } : {}),
     ...(iterative ? { iterations: iterative.iterations, converged: iterative.converged } : {}),
   };
 

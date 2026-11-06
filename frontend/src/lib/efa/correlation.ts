@@ -1,4 +1,5 @@
 import { bivariateGrid, brent, normalQuantile, normalCDF } from "./math";
+import { fittingMask } from './correlation-method';
 import {
   EfaError,
   type EfaPreparedData,
@@ -23,15 +24,17 @@ export function polychoric(
   const tab = new Float64Array(kx * ky),
     mx = new Uint32Array(kx),
     my = new Uint32Array(ky);
-  let total = 0;
+  let total = 0, support = 0;
+  const fitting = fittingMask(data);
   for (let row = 0; row < n; row++)
-    if (data.observed[i * n + row] && data.observed[j * n + row]) {
+    if (fitting[i * n + row] && fitting[j * n + row]) {
       const x = data.codes[i * n + row],
         y = data.codes[j * n + row];
       tab[x * ky + y]++;
       mx[x]++;
       my[y]++;
       total++;
+      if (data.observed[i * n + row] && data.observed[j * n + row]) support++;
     }
   const cx = Array.from(mx.keys()).filter((q) => mx[q] > 0),
     cy = Array.from(my.keys()).filter((q) => my[q] > 0);
@@ -81,7 +84,8 @@ export function polychoric(
   return {
     i,
     j,
-    n: total,
+    n: support,
+    ...(data.fittingObserved ? { fittingN: total } : {}),
     rho: fit.x,
     thresholdsX: tx,
     thresholdsY: ty,
@@ -94,6 +98,28 @@ export function polychoric(
     boundary: Math.abs(fit.x) > 0.995,
   };
 }
+/** Original observed-pair support is retained separately from the completed fitting n. */
+export function pearson(data: EfaPreparedData, i: number, j: number): PairEstimate {
+  if (!data.numeric) throw new EfaError("numeric-item", "Numeric responses are required for Pearson correlations.");
+  const n = data.nRows;
+  let product = 0, xx = 0, yy = 0, observed = 0, used = 0, mx = 0, my = 0;
+  for (let row = 0; row < n; row++) {
+    const complete = !!(data.observed[i * n + row] && data.observed[j * n + row]);
+    if (complete) observed++;
+    if (!data.imputation && !complete) continue;
+    const x = data.numeric[i * n + row], y = data.numeric[j * n + row], dx = x - mx, dy = y - my;
+    used++; mx += dx / used; my += dy / used;
+    xx += dx * (x - mx); yy += dy * (y - my); product += dx * (y - my);
+  }
+  if (used < 3) throw new EfaError('unestimable-pair', `Cannot estimate ${data.items[i].column} × ${data.items[j].column}: fewer than three usable rows.`);
+  const rho = product / Math.sqrt(xx) / Math.sqrt(yy);
+  if (!Number.isFinite(rho)) throw new EfaError("correlation", "Cannot estimate a finite Pearson correlation.");
+  return { i, j, n: observed, ...(data.imputation ? { fittingN: used } : {}), rho: Math.max(-1, Math.min(1, rho)),
+    thresholdsX: [], thresholdsY: [], observedCategoriesX: [], observedCategoriesY: [], sparseCells: 0,
+    boundary: Math.abs(rho) > .995 };
+}
+export const estimatePair = (data: EfaPreparedData, i: number, j: number): PairEstimate =>
+  data.numeric ? pearson(data, i, j) : polychoric(data, i, j);
 export function assembleCorrelations(
   data: EfaPreparedData,
   pairs: PairEstimate[],
@@ -108,7 +134,7 @@ export function assembleCorrelations(
     matrix[pair.i][pair.j] = matrix[pair.j][pair.i] = pair.rho;
   const sparse = pairs.filter((x) => x.sparseCells),
     boundary = pairs.filter((x) => x.boundary);
-  const emptyMargins = pairs.filter(
+  const emptyMargins = data.numeric ? [] : pairs.filter(
     (x) =>
       x.observedCategoriesX.length < data.items[x.i].categories.length ||
       x.observedCategoriesY.length < data.items[x.j].categories.length,
@@ -157,7 +183,7 @@ export function correlate(
     total = (p * (p - 1)) / 2;
   for (let i = 0; i < p - 1; i++)
     for (let j = i + 1; j < p; j++) {
-      pairs.push(polychoric(data, i, j));
+      pairs.push(estimatePair(data, i, j));
       if (pairs.length % 32 === 0)
         progress?.({ stage: "Correlations", completed: pairs.length, total });
     }
