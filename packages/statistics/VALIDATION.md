@@ -53,8 +53,11 @@ eight recorded comparison fixtures, the largest absolute differences were
 `0.18342708072824154` against R exact (tied ordinal data) and
 `0.23547647326188365` against R unadjusted asymptotic (tiny unequal samples).
 These are observed maxima, not global error bounds. A separate reviewer
-confirmed this is a calibration-method difference. Public results identify the
-p-value method; application defaults remain compatible.
+confirmed this is a calibration-method difference. Public library results identify the
+p-value method. KS inference is disabled in the application: the assistant does
+not offer it, and new app test requests are rejected before calculation.
+Descriptive ECDF charts remain available. The retained library API and historical
+fixtures document the legacy calculation, not an available assistant capability.
 
 Mann–Whitney uses a tie-corrected normal approximation, without continuity
 correction. Its recorded maximum p-value difference in this campaign was about

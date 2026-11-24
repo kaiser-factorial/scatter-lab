@@ -56,6 +56,23 @@ const run = (mode: 'private' | 'open', t: ReturnType<typeof replayTransport>) =>
     { onText: () => {}, onToolUse: () => {} }, t);
 
 describe('run_test through the loop', () => {
+  it('rejects a stale KS tool call and permits a descriptive ECDF instead', async () => {
+    const t = replayTransport([
+      call('run_test', { test: 'ks', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] }),
+      ctx => {
+        expect(ctx.lastObservation).toContain('[test_unavailable]');
+        expect(ctx.lastObservation).toContain('ECDF');
+        expect(ctx.lastObservation).not.toContain('p=');
+        return call('plot_chart', { mark: 'ecdf', column: 'sepal_len', group_by: 'species' });
+      },
+      ctx => {
+        expect(ctx.lastObservation).toContain('median=');
+        return say('Distribution chart shown; KS inference is unavailable.');
+      },
+    ]);
+    await run('open', t);
+  });
+
   it('happy path: t-test result reaches the model with p, CI, effect', async () => {
     const t = replayTransport([
       call('run_test', { test: 't', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] }),

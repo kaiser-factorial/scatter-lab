@@ -19,3 +19,6 @@ node_modules/
 packages/statistics/dist/
 packages/statistics/.test-artifacts/
 validation/library-migration/.artifacts/
+
+# Local release handoff; the historical HANDOFF.md remains tracked.
+/HANDOFF-statistics-release.md

@@ -12,6 +12,12 @@ describe('automatically selected implementation reference', () => {
     expect(APP_GUIDE_OVERVIEW).toContain('Package defaults can differ from sidebar defaults');
   });
 
+  it('automatically supplies the inference release limits', () => {
+    expect(APP_GUIDE_OVERVIEW).toContain('KS inference is temporarily unavailable');
+    expect(APP_GUIDE_OVERVIEW).toContain('Paired and clustered inference is unsupported');
+    expect(APP_GUIDE_OVERVIEW).toContain('Do not substitute another hypothesis');
+  });
+
   it('automatically supplies the PCA convention trap before a lookup is requested', () => {
     const context = appGuideContext('Are the PCA loadings variable-component correlations?');
     expect(context).toContain('[pca]');

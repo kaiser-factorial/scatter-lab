@@ -24,6 +24,36 @@ package default when the app may supply a different setting.
 
 ## Inspecting implementation source
 
+### Available statistical inference
+
+The current tool schema and application execution gate determine what the
+assistant can run. A function found in the shipped statistics library does not
+grant application access to it. In particular, the library retains the legacy KS
+calculation and its validation evidence, but **new app KS inference requests are
+disabled**. ECDF and other descriptive charts remain available. The assistant
+must not substitute a different hypothesis to get around a rejection.
+
+`frontend/src/lib/analysisPlan.ts` owns the shared release guidance and numerical
+eligibility limits. The `run_test` description, Analyze tutorial, methods
+reference, automatic guide and About/help disclosures reuse that guidance:
+
+| Available test | Release requirements after missing/unusable observations are excluded |
+| --- | --- |
+| Welch's t | Two independent groups; at least 2 usable numeric values per group; positive within-group variance in at least one group |
+| Mann–Whitney U | Two independent groups; at least 8 usable numeric values per group; not all values equal |
+| Kruskal–Wallis | At least two independent groups; at least 5 usable numeric values per group; not all values equal |
+| Pearson chi-square | Two categorical variables with at least two observed levels each; positive usable margins; every expected cell count at least 5 |
+
+Private mode also requires at least 5 usable observations per reported group or
+contingency margin. Nonfinite or degenerate results are rejected. The returned
+p-value approximation must be named; these are not exact tests. These release
+limits are conservative eligibility rules, not universal calibration guarantees.
+Independence requires substantive confirmation; paired and clustered inference
+are unsupported. The assistant has no significance-test sidebar to point users
+to while that entry point remains disabled.
+
+### Read-only package tools
+
 Two read-only tools inspect the `@scatterlab/stats` package in both private and
 open data modes:
 

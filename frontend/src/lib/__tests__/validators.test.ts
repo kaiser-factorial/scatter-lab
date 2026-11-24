@@ -88,7 +88,7 @@ describe('validatePlan — tests', () => {
 
   it('two-group tests demand exactly two groups', () => {
     expect(codes(openProfile(), {
-      kind: 'test', test: 'ks', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 't', column: 'sepal_len', groupBy: 'species',
       groups: ['setosa'],
     })).toEqual(['wrong_group_count']);
     // No explicit groups and 3 available → a count failure, plus the size
@@ -114,7 +114,7 @@ describe('validatePlan — tests', () => {
     }, privateProfile())).toEqual([]);
   });
 
-  it('ks needs 3 rows per group', () => {
+  it('legacy KS requests are unavailable regardless of group size', () => {
     const two = table({
       v: [1, 2, 3, 4, 5, 6, 7, 8],
       g: ['a', 'a', 'b', 'b', 'b', 'b', 'b', 'b'],
@@ -122,7 +122,7 @@ describe('validatePlan — tests', () => {
     expect(validatePlan(
       { kind: 'test', test: 'ks', column: 'v', groupBy: 'g', groups: ['a', 'b'] },
       analysisProfileOf(two, policyFor('open')),
-    ).map(f => f.code)).toEqual(['group_too_small']);
+    ).map(f => f.code)).toEqual(['test_unavailable']);
   });
 
   it('chi_square wants two categoricals and no groups field', () => {
