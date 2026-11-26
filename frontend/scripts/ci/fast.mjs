@@ -1,14 +1,16 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const frontend = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const output = resolve(process.env.CI_ARTIFACT_DIR ?? join(frontend, '.ci-artifacts'), 'fast');
 mkdirSync(output, { recursive: true });
+const require = createRequire(import.meta.url);
 const commands = [
-  ['unit-component-worker', ['node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=2', '--reporter=default', '--reporter=json', `--outputFile=${join(output, 'vitest.json')}`]],
-  ['current-source-and-ci-contracts', ['--test', 'scripts/efa-reference/formal/source-contract.check.mjs', 'scripts/ci/contracts.check.mjs', 'scripts/generate-app-reference.check.mjs']],
-  ['typescript', ['node_modules/typescript/bin/tsc', '--noEmit', '--incremental', 'false']],
+  ['unit-component-worker', [join(dirname(require.resolve('vitest/package.json')), 'vitest.mjs'), 'run', '--maxWorkers=2', '--reporter=default', '--reporter=json', `--outputFile=${join(output, 'vitest.json')}`]],
+  ['current-source-and-ci-contracts', ['--test', 'scripts/efa-reference/formal/source-contract.check.mjs', 'scripts/ci/contracts.check.mjs', 'scripts/generate-app-reference.check.mjs', 'scripts/ci/deployment.check.mjs']],
+  ['typescript', [require.resolve('typescript/bin/tsc'), '--noEmit', '--incremental', 'false']],
 ];
 const results = [];
 for (const [name, args] of commands) {

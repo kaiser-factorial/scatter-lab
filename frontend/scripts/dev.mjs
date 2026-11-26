@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { watch } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { generateAppReference, REFERENCE_FILES } from './generate-app-reference.mjs';
@@ -11,6 +12,7 @@ import { currentPackageBuild } from './ci/package-build.mjs';
 const frontend = fileURLToPath(new URL('..', import.meta.url));
 const library = new URL('../../packages/statistics/', import.meta.url);
 const repository = fileURLToPath(new URL('../..', import.meta.url));
+const require = createRequire(import.meta.url);
 let builder, timer, referenceTimer, pending = false, closing = false;
 function refreshReference() {
   if (closing || builder || pending) return;
@@ -49,7 +51,7 @@ for (const [directory, names] of referenceDirectories) watchers.push(watch(resol
   if (filename && !names.has(String(filename))) return;
   clearTimeout(referenceTimer); referenceTimer = setTimeout(refreshReference, 250);
 }));
-const next = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url)), 'dev', ...process.argv.slice(2)], { cwd: frontend, stdio: 'inherit' });
+const next = spawn(process.execPath, [require.resolve('next/dist/bin/next'), 'dev', ...process.argv.slice(2)], { cwd: frontend, stdio: 'inherit' });
 function close(signal = 'SIGTERM') {
   if (closing) return;
   closing = true; clearTimeout(timer); clearTimeout(referenceTimer); watchers.forEach(watcher => watcher.close());

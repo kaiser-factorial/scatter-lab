@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { buildSync } from 'esbuild';
 
 const library = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(library, '../..');
+const require = createRequire(import.meta.url);
+const packageManager = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).packageManager;
+const executingManager = process.env.npm_execpath;
+const pnpm = executingManager && /^pnpm(?:\.(?:c?js|mjs|exe))?$/.test(basename(executingManager))
+  ? executingManager : 'pnpm';
 const output = resolve(root, 'validation/library-migration/.artifacts');
 mkdirSync(output, { recursive: true });
 const directory = mkdtempSync(join(output, 'consumer-'));
@@ -22,27 +28,43 @@ const run = (name, command, args, cwd = consumer) => {
   assert.equal(result.status, 0, `${name} failed; see ${join(directory, `${name}.log`)}`);
   return result.stdout;
 };
+// Reuse the pinned manager that launched this script, including Corepack's JS
+// wrapper or pnpm's native executable. Do not assume a global pnpm installation.
+const runPnpm = (name, args, cwd = consumer) => /\.(?:c?js|mjs)$/.test(pnpm)
+  ? run(name, process.execPath, [pnpm, ...args], cwd) : run(name, pnpm, args, cwd);
 const walk = path => readdirSync(path, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? walk(join(path, entry.name)) : [join(path, entry.name)]);
 const summary = { format: 'scatterlab-package-verification/1', date: new Date().toISOString(), runtime: process.version, status: 'running', checks: [], artifactDirectory: relative(root, directory) };
 try {
+  assert.match(packageManager, /^pnpm@\d+\.\d+\.\d+$/);
+  const managerVersion = runPnpm('package-manager', ['--version'], library).trim();
+  assert.equal(`pnpm@${managerVersion}`, packageManager, 'Run check:package with the workspace-pinned pnpm version.');
+  summary.packageManager = packageManager;
+  const workspaceLock = sha(join(root, 'pnpm-lock.yaml'));
   const manifest = JSON.parse(readFileSync(join(library, 'dist/build-manifest.json'), 'utf8'));
   const sources = walk(join(library, 'src')).filter(path => path.endsWith('.ts')).map(path => relative(library, path).replaceAll('\\', '/')).sort();
   assert.deepEqual(Object.keys(manifest.sourceHashes).sort(), sources, 'Build must include every current TypeScript source.');
   for (const [path, hash] of Object.entries(manifest.sourceHashes)) assert.equal(sha(join(library, path)), hash, `Stale built source: ${path}`);
   summary.checks.push('Current source hashes match the emitted build manifest.');
-  const pack = JSON.parse(run('pack', 'npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory], library))[0];
+  const packResult = JSON.parse(runPnpm('pack', ['pack', '--config.ignore-scripts=true', '--json', '--pack-destination', directory], library));
+  const pack = Array.isArray(packResult) ? packResult[0] : packResult;
+  const tarball = join(directory, basename(pack.filename));
   const allowedDocs = ['package.json', 'README.md', 'PCA.md', 'EFA.md', 'VALIDATION.md', 'NOTICE.md'];
   assert(pack.files.every(file => file.path.startsWith('dist/') || allowedDocs.includes(file.path)), 'Tarball contains files outside the allowlist.');
   for (const document of allowedDocs) assert(pack.files.some(file => file.path === document), `Missing package document: ${document}`);
   assert(!pack.files.some(file => /(?:fixture|node_modules|\.ci-artifacts|\.env|\.R$|\.saw$)/i.test(file.path)));
-  summary.tarball = { name: pack.filename, bytes: pack.size, unpackedBytes: pack.unpackedSize, sha256: sha(join(directory, pack.filename)), files: pack.files.length };
-  writeFileSync(join(consumer, 'package.json'), JSON.stringify({ name: 'stats-consumer-check', private: true, type: 'module' }));
-  // Offline is intentional: the core package and its installed dependency must
-  // already be in the npm cache. Nothing in this test needs R or a web service.
-  run('install', 'npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', join(directory, pack.filename)]);
+  summary.tarball = { name: basename(tarball), bytes: statSync(tarball).size, sha256: sha(tarball), files: pack.files.length };
+  writeFileSync(join(consumer, 'package.json'), JSON.stringify({ name: 'stats-consumer-check', private: true, type: 'module', packageManager,
+    dependencies: { '@scatterlab/stats': `file:${tarball}` } }));
+  const isolated = ['--ignore-workspace', '--ignore-scripts', '--prod', '--config.node-linker=isolated', '--config.enable-global-virtual-store=false'];
+  runPnpm('consumer-lock', ['install', ...isolated, '--lockfile-only', '--prefer-offline', '--no-frozen-lockfile']);
+  runPnpm('consumer-fetch', ['fetch', ...isolated]);
+  runPnpm('install', ['install', ...isolated, '--offline', '--frozen-lockfile']);
   const installed = join(consumer, 'node_modules/@scatterlab/stats');
+  assert.notEqual(realpathSync(installed), realpathSync(library), 'Consumer must install the tarball, not the workspace source.');
+  assert.equal(sha(join(root, 'pnpm-lock.yaml')), workspaceLock, 'Consumer install must not rewrite the workspace lockfile.');
+  summary.tarball.unpackedBytes = pack.files.reduce((sum, file) => sum + statSync(join(installed, file.path)).size, 0);
   for (const file of pack.files.filter(file => file.path.startsWith('dist/'))) assert.equal(sha(join(installed, file.path)), sha(join(library, file.path)), `Installed bytes differ: ${file.path}`);
-  summary.checks.push('Actual npm tarball installed into an isolated consumer; emitted bytes match.');
+  summary.checks.push('Actual package tarball installed offline by pnpm into an isolated consumer; emitted bytes match and workspace lockfile is unchanged.');
   const fixture = JSON.parse(readFileSync(join(root, 'frontend/src/lib/__tests__/fixtures/efa-congruence/normal-mcar.input.json'), 'utf8'));
   writeFileSync(join(consumer, 'input.json'), JSON.stringify(fixture));
   writeFileSync(join(consumer, 'native.mjs'), `
@@ -104,7 +126,7 @@ async function factor(table: InputTable) {
 void factor;
 `);
   writeFileSync(join(consumer, 'tsconfig.json'), JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', lib: ['ES2022'], types: [], strict: true, skipLibCheck: false, noEmit: true }, files: ['types.mts'] }));
-  run('declarations', process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json']);
+  run('declarations', process.execPath, [require.resolve('typescript/bin/tsc'), '-p', 'tsconfig.json']);
   summary.checks.push('Published declarations type-check in a separate strict NodeNext consumer.');
   writeFileSync(join(consumer, 'browser.mjs'), `
 import * as library from '@scatterlab/stats';

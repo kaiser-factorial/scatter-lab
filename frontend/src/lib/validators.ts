@@ -176,6 +176,10 @@ const validateTest = (plan: TestPlan, p: AnalysisProfile): ValidationFailure[] =
     return [fail('test_unavailable', KS_DISABLED_REASON,
       'Use plot_chart with mark="ecdf" for a descriptive comparison. Do not substitute a different test without confirming the research question.')];
   }
+  if (!Object.hasOwn(plan, 'design') || plan.design !== 'independent') {
+    return [fail('test_unavailable', 'This test requires independent observations; independence has not been confirmed.',
+      'Ask the user about the sampling design. Only submit design="independent" if they confirm independent observations for this analysis. Do not run this test for paired or clustered observations.')];
+  }
   // chi_square relates two categoricals; every other test needs numeric-by-group.
   out.push(...checkColumn(p, plan.column, 'column', plan.test === 'chi_square' ? 'categorical' : 'numeric'));
   out.push(...checkColumn(p, plan.groupBy, 'groupBy', 'categorical'));

@@ -1,7 +1,7 @@
 import { createEstimatedBackend } from "./backends/estimated";
 import type { FitInvariant } from "./fit-cache";
 import { createBackend } from "./backends/runtime";
-import { computeSettings, type CompanionSession, type EfaExecution } from "./backends/types";
+import { computeSettings, type EfaExecution } from "./backends/types";
 import { weightedInference, weightedInferenceWithKernel, weightedInferenceWithEstimator } from "./weighted-inference";
 import type { DataTable } from "../table";
 import { prepareEfa } from "./prepare";
@@ -75,7 +75,6 @@ export type WorkerRequest =
       extraction?: EfaExtraction;
       invariant?: FitInvariant;
       parallelDerivatives?: boolean;
-      companion?: CompanionSession;
     }
   | { id: number; op: "score"; result: EfaResult }
   | { id: number; op: "complete"; result: EfaResult }
@@ -189,13 +188,14 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           value = request.pairs.map(([i, j]) => estimatePair(prepared!, i, j));
           break;
         case "fit":
+          computeSettings(request.spec);
           if (request.parallelDerivatives && request.spec.extraction === "wlsmv") {
             invariant = undefined; cachedInference = undefined;
             continuation = fitEfaSteps(prepared, request.correlation, request.spec, progress, request.extraction, request.invariant, base => { invariant = base; });
             const settings = computeSettings(request.spec);
             const estimated = !request.invariant && settings.correction === "estimated" ? await createEstimatedBackend(request.spec,
               value => { execution = value; self.postMessage({ id, execution: value }); }, progress) : undefined;
-            const backend = !estimated && !request.invariant && settings.backend !== "cpu" ? await createBackend(request.spec, request.companion,
+            const backend = !estimated && !request.invariant && settings.backend !== "cpu" ? await createBackend(request.spec,
               value => { execution = value; self.postMessage({ id, execution: value }); }, progress) : undefined;
             execution = request.invariant?.execution
               ? { ...request.invariant.execution, reusedFromJobId: request.invariant.sourceJobId, timings: undefined }

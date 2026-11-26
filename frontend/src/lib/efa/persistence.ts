@@ -19,6 +19,14 @@ export function validateEfaState(value: unknown, nRows: number) {
     !Array.isArray(value.splits)
   )
     return fail();
+  // A retired backend is an explicit compatibility boundary, never a reason
+  // to relabel historical results or silently launch a CPU replacement.
+  for (const key of ["runs", "parallelRuns", "imputationRuns", "stabilityRuns"]) {
+    const saved = value[key];
+    if (!Array.isArray(saved)) continue;
+    if (saved.some(run => record(run) && record(run.spec) && record(run.spec.compute) && run.spec.compute.backend === "scala"))
+      throw new Error("This workspace contains an analysis saved with the retired Scala backend. The original file is unchanged. Start a new analysis and explicitly select Browser CPU or WebGPU; no backend was substituted.");
+  }
   const rows = (v: unknown) =>
     Array.isArray(v) &&
     v.every((i) => Number.isInteger(i) && i >= 0 && i < nRows) &&

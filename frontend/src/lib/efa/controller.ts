@@ -18,6 +18,7 @@ import {
   createSampleSplit,
   existingSampleSplit,
 } from "./state";
+import { rememberScores, scoresVerified } from "./score-view";
 import { compareEfaRuns } from "./compare";
 import type { MiceOptions } from "./mice";
 import type { StabilityOptions } from "./stability";
@@ -40,6 +41,7 @@ export interface EfaContext {
   state: EfaState;
   privateMode: boolean;
   afterFullExploration: boolean;
+  inheritedCompletions?: string[];
   filterKey: string;
 }
 export interface EfaAdapter {
@@ -161,6 +163,8 @@ export class EfaController {
     validateSpec(spec);
     const context = this.current(),
       rows = fittingRows(context.eligibleRows, spec, context.state.splits);
+    if (spec.items.some(item => context.inheritedCompletions?.includes(item.column)))
+      throw new EfaError('sample', 'A selected item contains full-sample predictions inherited by this older split. Select its original item or recreate the split.');
     const excluded = context.eligibleRows.length - rows.length;
     if (
       assistant &&
@@ -425,7 +429,8 @@ export class EfaController {
     } };
     return this.start(spec, { ...saved.options, assistant: assistant || saved.options?.assistant });
   };
-  addScores = async (id: string, assistant = false) => {
+  addScores = async (id: string, assistant = false) => (await this.ensureScores(id, assistant)).message;
+  ensureScores = async (id: string, assistant = false) => {
     const context = this.current(),
       run = this.findRun(context, id);
     if (!run) throw new EfaError("run", "EFA run not found.");
@@ -446,19 +451,35 @@ export class EfaController {
         "filter",
         "The active filter excludes fitting rows. Restore the fitting filter or refit before adding scores.",
       );
+    const columns = run.scoreColumns;
+    if (columns.length) {
+      if (columns.length !== run.spec.nFactors || columns.some(column => !context.table.columns.includes(column)))
+        throw new EfaError('scores', 'Saved score columns are incomplete. Restore the scored dataset or fit a new run.');
+      if (scoresVerified(context.table, run))
+        return { columns, message: `Using existing estimated score columns: ${columns.join(', ')}.` };
+    }
     const generation = ++this.generation,
       job = this.service.scores(context.table, run);
     const completion = job.promise.then((scores) => {
       this.assertCurrent(context, generation);
+      if (columns.length) {
+        if (scores.length !== context.table.nRows || columns.some((name, f) =>
+          context.table.data[name].length !== scores.length || scores.some((row, i) => row[f] !== context.table.data[name][i])))
+          throw new EfaError('scores', 'Saved score values differ from this fit. Restore the scored dataset or fit a new run.');
+        rememberScores(context.table, run, columns);
+        return { columns, message: `Verified existing estimated score columns: ${columns.join(', ')}.` };
+      }
       const result = addScoreColumns(context.table, run, scores);
+      rememberScores(result.table, run, result.columns);
       this.adapter().scores(
         context.datasetId, context.table, result.table, run.id, result.columns,
       );
-      return run.result.imputation
+      const message = run.result.imputation
         ? `Added ${result.columns.join(", ")}. Linear score approximations use fitted column ${run.result.imputation.method} replacements; excluded rows remain unscored.`
         : run.result.likelihood
           ? `Added ${result.columns.join(", ")}. Gaussian conditional factor scores use each respondent's observed items; excluded and wholly missing rows remain unscored.`
           : `Added ${result.columns.join(", ")}. Linear regression score approximations; incomplete and excluded rows remain unscored.`;
+      return { columns: result.columns, message };
     });
     this.service.trackPublication(job, completion);
     return completion;

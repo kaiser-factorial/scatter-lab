@@ -25,8 +25,8 @@ const loadOpenAI = async (): Promise<typeof OpenAIType> => {
 };
 import { METHODS_TOPICS, searchMethods } from './methods';
 import type { FilterCondition } from './rowFilter';
-import { combinedPolicy, MAX_SAMPLE_ROWS, type DataMode, type DataPolicy } from './dataPolicy';
-import { MARK_KINDS, MAX_PLAN_REVISIONS, ENABLED_TEST_KINDS, TEST_RELEASE_GUIDANCE } from './analysisPlan';
+import { type DataMode, type DataPolicy } from './dataPolicy';
+import { MARK_KINDS, MAX_PLAN_REVISIONS, ENABLED_TEST_KINDS, STUDY_DESIGNS, TEST_RELEASE_GUIDANCE } from './analysisPlan';
 import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -37,12 +37,10 @@ import type {
 // (one key, any model); any compatible endpoint works — including local
 // runtimes like Ollama/LM Studio for a fully-offline assistant.
 //
-// Privacy contract: private sessions expose permitted metadata and aggregates.
-// Bounded row tools exist only when every loaded dataset is explicitly open;
-// the prompt and tool registry derive from the same combined session policy.
+// Dataset tools expose permitted metadata and aggregates.
 
 export const DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
-export const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.5';
+export const DEFAULT_MODEL = 'openai/gpt-6.2-sol';
 
 export type ColumnProfile = {
   name: string;
@@ -73,9 +71,22 @@ export type ColumnProfile = {
 };
 
 // The page implements this; the assistant drives the app through it.
+/** Presentation choices needed to revisit a completed tour step. Fitted data stays in the workspace. */
+export type TourPlotState = {
+  datasetId: number;
+  viewMode: '2D' | '3D';
+  axes: { x: string; y: string; z: string | null };
+  labels: { x: string; y: string; z: string };
+  colorBy: string;
+  shapeBy: string;
+  rotating: boolean;
+  patternId: string | null;
+  pins: number[];
+};
+
 export type AppBridge = {
   getState: () => {
-    datasets: { name: string; nRows: number; active: boolean; dataMode: DataMode }[];
+    datasets: { name: string; nRows: number; active: boolean; dataMode?: DataMode }[];
     columns: ColumnProfile[];
     axes: { x: string; y: string; z: string | null };
     colorBy: string;
@@ -98,14 +109,18 @@ export type AppBridge = {
   };
   setPlot: (opts: { x?: string; y?: string; z?: string; color_by?: string; shape_by?: string; view_mode?: '2D' | '3D' }) => string;
   runClustering: (method: 'DBSCAN' | 'KMEANS', opts: { eps?: number; min_samples?: number; k?: number; standardize?: boolean }) => string;
-  getClusterBreakdown: (attribute: string) => string;
+  getClusterBreakdown: (attribute: string, options?: { showInSidebar: boolean }) => string;
   saveClusterHeatmap: (opts: { attribute: string; direction?: 'cluster' | 'group'; palette?: HeatmapPalette }) => Promise<string>;
   saveRotatingGif: () => Promise<string>;
   saveActiveViewPng: () => Promise<string>;
   saveInteractiveHtml: () => Promise<string>;
   saveActiveDatasetCsv: () => string;
   pinView: () => string;
-  loadDemoData: (mode?: DataMode) => Promise<string>;
+  loadDemoData: (dataset?: import('./demo-survey').DemoDataset, split?: 'development') => Promise<string>;
+  configureDemoSurvey: () => string;
+  fitDemoSurvey: () => Promise<string>;
+  scoreDemoSurvey: () => Promise<string>;
+  plotDemoScores: () => string | Promise<string>;
   // analysis (aggregates only)
   runPCA: (opts: { variables?: string[]; n_components?: number; standardize?: boolean; label?: string; missing?: 'mean' | 'median' | 'complete' | 'pairwise' | 'iterative' | 'mice'; measurements?: Record<string, 'auto' | 'ordinal' | 'continuous'>; iterative?: IterativePcaSettings }) => string;
   analyzeDecomposition?: (opts: DecompositionAdviceOptions & { variables?: string[]; offset?: number; limit?: number }) => Promise<string>;
@@ -135,9 +150,6 @@ export type AppBridge = {
     reset_camera?: boolean;
   }) => string;
   highlightUI: (target: string) => string;
-  // Where the assistant panel sits. The walkthrough moves it to the bottom
-  // before it pins a view — side-by-side panes in the narrow strip left by a
-  // right-docked panel are unreadable, and the dock control is worth teaching.
   setAssistantDock: (dock: 'right' | 'bottom' | 'float') => string;
   // Same pointer, held until the returned disposer runs (null = not on screen).
   // The scripted walkthrough uses this so the ring survives a long read; the
@@ -145,23 +157,18 @@ export type AppBridge = {
   // talking. arrow:false drops the bouncing glyph — the walkthrough's coach
   // bubble brings its own tail, and two pointers at one target fight.
   holdHighlight: (target: string, opts?: { arrow?: boolean }) => (() => void) | null;
+  captureTourPlot: () => TourPlotState | null;
+  showTourPlot: (plot: TourPlotState, reviewing: boolean) => void;
   // undo support: snapshot/restore the whole view state
   snapshot: () => unknown;
-  restore: (snap: unknown) => void;
-  // --- open-mode only (raw row access) ---
-  // Optional on the type, and each implementation re-checks the policy itself:
-  // the tool registry not offering these in private mode is the first fence,
-  // this is the second (a stale tool call can arrive after a mode flip).
-  sampleRows?: (opts: { n?: number; columns?: string[]; sort_by?: string; direction?: 'asc' | 'desc'; seed?: number }) => string;
-  getRowsWhere?: (opts: { column: string; op: 'eq' | 'lt' | 'gt' | 'contains'; value: string | number; columns?: string[]; limit?: number }) => string;
-  listCategories?: (column: string) => string;
+  restore: (snap: unknown, source?: 'walkthrough') => void | boolean;
 };
 
 // UI anchors the assistant can point at (data-guide attributes in the sidebar)
 export const GUIDE_TARGETS = [
   'workspace', 'upload-dropzone', 'add-dataset', 'components-toggle',
-  'datasets-list', 'data-mode', 'variables', 'pca', 'view', 'cluster',
-  'analyze', 'table-view', 'export', 'efa',
+  'datasets-list', 'survey-split', 'variables', 'factor-score-rows', 'pca', 'view', 'cluster', 'cluster-breakdown',
+  'analyze', 'table-view', 'export', 'efa', 'efa-settings',
   // Not in the sidebar: the dock buttons in the assistant panel's own header.
   'assistant-dock',
 ] as const;
@@ -181,35 +188,35 @@ export const MUTATING_TOOLS = new Set([
 // from, so tour answers describe the UI as it actually is.
 export const TUTORIAL: Record<string, string> = {
   overview:
-    'Scatter Lab turns tabular data into interactive 2D/3D scatter plots. All computation runs in the browser and the dataset is never uploaded to a server (you, the assistant, are the one exception — see the privacy topic). Typical flow: add a dataset → assign variables to axes and color in the Variables panel → run PCA or cluster when useful → compare views → export. The built-in Iris demo opens in a species-colored 3D flower view; during a guided tour, demonstrate the marker-shape control by adding Species as the shape encoding after it loads (the initial view intentionally leaves shape unused).',
+    'Scatter Lab turns tabular data into interactive 2D/3D scatter plots. File parsing and statistical analysis run locally in the browser. Browser CPU and WebGPU are the available compute paths; WebGPU uses the local GPU. The assistant and feedback have separate configured destinations — see the privacy topic. Typical flow: add a dataset → assign variables to axes and color in the Variables panel → run PCA or cluster when useful → compare views → export. The built-in Iris demo opens in a species-colored 3D flower view; during a guided tour, demonstrate the marker-shape control by adding Species as the shape encoding after it loads (the initial view intentionally leaves shape unused).',
   load_data:
-    'Add data via the dropzone in the sidebar ("1. Data") — drag a CSV, XLSX, or Parquet file in, or click to browse. Choosing a file opens an "Add dataset" dialog where everything about the add is configured in one place: the sheet (for multi-sheet workbooks), the data mode — "Private research data" (the default; the assistant sees aggregate summaries only) or "Public / open data" (the assistant may also read raw rows) — whether to scan for sentinel/missing-value codes after adding (the checker opens right away if so), and an optional PCA components file to project through. Each dataset in the list has a lock/globe badge (click for an explanation of its access mode) and a gear (settings: missing-value codes, delete — deleting always asks first). A dataset\'s data mode is LOCKED IN when it is added — there is no way to change it afterward; to change modes, remove the dataset and add it again. Datasets with PC score columns plot immediately. Optionally, "+ Project through a PCA components file" reveals a second dropzone: supply a loadings file and the app median-imputes, standardizes, and computes PC1–PC3 itself. Several datasets can be loaded at once; click one in the list to make it active.',
+    'Drop a CSV, XLSX or Parquet file into Data or click to browse. Choose the sheet, missing-value scan and optional PCA components file in Add dataset. Click a dataset name to switch between loaded datasets.',
   variables:
     'The Variables panel ("2. Variables") is both data profile and plot control. Every column shows its type, range or category count, missing values, and a mini-histogram. The small buttons on each row do the plotting: X, Y, Z put a numeric column on that axis; C colors the points by that column; S encodes it as the marker shape (circle, square, diamond, then open variants — offered only for columns with at most 6 distinct values, and pressed again to switch off). Color and shape are independent, so two variables can be read at once, with a shape key under the legend. If a components file was used, "Top PC contributors" shows which variables load on each PC.',
   plotting:
-    'The View section ("5. View") switches 2D/3D, toggles axis grids, renames axis labels for exports, and starts an auto-rotation of the 3D camera. Drag the plot to rotate manually, scroll to zoom. The legend panel on the right can mute (click once) or hide (click twice) individual categories.',
+    'The View tab on the top edge of the live plot switches 2D/3D, toggles axis grids, renames axis labels for exports, and starts an auto-rotation of the 3D camera. Drag the plot to rotate manually, scroll to zoom. The legend panel on the right can mute (click once) or hide (click twice) individual categories.',
   pca:
     'In "3. PCA / EFA", start with a run label and choose the analysis items. Use all/none or Shift-click to select a range; identifiers are excluded from automatic selection. Check Item types when numeric codes could mean ordered categories or continuous measurements, then choose PCA or EFA. The item adviser suggests compatible settings but cannot establish study assumptions. For PCA, choose missing-value handling, standardization and the component count, then Run PCA. Column mean and Column median learn replacements from the fitting sample, constrained to observed categories for ordinal items; median is the default. Complete cases uses complete rows. Pairwise deletion estimates covariance/correlation using observed pairs and scores only complete rows. Iterative PCA reconstructs gaps from a low-rank model and exposes iteration/tolerance settings; unconverged fits require review before acceptance. MICE uses ordered categorical numeric items and produces separate completed PCA fits: explicitly select one fit before adding scores; the results are not pooled uncertainty or averaged component axes. Runs use the active row filter and report missing-data handling. Named runs create distinct score columns; replacing an existing run is confirmed in the sidebar. The scree chart reports variance explained. Selecting EFA reveals extraction, rotation, factor parallel-analysis and factor-count controls. FIML is EFA-only and requires compatible Maximum Likelihood settings.',
   clustering:
     `In "4. Cluster", pick DBSCAN (density-based; eps = neighborhood radius, min samples = density threshold; points in no cluster become gray "Noise") or K-Means (choose k). Clustering runs on the currently plotted axes and adds a Cluster column, which also becomes the point coloring. The "Standardize variables (z-score)" checkbox gives every variable equal weight in the distance — its default follows the data: on for mixed scales, off for PC scores and shared-scale items (where it is a deliberate methodological choice). Below the button, "Cluster info by" cross-tabulates clusters against any categorical variable — "% of cluster" shows composition, "% of group" normalizes away base rates. Choose a palette (${HEATMAP_PALETTES.join(', ')}) and use "Save heatmap" to download a PNG with its 0–100% colour scale legend. PrimaryBlue is the default workbench palette.`,
   analyze:
-    `Statistical tests and charts run through YOU, via the run_test and plot_chart tools — there is currently no sidebar section for them, so do not direct the user to one. ${TEST_RELEASE_GUIDANCE} plot_chart covers ECDF, histogram, box, violin, normal Q–Q, bar (vertical/horizontal), and line over a time column. Results appear as panes on the canvas next to the live view — a results card for tests (p-value bolded below 0.05, effect size, CI; no significance stars) or the drawn chart, each closable with its X. The canvas holds the live view plus 3 extra panes (pins and analyses combined). Separately, "View dataset table" in the Data section opens a read-only, sortable, filterable table of the raw rows — purely local, available in both data modes. To show only a subgroup on the plot ("only people who answered A on Q7", "age 30 and over"), use set_row_filter — the plot and every analysis tool then use those rows only (a chip on the canvas shows the rule and the visible count, and the user can clear it with its X), so a subgroup analysis is: set the filter, then run the analysis. Results and pane titles carry the filter. Column profiles in get_app_state always describe the full dataset.`,
+    `Statistical tests and charts run through YOU, via the run_test and plot_chart tools — there is currently no sidebar section for them, so do not direct the user to one. ${TEST_RELEASE_GUIDANCE} plot_chart covers ECDF, histogram, box, violin, normal Q–Q, bar (vertical/horizontal), and line over a time column. Results appear as panes on the canvas next to the live view — a results card for tests (p-value bolded below 0.05, effect size, CI; no significance stars) or the drawn chart, each closable with its X. The canvas holds the live view plus 3 extra panes (pins and analyses combined). Separately, "View dataset table" in the Data section opens a read-only, sortable, filterable table of the raw rows — local to this browser. To show only a subgroup on the plot ("only people who answered A on Q7", "age 30 and over"), use set_row_filter — the plot and every analysis tool then use those rows only (a chip on the canvas shows the rule and the visible count, and the user can clear it with its X), so a subgroup analysis is: set the filter, then run the analysis. Results and pane titles carry the filter. Column profiles in get_app_state always describe the full dataset.`,
   compare_pin:
-    '"Pin View" (section 5, View) freezes the current plot as a snapshot; the canvas tiles into a grid (up to 4 panes) so different axis choices, colorings, or cluster runs can be compared side by side. The live view keeps updating; pins do not.',
+    '"Pin view" in the live plot’s View tab freezes the current plot as a snapshot; the canvas tiles into a grid (up to 4 panes) so different axis choices, colorings, or cluster runs can be compared side by side. The live view keeps updating; pins do not.',
   transfer:
     'With two or more datasets loaded, "Transfer column from another dataset" (bottom of the Data section) copies a column — typically Cluster labels — into the active dataset, aligned by row order (with an automatic identity check) or by a shared key column. This lets you e.g. color one projection space by clusters found in another.',
   export:
-    'Section 6 has two buttons that open an export dialog. "Image" saves the active view as PNG (1×, 2× or 4×), SVG (2D only), a rotating GIF (3D only), or a self-contained interactive HTML file that works offline — each with or without the title & legend and the axes, gridlines & labels. "Data" writes the dataset as CSV, TSV, XLSX or JSON: all rows or only the rows under the active filter (the file name gains _filtered), with or without the derived columns (PC scores, composites, Cluster). Your own export tools use the current settings and always write every row.',
+    'The Export section offers three actions. "Image" saves the active view as PNG, SVG (2D), a rotating GIF (3D), or offline interactive HTML. "Data" saves CSV, TSV, XLSX or JSON, optionally filtered and with or without derived columns. The assistant CSV tool always writes every row. "Analysis record" opens a privacy preview of the analysis history in Markdown and JSONL. Neither mode includes raw dataset rows or chat. The masked default is not a replay recipe; even counts and fingerprints can identify a study. Review exact settings, labels, filter values and legacy text before sharing. Keep SHA256SUMS.txt separately to detect changes, not to authenticate authorship.',
   // The nine-beat prose script this used to hold is now code, in
   // lib/walkthrough.ts, where the ordering is a data structure instead of a
   // request. Keeping both would be two copies of one tour drifting apart —
   // the mistake behind finding A3. Point at the scripted one instead.
   iris_demo:
-    'There is a scripted, click-through walkthrough of the Iris demo built into the assistant panel — the user opens it from the panel menu ("Guided walkthrough"), and it runs deterministically without a model: load the demo, tour the Variables panel, run a PCA on the four measurements, K-Means the PC scores, pin a 2D comparison, and finish at the export options. If the user asks for a demo, tour, or walkthrough, tell them that button exists and what it covers, and offer it first — it is more reliable than narrating one, and it costs them no tokens. If they would rather you do it live, or they want a tour of THEIR data rather than Iris, run it yourself from the other tutorial topics: load_demo_data, then work down the sidebar (variables, pca, clustering, compare_pin, export), highlighting each section, pausing after each beat with a concrete "Ready to continue to [next step]?" rather than an open-ended question, and never initiating any download merely because it is part of a tour.',
+    'Offer the panel menu’s Guided walkthrough first: without a model or key it opens Iris immediately, runs PCA, and shows the species composition of the resulting PC-score clusters. It then loads a synthetic survey, shows the EFA settings, fits two factors, adds estimated respondent scores, plots them, and shows the export options. Docking is optional. For a live tour instead, follow the relevant tutorial topics, pause after each beat for permission to continue, and never initiate a download merely because it is mentioned.',
   workspaces:
     'The Workspace section saves the entire session — datasets, pins, notes, settings — locally in the browser (IndexedDB). "Export as file" downloads a workspace as a shareable file; "Import file" loads one. Nothing syncs to any server.',
   privacy:
-    'All parsing, projection, and clustering run in the browser, and the dataset itself is never uploaded to a server. Do not tell the user that nothing leaves their machine — that is not true while you are connected. You are the one opt-in exception: what you see is sent to the configured model API, using the user\'s own key. How much you see is the dataset\'s data mode, chosen per dataset at upload (badge in the datasets list to change it): in Private mode (the default) that is column names and aggregate summaries only — never raw rows, never category values covering fewer than 5 rows, never identifier columns. In Public/open mode — which the user must explicitly confirm — you can additionally sample raw rows and list full category breakdowns. If ANY loaded dataset is private, the whole conversation runs in Private mode.',
+    'Opening a local file reads it into the browser; CPU analysis does not upload it to the hosting server. WebGPU runs through the browser on the local GPU. Browser CPU and WebGPU are the application compute options. Retained Scala/JVM benchmark code is reference material, not a supported app backend; do not instruct users to install or pair a JVM service. Dataset tools return permitted metadata and aggregate results. They withhold respondent rows, rare values and identifiers. Chat, permitted results and retrieved source excerpts go to the configured model endpoint. Typed chat is not automatically redacted. A truly local inference endpoint keeps model requests local but does not disable other requests. Optional feedback sends rating/model/tool metadata to configured Supabase; a submitted reason can include the exchange when its checkbox is checked. OpenRouter sign-in, model lists, website assets, external links and rendered remote images can also make requests. Workspaces persist in browser storage and exports are downloads that may contain raw data. Never promise that nothing leaves the tab or that the app has no server-related data flows.',
 };
 
 export const TUTORIAL_TOPICS = Object.keys(TUTORIAL);
@@ -371,8 +378,8 @@ const BASE_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'load_demo_data',
       description:
-        'Load the built-in Iris demo: 150 flowers with four numeric measurements and three species classes. It opens in a 3D petal/sepal view, colored by species, leaving marker shape free for the tour to demonstrate. Useful during a tour or when the user has no data loaded and wants to see the app in action.',
-      parameters: { type: 'object', properties: {}, additionalProperties: false },
+        'Load Iris (default) for PCA and clustering, or a synthetic eight-item ordinal survey for EFA. Leaves other datasets loaded.',
+      parameters: { type: 'object', properties: { dataset: { type: 'string', enum: ['iris', 'survey'] } }, additionalProperties: false },
     },
   },
   {
@@ -446,16 +453,17 @@ const BASE_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'run_test',
       description:
-        `Run a statistical test on the active dataset, computed in the browser: 't' (Welch's unequal-variances t, two groups), 'mann_whitney' (rank-based two-group), 'kruskal_wallis' (rank-based, 2+ groups), 'chi_square' (independence of two categoricals; \`column\` is then the second categorical and \`groups\` must be omitted). ${TEST_RELEASE_GUIDANCE} Results report the statistic, df, p-value with its approximation method, an effect size, and for t a 95% CI on the mean difference — relay those numbers as given, without adding significance stars. The plan is checked by a deterministic validator BEFORE anything runs; a rejection lists what failed ([code], the fix, and the legal options) — revise the plan from that and call again, at most ${MAX_PLAN_REVISIONS} revisions, then report the failures to the user instead. All output is aggregate, so this works in Private data mode.`,
+        `Run a statistical test on the active dataset, computed in the browser: 't' (Welch's unequal-variances t, two groups), 'mann_whitney' (rank-based two-group), 'kruskal_wallis' (rank-based, 2+ groups), 'chi_square' (independence of two categoricals; \`column\` is then the second categorical and \`groups\` must be omitted). ${TEST_RELEASE_GUIDANCE} Results report the statistic, df, p-value with its approximation method, an effect size, and for t a 95% CI on the mean difference — relay those numbers as given, without adding significance stars. The plan is checked by a deterministic validator BEFORE anything runs; a rejection lists what failed ([code], the fix, and the legal options) — revise the plan from that and call again, at most ${MAX_PLAN_REVISIONS} revisions, then report the failures to the user instead.`,
       parameters: {
         type: 'object',
         properties: {
           test: { type: 'string', enum: ENABLED_TEST_KINDS as unknown as string[] },
+          design: { type: 'string', enum: [...STUDY_DESIGNS], description: 'Sampling design of the observations, not the hypothesis being tested. Only a user-confirmed independent design can run.' },
           column: { type: 'string', description: 'Numeric outcome column (chi_square: the second categorical)' },
           group_by: { type: 'string', description: 'Categorical column defining the groups' },
           groups: { type: 'array', items: { type: 'string' }, description: 'Which independent groups to compare: exactly 2 for t/mann_whitney; 2+ for kruskal_wallis (omit for all); omit for chi_square' },
         },
-        required: ['test', 'column', 'group_by'],
+        required: ['test', 'design', 'column', 'group_by'],
         additionalProperties: false,
       },
     },
@@ -549,7 +557,7 @@ const BASE_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'set_row_filter',
       description:
-        'Show only the rows that satisfy every condition (a display filter on the active dataset), e.g. "only people who answered A on Q7" or "age >= 30 and group in {x, y}". Works on ANY column, unlike set_category_visibility (which only fades/hides categories of the color-by column). Conditions AND together; rows with a missing value in a filtered column are excluded. The plot AND every analysis (clustering, PCA, tests, charts, correlations, group comparisons, cluster breakdowns) then use only these rows — rows outside the filter get no cluster label or PC score. The column profiles in get_app_state keep describing the full dataset. In private mode a filter that leaves, or excludes, fewer than 5 rows blocks analyses, and conditions may only name columns and values the column profile lists. Call with clear=true to remove the filter. Returns how many rows remain visible.',
+        'Show only the rows that satisfy every condition (a display filter on the active dataset), e.g. "only people who answered A on Q7" or "age >= 30 and group in {x, y}". Works on ANY column, unlike set_category_visibility (which only fades/hides categories of the color-by column). Conditions AND together; rows with a missing value in a filtered column are excluded. The plot AND every analysis (clustering, PCA, tests, charts, correlations, group comparisons, cluster breakdowns) then use only these rows — rows outside the filter get no cluster label or PC score. The column profiles in get_app_state keep describing the full dataset. A filter that leaves, or excludes, fewer than 5 rows blocks analyses, and conditions may only name columns and values the column profile lists. Call with clear=true to remove the filter. Returns how many rows remain visible.',
       parameters: {
         type: 'object',
         properties: {
@@ -681,86 +689,15 @@ const BASE_TOOLS: ChatCompletionTool[] = [
   },
 ];
 
-// Tools that exist ONLY when every loaded dataset is in open mode. Not
-// registered at all in private mode — a tool the model cannot name is a
-// stronger boundary than a tool that refuses.
-const OPEN_TOOLS: ChatCompletionTool[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'sample_rows',
-      description:
-        `Read raw rows from the active dataset (open-data mode). Returns up to ${MAX_SAMPLE_ROWS} rows as JSON. Without sort_by, a seeded random sample (same seed → same rows); with sort_by, the top rows by that column — use direction 'desc' for the largest values (e.g. inspecting outliers). The row cap is a token budget, not a privacy rule; prefer aggregate tools first and pull rows to verify anomalies or answer questions aggregates cannot.`,
-      parameters: {
-        type: 'object',
-        properties: {
-          n: { type: 'number', description: `How many rows (default 10, max ${MAX_SAMPLE_ROWS}).` },
-          columns: { type: 'array', items: { type: 'string' }, description: 'Columns to include (default: all, capped at 20).' },
-          sort_by: { type: 'string', description: 'Sort by this column instead of sampling randomly.' },
-          direction: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction (default asc).' },
-          seed: { type: 'number', description: 'Sampling seed (default 1). Change to draw a different sample.' },
-        },
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_rows_where',
-      description:
-        `Read rows matching a filter from the active dataset (open-data mode). op 'eq' compares as string or number, 'lt'/'gt' compare numerically, 'contains' is a case-insensitive substring match. Returns up to ${MAX_SAMPLE_ROWS} matching rows as JSON plus the total match count.`,
-      parameters: {
-        type: 'object',
-        properties: {
-          column: { type: 'string', description: 'Column the filter applies to.' },
-          op: { type: 'string', enum: ['eq', 'lt', 'gt', 'contains'] },
-          value: { type: ['string', 'number'], description: 'Value to compare against.' },
-          columns: { type: 'array', items: { type: 'string' }, description: 'Columns to include in the result (default: all, capped at 20).' },
-          limit: { type: 'number', description: `Max rows returned (default 10, max ${MAX_SAMPLE_ROWS}).` },
-        },
-        required: ['column', 'op', 'value'],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'list_categories',
-      description:
-        'Full value/count breakdown of one column of the active dataset (open-data mode), including values covering only a single row. Sorted by count, capped at 200 distinct values per call.',
-      parameters: {
-        type: 'object',
-        properties: {
-          column: { type: 'string', description: 'Column to enumerate.' },
-        },
-        required: ['column'],
-        additionalProperties: false,
-      },
-    },
-  },
-];
-
-export const toolsFor = (policy: DataPolicy): ChatCompletionTool[] =>
-  policy.rowAccess ? [...BASE_TOOLS, ...EFA_TOOLS, ...PCA_BATCH_TOOLS, ...DECOMPOSITION_TOOLS, ...APP_REFERENCE_TOOLS, ...OPEN_TOOLS] : [...BASE_TOOLS, ...EFA_TOOLS, ...PCA_BATCH_TOOLS, ...DECOMPOSITION_TOOLS, ...APP_REFERENCE_TOOLS];
-
-// The conversation-level policy: open only when every loaded dataset is open.
-export const sessionPolicyOf = (state: ReturnType<AppBridge['getState']>): DataPolicy =>
-  combinedPolicy(state.datasets.map(d => d.dataMode));
+export const toolsFor: (legacyPolicy?: DataPolicy) => ChatCompletionTool[] = () =>
+  [...BASE_TOOLS, ...EFA_TOOLS, ...PCA_BATCH_TOOLS, ...DECOMPOSITION_TOOLS, ...APP_REFERENCE_TOOLS];
 
 const fmtNum = (v: number | undefined) =>
   v === undefined ? '?' : Math.abs(v) >= 100 ? v.toFixed(0) : String(Math.round(v * 100) / 100);
 
 export const buildSystemPrompt = (bridge: AppBridge, referenceQuery = ''): string => {
   const s = bridge.getState();
-  const policy = sessionPolicyOf(s);
-  const anyOpen = s.datasets.some(d => d.dataMode === 'open');
-  // Three access postures, one paragraph each — the paragraph MUST match the
-  // tool list toolsFor() built from the same policy, so both derive from it.
-  const accessParagraph = policy.rowAccess
-    ? `Every loaded dataset was explicitly declared public/open by the user. In addition to aggregate statistics you may inspect raw data: sample_rows (seeded random sample or top-N by a column), get_rows_where (filtered rows), and list_categories (full value counts, including single-row values). Each call returns at most ${MAX_SAMPLE_ROWS} rows — a token budget, not a privacy rule. Still prefer aggregates first: pull rows to verify anomalies, inspect outliers or specific cases, or answer questions the summaries cannot.`
-    : `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as mean/sd/quartiles, plus min and max only when at least 5 rows share that extreme (tailsWithheld marks a column whose extreme belonged to too few people to report) — use the quartiles to notice skew and ceiling effects rather than asking for the data. Group statistics (compare_groups, cluster breakdowns, tests, charts) list only groups of at least 5 rows; the rest are pooled or omitted unnamed. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.${anyOpen ? ' (Some loaded datasets are marked open, but at least one is private, so the whole conversation runs at the private level — row tools are unavailable until every loaded dataset is open.)' : ''}`;
+  const accessParagraph = `You see column metadata and aggregate statistics only; you never see raw data rows. Numeric columns come as mean/sd/quartiles, plus min and max only when at least 5 rows share that extreme (tailsWithheld marks a column whose extreme belonged to too few people to report) — use the quartiles to notice skew and ceiling effects rather than asking for the data. Group statistics (compare_groups, cluster breakdowns, tests, charts) list only groups of at least 5 rows; the rest are pooled or omitted unnamed. Categorical columns list only values covering at least 5 rows; rareValuesWithheld counts the distinct values held back for being rarer than that, and identifier-like columns list none at all. That is a privacy guarantee, not a gap to work around: never ask the user to paste rows, and if asked about an individual row or participant, explain that you only have access to summaries.`;
   const cols = s.columns
     .map(c =>
       c.kind === 'numeric'
@@ -807,8 +744,7 @@ Tours: when the user asks for a tour, asks how the app works, or seems new, call
 Keep responses short and concrete. This is a side panel, not a report.
 
 Current session:
-${s.datasets.length === 0 ? 'No dataset loaded yet — suggest loading one (there is a demo dataset button on the empty canvas).' : `Data access: ${policy.rowAccess ? 'OPEN — row tools available' : 'PRIVATE — aggregates only'}.
-Datasets: ${s.datasets.map(d => `${d.name} (${d.nRows} rows, ${d.dataMode}${d.active ? ', active' : ''})`).join('; ')}
+${s.datasets.length === 0 ? 'No dataset loaded yet — suggest loading one (there is a demo dataset button on the empty canvas).' : `Datasets: ${s.datasets.map(d => `${d.name} (${d.nRows} rows${d.active ? ', active' : ''})`).join('; ')}
 Plot: ${s.viewMode}, x=${s.axes.x}, y=${s.axes.y}${s.axes.z ? `, z=${s.axes.z}` : ''}, colored by ${s.colorBy}${s.shapeBy ? `, marker shape by ${s.shapeBy}` : ''}. Pinned views: ${s.pinnedViews}/3.
 Columns of the active dataset:
 ${cols}`}`;
@@ -960,7 +896,7 @@ export const runAssistantTurn = async (
             .join('\n\n') || `Unknown topics. Available: ${TUTORIAL_TOPICS.join(', ')}.`;
         }
         case 'load_demo_data':
-          return await bridge.loadDemoData();
+          return await bridge.loadDemoData(input?.dataset === 'survey' ? 'survey' : 'iris');
         case 'run_pca':
           return bridge.runPCA(input ?? {});
         case 'analyze_decomposition_items':
@@ -992,7 +928,7 @@ export const runAssistantTurn = async (
           return bridge.compareGroups(input.numeric_col, input.group_col);
         case 'run_test':
           return countRejection(bridge.runTest({
-            kind: 'test', test: input.test, column: input.column,
+            kind: 'test', test: input.test, design: input.design, column: input.column,
             groupBy: input.group_by, ...(input.groups !== undefined ? { groups: input.groups } : {}),
           }));
         case 'plot_chart':
@@ -1030,11 +966,9 @@ export const runAssistantTurn = async (
         case 'read_app_source':
           return await appReference.read(input);
         case 'sample_rows':
-          return bridge.sampleRows?.(input ?? {}) ?? 'Row access is not available: the session is in Private data mode.';
         case 'get_rows_where':
-          return bridge.getRowsWhere?.(input) ?? 'Row access is not available: the session is in Private data mode.';
         case 'list_categories':
-          return bridge.listCategories?.(input.column) ?? 'Row access is not available: the session is in Private data mode.';
+          return 'Dataset tools provide aggregate summaries only.';
         case 'control_view':
           return bridge.controlView(input ?? {});
         case 'highlight_ui':
@@ -1055,10 +989,7 @@ export const runAssistantTurn = async (
         { role: 'system', content: buildSystemPrompt(bridgeRef.current, userText) },
         ...messages,
       ],
-      // Recomputed each iteration: a tool call this loop already ran (e.g.
-      // switch_dataset) can change which datasets — and so which mode — the
-      // next iteration is talking about.
-      tools: toolsFor(sessionPolicyOf(bridgeRef.current.getState())),
+      tools: toolsFor(),
       onText: handlers.onText,
     });
 
@@ -1118,17 +1049,22 @@ export const fetchModels = async (baseURL: string, apiKey: string): Promise<Mode
   }
 };
 
-// Curated suggestions: the newest tool-capable model from each major family
-// actually present in the live catalog — so we never suggest a stale ID.
+// Use the configured picks when the endpoint lists them as tool-capable.
 const SUGGESTED_FAMILIES = [
-  'anthropic/claude', 'openai/gpt', 'google/gemini',
-  'x-ai/grok', 'deepseek/deepseek', 'qwen/qwen',
+  { prefix: 'openai/gpt', preferred: DEFAULT_MODEL },
+  { prefix: 'anthropic/claude', preferred: 'anthropic/claude-opus-5.5' },
+  { prefix: 'google/gemini' }, { prefix: 'x-ai/grok' },
+  { prefix: 'deepseek/deepseek' }, { prefix: 'qwen/qwen' },
 ];
 export const suggestModels = (models: ModelInfo[]): string[] => {
   const out: string[] = [];
-  for (const fam of SUGGESTED_FAMILIES) {
+  for (const { prefix, preferred } of SUGGESTED_FAMILIES) {
+    if (preferred && models.some(m => m.id === preferred)) {
+      out.push(preferred);
+      continue;
+    }
     const candidates = models
-      .filter(m => m.id.startsWith(fam) && !m.id.includes(':free') && !/preview|exp/.test(m.id))
+      .filter(m => m.id.startsWith(prefix) && !m.id.includes(':free') && !/preview|exp/.test(m.id))
       .sort((a, b) => b.created - a.created);
     // Prefer the newest full-strength model; speed tiers only as fallback
     const best = candidates.find(m => !/fast|flash|mini|lite|nano|tiny|air/.test(m.id)) ?? candidates[0];

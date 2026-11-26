@@ -6,7 +6,7 @@ const browser=await chromium.launch({channel:'chrome',headless:true}),errors=[];
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://localhost:3000');await page.waitForFunction(()=>window.__scatterlabBridge?.current);
- await page.evaluate(()=>window.__scatterlabBridge.current.loadDemoData('open'));await page.waitForFunction(()=>window.__scatterlabBridge.current.snapshot().datasets.length>0);
+ await page.evaluate(()=>window.__scatterlabBridge.current.loadDemoData('iris'));await page.waitForFunction(()=>window.__scatterlabBridge.current.snapshot().datasets.length>0);
  await page.evaluate(table=>{const bridge=window.__scatterlabBridge.current,s=bridge.snapshot(),first=s.datasets[0];bridge.restore({...s,datasets:[{...first,name:'Synthetic runtime information fixture',table,axes:{x:table.columns[0],y:table.columns[1],z:table.columns[2]},axes2d:{x:table.columns[0],y:table.columns[1]},pcaRuns:[],efa:{runs:[],splits:[]}}],activeId:first.id,pinnedViews:[],analysisViews:[],rowFilter:null,colorBy:'',shapeBy:'',viewMode:'2D'});},table);
  await page.getByRole('button',{name:'EFA',exact:true}).click();await page.getByRole('button',{name:'Select ordinal candidates'}).click();await page.getByLabel('EFA extraction').selectOption('wlsmv');
  await expect(page.getByLabel('MV correction',{exact:true})).toHaveValue('exact');await expect(page.getByRole('radio',{name:'EFA backend cpu',exact:true})).toBeChecked();

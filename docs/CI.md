@@ -4,13 +4,13 @@ Pull requests run current application tests and the complete saved-reference num
 
 ## Required pull-request checks
 
-`.github/workflows/tests.yml` replaces the two duplicate test workflows. It runs on every pull request and push to `main`, so changes to PCA, preparation/measurement, assistant tools, UI controls, workers, and reference scripts cannot fall outside a narrow EFA path filter. Each job uses Node 24 LTS, a root `npm ci`, `npm run build:stats`, then a separate `npm ci` in `frontend/`, read-only repository permission, a time limit, and cancellation of superseded runs.
+`.github/workflows/tests.yml` replaces the two duplicate test workflows. It runs on every pull request and push to `main`, so changes to PCA, preparation/measurement, assistant tools, UI controls, workers, and reference scripts cannot fall outside a narrow EFA path filter. Each job uses Node 24 LTS and the pinned pnpm 12.18.0, installs the whole workspace with root `pnpm install --frozen-lockfile --prod=false`, and runs `pnpm run build:stats`. Jobs have read-only repository permission, a time limit, and cancellation of superseded runs. The single root lockfile covers app and library dependencies.
 
 | Job | Command | Coverage |
 | --- | --- | --- |
-| Unit, component, worker and type checks | Root `npm run test:stats && npm run check:package`, then frontend `npm run ci:fast` | Public library tests and packed-consumer checks; full app Vitest suite with two workers; real production worker modules in Node worker threads; happy-dom interaction tests; current-source contract/mutation tests; TypeScript |
-| Saved R numerical contracts (448 groups) | `npm run ci:numerical` | Main ML/FIML/MINRES/PCA matrix, ordinal WLSMV, conditional/MICE/bootstrap/parallel references, rotated standard errors; public PCA fit/transform, descriptive and hypothesis tests, correlations, and matched-initialization clustering |
-| Production build and no new lint findings | `npm run ci:lint` then `npm run build` | Baseline-aware lint and a production build including the Plotly prebuild preparation |
+| Unit, component, worker and type checks | Root `pnpm run test:stats && pnpm run check:package`, then frontend `pnpm run ci:fast` | Public library tests and packed-consumer checks; full app Vitest suite with two workers; real production worker modules in Node worker threads; happy-dom interaction tests; current-source contract/mutation tests; TypeScript |
+| Saved R numerical contracts (448 groups) | Frontend `pnpm run ci:numerical` | Main ML/FIML/MINRES/PCA matrix, ordinal WLSMV, conditional/MICE/bootstrap/parallel references, rotated standard errors; public PCA fit/transform, descriptive and hypothesis tests, correlations, and matched-initialization clustering |
+| Production build and no new lint findings | Frontend `pnpm run ci:lint` then `pnpm run build` | Baseline-aware lint and a production build including the Plotly prebuild preparation |
 
 The numerical runner requires **448 groups**: 375 application-kernel groups / 4,239 scalar error-metric checks plus 73 public-package groups / 23,969 individual scalar comparisons. Application metrics often summarize the maximum error over a matrix; these two denominators are reported separately and are not independent statistical trials. It rejects missing groups, nonfinite errors, failed checks, child-process failures/timeouts, and source drift. It also checks 50 retained public/synthetic fixture hashes before execution. Each new run writes fresh reports, execution logs and hashes of its actual bundled source. App bridges resolve the emitted package kernels. The runner checks the package build manifest against current TypeScript before bundling, records both source and emitted hashes, and rejects changes during execution. The public comparison imports the built package through its actual ESM exports. A historical passing report cannot make the current job pass. The current matrix completed in about 13 seconds on the development host; that observation is not a GitHub-hosted runner timing guarantee. The KS comparisons distinguish the preserved Stephens p-value approximation from R exact/asymptotic calibration; see [the public-reference contract](../frontend/scripts/statistics-reference/README.md).
 
@@ -19,6 +19,12 @@ The lint comparison uses an explicit Git base: the pull request's base commit, t
 The unit suite deliberately leaves `EFA_LARGE_PARITY` and `EFA_BENCHMARK` off. These switches enable expensive qualification tests and do not belong in ordinary PR latency. Happy-dom interaction checks and Node worker execution are not browser layout, GPU, or screenshot qualification.
 
 The source-contract mutation tests check the current TypeScript extraction/branch rules without requiring a solver installation. They are not a fresh SAW proof. Historical solver receipts remain documented separately in [EFA-FORMAL-VALIDATION.md](EFA-FORMAL-VALIDATION.md); normal source changes are not blocked merely because an old machine-specific receipt names a different source/tool hash.
+
+The fast contract gate also runs an isolated Vercel install regression. It checks
+that the configured workspace install retains the compiler and other development
+dependencies needed by the statistics prebuild, including under
+`NODE_ENV=production`.
+See [deployment configuration and build prerequisites](DEPLOYMENT.md).
 
 ## Fresh independent R qualification
 
@@ -43,31 +49,30 @@ A timeout for the explicitly requested fragmented-FIML stress case is retained a
 Start from the repository root, then enter the frontend for app/reference commands:
 
 ```sh
-npm ci
-npm run build:stats
-npm run test:stats
-npm run check:package
+pnpm install --frozen-lockfile --prod=false
+pnpm run build:stats
+pnpm run test:stats
+pnpm run check:package
 cd frontend
-npm ci
-npm run ci:fast
-npm run ci:numerical
-CI_BASE_SHA=HEAD npm run ci:lint
-npm run build
+pnpm run ci:fast
+pnpm run ci:numerical
+CI_BASE_SHA=HEAD pnpm run ci:lint
+pnpm run build
 
 # Full fresh R generation, including image builds:
-npm run ci:reference-r
+pnpm run ci:reference-r
 
 # Reuse an already built pinned R image after the runtime-version check:
-CI_R_SKIP_BUILD=1 npm run ci:reference-r
+CI_R_SKIP_BUILD=1 pnpm run ci:reference-r
 
 # Explicit large run; keep outputs separate from historical receipts:
-BENCHMARK_REPORT_DIR=.ci-artifacts/large npm run ci:large
+BENCHMARK_REPORT_DIR=.ci-artifacts/large pnpm run ci:large
 ```
 
 `CI_ARTIFACT_DIR` overrides the normal `.ci-artifacts` destination for fast/lint/numerical/fresh-R runs. `CONGRUENCE_FIXTURE_ROOT` selects a separate fresh fixture tree and must be paired with `STATISTICS_REFERENCE_ROOT` for its public-package references; the fresh-R script sets both. This prevents a fresh-R run from silently mixing new app references with retained package references. `BENCHMARK_REPORT_DIR` selects the large-run output directory. Generated CI artifacts are ignored by Git and uploaded even after job failure, with 14-day retention for PR checks and 30 days for fresh/large qualification.
 
 After an intentional, reviewed reference-fixture change, explicitly run `node scripts/ci/reference-integrity.mjs --write` and review that manifest diff together with its generating source and fresh comparison results. Updating the hash manifest alone is an integrity operation, not statistical validation.
 
-`esbuild` is an explicit pinned dev dependency because the worker tests and numerical runners import it directly. Previously the development checkout could find an ancestor directory's installation, which a clean runner would not inherit. Use `npm ci` to validate the lockfile rather than relying on that ambient dependency.
+`esbuild` is an explicit pinned dev dependency because the worker tests and numerical runners import it directly. Previously the development checkout could find an ancestor directory's installation, which a clean runner would not inherit. Use root `pnpm install --frozen-lockfile` to validate the shared lockfile rather than relying on that ambient dependency.
 
 These workflow definitions take effect after they are pushed to GitHub. Local verification does not establish that a remote run or branch-protection configuration has completed. If checks are made mandatory, use the three application job names above. The official [Node release table](https://nodejs.org/en/about/previous-releases) identifies supported LTS lines; [GitHub workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) documents the permission, timeout and concurrency settings used here.

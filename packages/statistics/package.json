@@ -8,25 +8,67 @@
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md", "PCA.md", "EFA.md", "VALIDATION.md", "NOTICE.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "PCA.md",
+    "EFA.md",
+    "VALIDATION.md",
+    "NOTICE.md"
+  ],
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./data": { "types": "./dist/data.d.ts", "import": "./dist/data.js" },
-    "./stats": { "types": "./dist/stats.d.ts", "import": "./dist/stats.js" },
-    "./pca": { "types": "./dist/pca.d.ts", "import": "./dist/pca.js" },
-    "./efa": { "types": "./dist/efa.d.ts", "import": "./dist/efa.js" },
-    "./missing": { "types": "./dist/missing.d.ts", "import": "./dist/missing.js" },
-    "./diagnostics": { "types": "./dist/diagnostics.d.ts", "import": "./dist/diagnostics.js" },
-    "./cluster": { "types": "./dist/cluster.d.ts", "import": "./dist/cluster.js" },
-    "./internal/*": { "types": "./dist/internal/*.d.ts", "import": "./dist/internal/*.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./data": {
+      "types": "./dist/data.d.ts",
+      "import": "./dist/data.js"
+    },
+    "./stats": {
+      "types": "./dist/stats.d.ts",
+      "import": "./dist/stats.js"
+    },
+    "./pca": {
+      "types": "./dist/pca.d.ts",
+      "import": "./dist/pca.js"
+    },
+    "./efa": {
+      "types": "./dist/efa.d.ts",
+      "import": "./dist/efa.js"
+    },
+    "./missing": {
+      "types": "./dist/missing.d.ts",
+      "import": "./dist/missing.js"
+    },
+    "./diagnostics": {
+      "types": "./dist/diagnostics.d.ts",
+      "import": "./dist/diagnostics.js"
+    },
+    "./cluster": {
+      "types": "./dist/cluster.d.ts",
+      "import": "./dist/cluster.js"
+    },
+    "./internal/*": {
+      "types": "./dist/internal/*.d.ts",
+      "import": "./dist/internal/*.js"
+    },
     "./package.json": "./package.json"
   },
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "vitest run --maxWorkers=2",
-    "prepack": "npm run build"
+    "prepack": "pnpm run build"
   },
-  "dependencies": { "ml-matrix": "6.12.1" },
-  "devDependencies": { "typescript": "5.9.3", "esbuild": "0.27.0", "vitest": "4.1.10" }
+  "dependencies": {
+    "ml-matrix": "6.15.1"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "esbuild": "0.28.2",
+    "vitest": "5.1.0"
+  }
 }

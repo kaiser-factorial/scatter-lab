@@ -52,11 +52,11 @@ export interface ComputeReport {
   elapsedMs: number;
   status: "running" | "completed" | "failed" | "cancelled";
   publication: "not-requested" | "pending" | "accepted" | "discarded";
-  backend: "browser-cpu" | "webgpu" | "scala";
+  backend: "browser-cpu" | "webgpu";
   precision: string;
   execution?: EfaExecution;
   traceEstimation?: EfaProgress["traceEstimation"];
-  cancellation?: "requested" | "native-exited" | "native-unconfirmed" | "workers-terminated";
+  cancellation?: "requested" | "workers-terminated";
   context: {
     operation?: string;
     items?: number;

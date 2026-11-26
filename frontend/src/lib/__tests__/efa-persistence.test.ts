@@ -86,3 +86,11 @@ it("score ownership excludes derived scores without hiding similarly named sourc
   ]);
   expect(selectExportColumns(t, true, ["FA1_owned_r1"])).toEqual(t.columns);
 });
+
+it("rejects retired Scala workspace settings clearly without mutating the saved analysis", () => {
+  const legacy = structuredClone(workspace);
+  legacy.datasets[0].efa.runs[0].spec.compute = { backend: "scala" } as never;
+  const original = JSON.stringify(legacy);
+  expect(() => validateWorkspace(legacy)).toThrow(/retired Scala backend.*original file is unchanged.*explicitly select Browser CPU or WebGPU/);
+  expect(JSON.stringify(legacy)).toBe(original);
+});

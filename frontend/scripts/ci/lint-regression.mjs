@@ -1,12 +1,15 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lintSignature, addedLintSignatures } from './contracts.mjs';
 
 const frontend = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const repository = resolve(frontend, '..');
+const require = createRequire(import.meta.url);
+const eslint = join(dirname(require.resolve('eslint/package.json')), 'bin/eslint.js');
 const output = resolve(process.env.CI_ARTIFACT_DIR ?? join(frontend, '.ci-artifacts'), 'lint');
 mkdirSync(output, { recursive: true });
 const requested = process.env.CI_BASE_SHA || process.argv[2] || 'HEAD';
@@ -19,7 +22,7 @@ const ignores = [
   'scripts/efa-reference/formal/evidence/**',
 ];
 function lint(directory) {
-  const command = [join(frontend, 'node_modules/eslint/bin/eslint.js'), '.', '--format', 'json', ...ignores.flatMap(pattern => ['--ignore-pattern', pattern])];
+  const command = [eslint, '.', '--format', 'json', ...ignores.flatMap(pattern => ['--ignore-pattern', pattern])];
   const result = spawnSync(process.execPath, command, { cwd: directory, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 120000 });
   if (result.error || ![0, 1].includes(result.status)) throw new Error(`eslint could not complete: ${result.error ?? result.stderr}`);
   const files = JSON.parse(result.stdout);

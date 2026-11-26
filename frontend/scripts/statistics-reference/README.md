@@ -2,7 +2,7 @@
 
 `generate-input.mjs` records explicit inputs; `generate.R` computes reference outputs in pinned R 4.5.1 / `stats` 4.5.1 with `jsonlite` 2.0.0. The reference JSON records input and generator SHA-256 hashes and the actual Docker image ID. Generation uses networking disabled and single-threaded BLAS. `packages/statistics/test/canonical.check.mjs` imports the built package's public ESM exports and rejects stale TypeScript/build manifests, input/generator mismatch, source drift, omitted groups, or incorrect scalar coverage.
 
-The public matrix has **73 groups and 23,969 scalar comparisons**. Combined with the existing 375 application-kernel groups / 4,239 scalar error-metric checks, `npm --prefix frontend run ci:numerical` requires **448 groups**. The existing metrics often summarize maximum error over a whole matrix; the public comparisons count individual values. The denominators are reported separately, not as independent statistical trials. These are finite input/convention comparisons, not universal equivalence proofs. R is needed only to generate fresh reference fixtures; the library, app, and retained-reference CI job do not require it.
+The public matrix has **73 groups and 23,969 scalar comparisons**. Combined with the existing 375 application-kernel groups / 4,239 scalar error-metric checks, `pnpm --dir frontend run ci:numerical` requires **448 groups**. The existing metrics often summarize maximum error over a whole matrix; the public comparisons count individual values. The denominators are reported separately, not as independent statistical trials. These are finite input/convention comparisons, not universal equivalence proofs. R is needed only to generate fresh reference fixtures; the library, app, and retained-reference CI job do not require it.
 
 | Public family | Groups | Comparisons | Oracle and matched contract |
 | --- | ---: | ---: | --- |
@@ -39,15 +39,14 @@ The finite reference matrix does not establish exact nominal coverage, calibrati
 From the repository root:
 
 ```sh
-npm ci
-npm run build:stats
-npm --prefix frontend ci
+pnpm install --frozen-lockfile
+pnpm run build:stats
 node packages/statistics/test/canonical.check.mjs
-npm --prefix frontend run ci:numerical
+pnpm --dir frontend run ci:numerical
 
 # Regenerate the whole independent R matrix into separate artifacts:
 cd frontend
-CI_R_SKIP_BUILD=1 npm run ci:reference-r
+CI_R_SKIP_BUILD=1 pnpm run ci:reference-r
 ```
 
 `CI_R_SKIP_BUILD=1` requires the previously built pinned image; runtime versions are still checked. Omitting it rebuilds the image chain. Fresh R generation uses separate output paths and never silently overwrites retained fixtures. Intentionally changing retained inputs requires regenerating `public.reference.json`, reviewing errors/conventions, and explicitly refreshing the 50-file reference integrity manifest. A manifest refresh alone is not statistical validation.

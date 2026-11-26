@@ -27,7 +27,7 @@ const creating = request(`/v1/jobs/${id}`, 'POST');
 await new Promise(resolve => setTimeout(resolve, 30));
 const start = performance.now(); await status('cancel during JVM startup', `/v1/jobs/${id}`, 'DELETE', 200);
 const startupCancelMs = performance.now() - start; await creating;
-await build({ stdin: { contents: `export { checkSource, checkBlock } from './src/lib/efa/backends/self-check.ts'; export { encodeOrdinalSource, encodeOrdinalRange } from './src/lib/efa/backends/native-protocol.ts'; export { cpuTraceBlock } from './src/lib/efa/trace-kernel.ts';`, resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: '/tmp/efa-boundary-fixtures.mjs' });
+await build({ stdin: { contents: `export { checkSource, checkBlock } from './src/lib/efa/backends/self-check.ts'; export { encodeOrdinalSource, encodeOrdinalRange } from './scripts/efa-companion/reference-backends/native-protocol.ts'; export { cpuTraceBlock } from './src/lib/efa/trace-kernel.ts';`, resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: '/tmp/efa-boundary-fixtures.mjs' });
 const { checkSource, checkBlock, encodeOrdinalSource, encodeOrdinalRange, cpuTraceBlock } = await import('/tmp/efa-boundary-fixtures.mjs');
 id = randomUUID(); await status('native startup', `/v1/jobs/${id}`, 'POST', 201);
 await status('second live job rejected', `/v1/jobs/${randomUUID()}`, 'POST', 409);

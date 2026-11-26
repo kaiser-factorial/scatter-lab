@@ -1,4 +1,5 @@
-import { EfaError } from "../types";
+// Retained for standalone Scala/WebGPU benchmark reproduction only.
+import { EfaError } from "../../../src/lib/efa/types";
 import { COMPANION_PROTOCOL, NATIVE_KERNEL_SHA, type CompanionConnection, type CompanionSession } from "./types";
 
 export function validateConnection(connection: CompanionConnection): CompanionConnection {

@@ -49,7 +49,7 @@ export const correlationReport = (
   const result = correlation(a, b);
   const { n, pearson, spearman, chatterjee, chatterjeeReverse } = result;
   if (!correlationAllowed(n, policy)) {
-    return { ok: false, message: `Not enough complete pairs to correlate ${colA} and ${colB} (fewer than 5 in private mode).` };
+    return { ok: false, message: `Not enough complete pairs to correlate ${colA} and ${colB} (fewer than 5).` };
   }
   if (n < 3) {
     return { ok: false, message: `Not enough complete pairs to correlate ${colA} and ${colB} (n=${n}; at least 3 required).` };

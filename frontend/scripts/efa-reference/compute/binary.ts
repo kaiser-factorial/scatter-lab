@@ -1,5 +1,5 @@
 import type { RobustTraceBlock } from "../../../src/lib/efa/trace-kernel";
-export { encodeOrdinalSource, encodeOrdinalRange } from "../../../src/lib/efa/backends/native-protocol";
+export { encodeOrdinalSource, encodeOrdinalRange } from "../../efa-companion/reference-backends/native-protocol";
 export function encodeBlock(block: RobustTraceBlock) {
   const rows = block.left.length, cols = block.right.length, pairs = block.left[0].length, parameters = block.leftProjection[0].length;
   const buffer = new ArrayBuffer(24 + 8 * (rows + cols) * (pairs + parameters));

@@ -4,6 +4,16 @@ import type { Category, MeasurementChoice } from './measurement';
 import type { MissingStrategy } from './pca';
 
 export const DECOMPOSITION_ADVICE_VERSION = 'decomposition-advice/1';
+export const ITEM_ASSESSMENT_BASIS = [
+  'Only the selected items and rows in the current fitting sample contribute to these results.',
+  'Numeric strings are read as numbers for this check. The source values stay as entered.',
+  'A repeated integer scale is an ordinal candidate when it has 2 to 20 distinct values and at least twice as many observations as distinct values. Other varying numeric items are continuous candidates. Confirm the measurement level from the item wording and response options. Text categories need an explicit order.',
+  'With at least 20 observed numeric values, the shape screen flags absolute skewness above 1 and excess kurtosis above 3. It counts outliers beyond the Tukey fences, 1.5 interquartile ranges from the type-7 quartiles.',
+  'Shape flags describe individual items. A joint Gaussian model requires separate justification. Observed missingness patterns cannot determine MCAR, MAR or MNAR.',
+  'The report counts up to 4,096 distinct missingness patterns and marks a truncated count as a lower bound. Minimum observed pair gives the smallest number of rows with values for both items across all checked pairs. Large analyses can skip that check.',
+  'Applying suggested settings updates the controls. Review the settings and run the analysis when ready.',
+] as const;
+
 export type AdviceClassification = 'identifier' | 'empty' | 'constant' | 'invalid' | 'ordinal' | 'ordinal-candidate' | 'continuous' | 'continuous-candidate' | 'nominal';
 export type AdvicePatch = { correlation?: 'pearson' | 'polychoric'; extraction?: 'minres' | 'ml' | 'wlsmv'; missing?: MissingStrategy | 'fiml' };
 export type AdviceDistribution = {
@@ -173,7 +183,7 @@ export function analyzeDecompositionItems(table: DataTable, columns: string[], o
   const hasMissing = missingCells > 0;
   const miceSupported = ordinal.length === p && !issues.some(item => item.code === 'mice-category-limit' || item.code === 'unobserved-declared-categories');
   if (!blockers && method === 'pca') {
-    add('pca-numeric', 'PCA of the numeric item values', 'primary', {}, ['PCA summarizes total numeric variance; there is no separate EFA extraction or rotation choice.'], ordinal.length ? ['Numeric category spacing must be meaningful for this PCA; an ordinal common-factor analysis is an alternative.'] : []);
+    add('pca-numeric', 'PCA of the numeric item values', 'primary', {}, ['PCA summarizes total numeric variance; there is no separate EFA extraction or rotation choice.'], ordinal.length ? ['For ordinal items, check that equal steps between numeric response codes have a meaningful interpretation.'] : []);
     if (hasMissing) {
       add('pca-iterative', 'Iterative PCA completion', 'conditional', { missing: 'iterative' }, ['Uses relationships among items in a regularized low-rank reconstruction.'], ['A low-rank numeric model must be a reasonable completion model; this is a single completion without imputation-uncertainty propagation.']);
       if (miceSupported) add('pca-mice', 'Separate ordinal MICE fits', 'alternative', { missing: 'mice' }, ['Retains distinct completed fits instead of averaging their axes.'], ['Confirm all category meanings and their order; the current implementation does not pool inference.']);
@@ -210,15 +220,7 @@ export function analyzeDecompositionItems(table: DataTable, columns: string[], o
       missingRate: n ? missingCells / (n * p) : 0, minimumObservedPairN: pairMinimum, pairSupportChecked,
       missingnessPatternCount: patterns.size, missingnessPatternsTruncated: patternsTruncated,
       missingnessHistogram: [...histogram].sort(([a], [b]) => a - b).map(([missingItems, rows]) => ({ missingItems, rows })) },
-    diagnosticBasis: [
-      'Only the supplied fitting table and selected items are inspected. The host owns dataset, filter and partition identity.',
-      'Numeric strings use the shared asNumber conversion for diagnostics; source data are never changed.',
-      'Measurement meaning and order are confirmed only by explicit item settings or a declared covering order. Repeated integer values alone are not confirmation.',
-      'Descriptive shape screen uses at least 20 observed values, moment skewness |g1| > 1, excess kurtosis g2 > 3, and Tukey 1.5-IQR fences with type-7 quartiles. These are heuristics, not normality tests.',
-      'Univariate shape does not establish joint Gaussian assumptions. Observed missingness patterns cannot determine MCAR, MAR or MNAR.',
-      'Missingness pattern counts are capped at 4096 distinct masks and marked as a lower bound when truncated. Pair support is exact when checked and explicitly unknown otherwise.',
-      'Applying a proposal changes only its displayed method parameters. It never confirms item types, changes source values, or runs an analysis.',
-    ] };
+    diagnosticBasis: [...ITEM_ASSESSMENT_BASIS] };
 }
 
 export type AdviceCount = number | 'withheld';

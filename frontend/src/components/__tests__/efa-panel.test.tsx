@@ -5,13 +5,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { EfaPanel, type EfaActions, type EfaSetup } from "../EfaPanel";
 import { emptyEfaState } from "../../lib/efa/state";
 import type { EfaSpec, ParallelResult } from "../../lib/efa/types";
-import { EfaService } from "../../lib/efa/service";
 
 const columns = ["A", "B", "C", "D", "E", "F"];
 const table = { columns, nRows: 30, data: Object.fromEntries(columns.map((column, j) => [column,
   Array.from({ length: 30 }, (_, i) => i === 4 ? null : i * 0.23 + j),
 ])) };
-const state = emptyEfaState(), service = new EfaService();
+const state = emptyEfaState();
 let root: Root | undefined;
 beforeEach(() => vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true));
 afterEach(async () => { await act(async () => root?.unmount()); root = undefined; document.body.replaceChildren(); vi.unstubAllGlobals(); });
@@ -35,7 +34,7 @@ async function setup(initialSample: EfaSpec["sample"] = { partition: "all" }, co
   const actions = { preview: vi.fn(async () => ({ nRows: 30, counts: columns.map(() => [29]) })), run: vi.fn(async () => "run"), parallel: vi.fn(async () => simulation) } as unknown as EfaActions;
   const mount = document.createElement("div"); document.body.append(mount); root = createRoot(mount);
   const render = async (sample = initialSample, shared = controlled, contextKey = "") => {
-    await act(async () => root!.render(<EfaPanel service={service} table={table} state={state} actions={actions} sample={sample} setup={shared} contextKey={contextKey} />));
+    await act(async () => root!.render(<EfaPanel table={table} state={state} actions={actions} sample={sample} setup={shared} contextKey={contextKey} />));
   };
   await render(); return { actions, render };
 }
@@ -126,7 +125,7 @@ it("preserves an external fitting sample across preview, run and parallel analys
     measurements: Object.fromEntries(columns.map(column => [column, "continuous" as const])) };
   const mount = document.createElement("div"); document.body.append(mount); root = createRoot(mount);
   const render = async (seq: number, externalSample: EfaSpec["sample"], parentSample?: EfaSpec["sample"]) => {
-    await act(async () => root!.render(<EfaPanel service={service} table={table} state={state} actions={actions}
+    await act(async () => root!.render(<EfaPanel table={table} state={state} actions={actions}
       setup={shared} sample={parentSample} externalSpec={{ seq, spec: { ...spec, sample: externalSample } }} />));
   };
   await render(1, fixed);

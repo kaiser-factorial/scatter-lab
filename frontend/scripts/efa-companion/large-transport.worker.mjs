@@ -1,5 +1,5 @@
-import { createBackend } from '../../src/lib/efa/backends/runtime.ts';
-import { createCompanionSession, closeCompanionSession, companionRequest } from '../../src/lib/efa/backends/companion.ts';
+import { createBackend } from './reference-backends/runtime.ts';
+import { createCompanionSession, closeCompanionSession, companionRequest } from './reference-backends/companion.ts';
 import { checkSource, checkBlock } from '../../src/lib/efa/backends/self-check.ts';
 import { cpuTraceBlock } from '../../src/lib/efa/trace-kernel.ts';
 self.onmessage = async ({ data }) => {

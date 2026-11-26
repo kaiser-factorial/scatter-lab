@@ -2,11 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { runPCA } from '../pca';
+import { demoSurveySpec } from '../demo-survey';
+import { prepareEfa } from '../efa/prepare';
+import { correlate } from '../efa/correlation';
+import { fitEfa, scoreEfa } from '../efa/fit';
 import { rowsToTable, type DataTable } from '../table';
 
 // Resolved against this file, not the cwd, so the suite passes wherever vitest
 // is invoked from (CI runs it with working-directory: frontend, but a plain
-// `npx vitest run --root frontend` from the repo root must work too).
+// `pnpm --filter frontend exec vitest run` from the repo root must work too).
 const IRIS_CSV = fileURLToPath(new URL('../../../public/demo/iris.csv', import.meta.url));
 
 // The demo file must stay Fisher's iris, not the UCI/Kaggle mirror.
@@ -36,6 +40,31 @@ const loadIris = (): DataTable => {
 };
 
 const MEASUREMENTS = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm'];
+
+it('ships reproducible Likert responses that fit and score with the walkthrough settings', () => {
+  const csv = readFileSync(new URL('../../../public/demo/synthetic-survey.csv', import.meta.url), 'utf8').trimEnd();
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/efa/mixed.input.json', import.meta.url), 'utf8')) as DataTable & { categories: number[][] };
+  const [header, ...records] = csv.split('\n'), columns = header.split(',');
+  const spec = demoSurveySpec();
+  const items = spec.items.map(item => item.column);
+  expect(columns).toEqual(['ResponseID', ...items, 'Gender', 'Age']);
+  expect(records).toHaveLength(fixture.nRows);
+  const table = rowsToTable(records.map(record => Object.fromEntries(record.split(',').map((value, index) => [columns[index], columns[index] === 'Gender' ? value : Number(value)]))), columns);
+  expect(table.data.ResponseID).toEqual(Array.from({ length: 1500 }, (_, row) => row + 1));
+  expect(table.data.Gender.filter(gender => gender === 'Nonbinary')).toHaveLength(86);
+  expect(table.data.Gender.filter(gender => gender === 'Woman')).toHaveLength(722);
+  expect(table.data.Gender.filter(gender => gender === 'Man')).toHaveLength(692);
+  expect(table.data.Age.every(age => typeof age === 'number' && Number.isInteger(age) && age >= 18 && age <= 80)).toBe(true);
+  items.forEach((column, index) => {
+    expect(table.data[column]).toEqual(fixture.data[fixture.columns[index]]);
+    expect(spec.items[index].categories).toEqual(fixture.categories[index]);
+  });
+  const prepared = prepareEfa(table, spec, records.map((_, index) => index));
+  const fit = fitEfa(prepared, correlate(prepared), spec);
+  const scores = scoreEfa(prepared, fit);
+  expect(scores).toHaveLength(table.nRows);
+  expect(scores.every(row => row.length === 2 && row.every(Number.isFinite))).toBe(true);
+});
 
 describe('demo iris dataset', () => {
   const iris = loadIris();

@@ -1,4 +1,5 @@
-import type { OrdinalTraceSource, RobustTraceBlock } from "../trace-kernel";
+// Retained for standalone Scala/WebGPU benchmark reproduction only.
+import type { OrdinalTraceSource, RobustTraceBlock } from "../../../src/lib/efa/trace-kernel";
 export function encodeOrdinalSource(source: OrdinalTraceSource) {
   const cells = source.codes.length, pairs = source.pairs.length, parameters = source.projection[0].length;
   const lookups = source.pairs.reduce((sum, pair) => sum + pair.values.length, 0);

@@ -64,14 +64,14 @@ describe('isTemporalColumn', () => {
 describe('validatePlan — tests', () => {
   it('accepts a well-formed two-group t-test', () => {
     expect(validatePlan({
-      kind: 'test', test: 't', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 't', design: 'independent', column: 'sepal_len', groupBy: 'species',
       groups: ['setosa', 'virginica'],
     }, openProfile())).toEqual([]);
   });
 
   it('unknown column → unknown_column with the legal numeric columns', () => {
     const fails = validatePlan({
-      kind: 'test', test: 't', column: 'sepal_widht', groupBy: 'species',
+      kind: 'test', test: 't', design: 'independent', column: 'sepal_widht', groupBy: 'species',
       groups: ['setosa', 'virginica'],
     }, openProfile());
     expect(fails.map(f => f.code)).toEqual(['unknown_column']);
@@ -81,26 +81,26 @@ describe('validatePlan — tests', () => {
 
   it('categorical column where numeric is needed → wrong_column_type', () => {
     expect(codes(openProfile(), {
-      kind: 'test', test: 't', column: 'species', groupBy: 'species',
+      kind: 'test', test: 't', design: 'independent', column: 'species', groupBy: 'species',
       groups: ['setosa', 'virginica'],
     })).toEqual(['wrong_column_type']);
   });
 
   it('two-group tests demand exactly two groups', () => {
     expect(codes(openProfile(), {
-      kind: 'test', test: 't', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 't', design: 'independent', column: 'sepal_len', groupBy: 'species',
       groups: ['setosa'],
     })).toEqual(['wrong_group_count']);
     // No explicit groups and 3 available → a count failure, plus the size
     // gate flagging the 1-row group so the revision knows which 2 to pick.
     expect(codes(openProfile(), {
-      kind: 'test', test: 'mann_whitney', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 'mann_whitney', design: 'independent', column: 'sepal_len', groupBy: 'species',
     })).toEqual(['wrong_group_count', 'group_too_small']);
   });
 
   it('kruskal_wallis takes all groups by default but enforces sizes', () => {
     const fails = validatePlan({
-      kind: 'test', test: 'kruskal_wallis', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 'kruskal_wallis', design: 'independent', column: 'sepal_len', groupBy: 'species',
     }, openProfile());
     // ghost_orchid has 1 row < MIN_GROUP_N
     expect(fails.map(f => f.code)).toEqual(['group_too_small']);
@@ -110,7 +110,7 @@ describe('validatePlan — tests', () => {
   it('kruskal_wallis over the visible groups passes in private mode', () => {
     // Private profile hides ghost_orchid, so "all groups" = the two big ones.
     expect(validatePlan({
-      kind: 'test', test: 'kruskal_wallis', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 'kruskal_wallis', design: 'independent', column: 'sepal_len', groupBy: 'species',
     }, privateProfile())).toEqual([]);
   });
 
@@ -127,7 +127,7 @@ describe('validatePlan — tests', () => {
 
   it('chi_square wants two categoricals and no groups field', () => {
     expect(validatePlan({
-      kind: 'test', test: 'chi_square', column: 'species', groupBy: 'species',
+      kind: 'test', test: 'chi_square', design: 'independent', column: 'species', groupBy: 'species',
     }, openProfile())).toEqual([]);
     // A truly continuous column (>20 uniques) is not groupable; note that a
     // low-unique NUMERIC column (a Likert item) legitimately is, per profile.ts.
@@ -136,11 +136,11 @@ describe('validatePlan — tests', () => {
       g: Array.from({ length: 25 }, (_, i) => (i % 2 ? 'a' : 'b')),
     });
     expect(validatePlan(
-      { kind: 'test', test: 'chi_square', column: 'score', groupBy: 'g' },
+      { kind: 'test', test: 'chi_square', design: 'independent', column: 'score', groupBy: 'g' },
       analysisProfileOf(cont, policyFor('open')),
     ).map(f => f.code)).toEqual(['wrong_column_type']);
     expect(codes(openProfile(), {
-      kind: 'test', test: 'chi_square', column: 'species', groupBy: 'species',
+      kind: 'test', test: 'chi_square', design: 'independent', column: 'species', groupBy: 'species',
       groups: ['setosa'],
     })).toEqual(['bad_plan_shape']);
   });
@@ -160,7 +160,7 @@ describe('validatePlan — tests', () => {
       g: Array.from({ length: 60 }, (_, i) => `g${i % (MAX_GROUP_CARDINALITY + 1)}`),
     });
     const fails = validatePlan(
-      { kind: 'test', test: 'kruskal_wallis', column: 'v', groupBy: 'g' },
+      { kind: 'test', test: 'kruskal_wallis', design: 'independent', column: 'v', groupBy: 'g' },
       analysisProfileOf(many, policyFor('open')),
     );
     expect(fails.map(f => f.code)).toEqual(['high_cardinality_group']);
@@ -171,7 +171,7 @@ describe('validatePlan — tests', () => {
 describe('validatePlan — the mode fence is oracle-proof', () => {
   it('a withheld value fails byte-for-byte like a nonexistent one', () => {
     const plan = (group: string) => ({
-      kind: 'test', test: 't', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 't', design: 'independent', column: 'sepal_len', groupBy: 'species',
       groups: ['setosa', group],
     });
     const probed = validatePlan(plan('ghost_orchid'), privateProfile());
@@ -193,7 +193,7 @@ describe('validatePlan — the mode fence is oracle-proof', () => {
 
   it('the same value is legal in open mode', () => {
     expect(validatePlan({
-      kind: 'test', test: 't', column: 'sepal_len', groupBy: 'species',
+      kind: 'test', test: 't', design: 'independent', column: 'sepal_len', groupBy: 'species',
       groups: ['virginica', 'ghost_orchid'],
     }, openProfile()).map(f => f.code)).toEqual(['group_too_small']);
   });
@@ -257,7 +257,7 @@ describe('validatePlan — shape guards and formatting', () => {
 
   it('formatFailures renders code, fix and options on one line each', () => {
     const text = formatFailures(validatePlan(
-      { kind: 'test', test: 't', column: 'nope', groupBy: 'species', groups: ['setosa', 'virginica'] },
+      { kind: 'test', test: 't', design: 'independent', column: 'nope', groupBy: 'species', groups: ['setosa', 'virginica'] },
       openProfile(),
     ));
     expect(text).toContain('Plan rejected');

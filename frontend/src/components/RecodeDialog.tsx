@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import {
-  codeTierLabel, describeCodeEntry, parseDeclaredCodes, scanForCodes,
+  codeTierLabel, codeTierRank, describeCodeEntry, parseDeclaredCodes, scanForCodes,
   type CodeEntry, type RecodePlan,
 } from '@/lib/recode';
 import type { DataTable } from '@/lib/table';
@@ -31,6 +31,10 @@ import { InfoTip } from '@/components/InfoTip';
 // break directly after the tag (a newline adjacent to text becomes one space).
 
 export type RecodeStage = 'ask' | 'configure';
+type ReviewOrder = 'likelihood' | 'alphabetical' | 'dataset';
+const collateColumns = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+const entryKey = (column: string, value: number) => `${column} ${value}`;
+
 
 export const RecodeDialog = ({
   stage, table, theme, onProceed, onClose, onApply,
@@ -47,6 +51,8 @@ export const RecodeDialog = ({
   const bauhaus = theme === 'primary';
   const [declaredText, setDeclaredText] = useState('');
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [order, setOrder] = useState<ReviewOrder>('likelihood');
+  const anchor = useRef<{ key: string; checked: boolean } | null>(null);
   const [report, setReport] = useState<string[] | null>(null);
   const panel = useRef<HTMLDivElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -65,11 +71,36 @@ export const RecodeDialog = ({
   // does not. That is DERIVED, not seeded into state by an effect: `checked`
   // holds only the boxes the user has explicitly toggled, and absent means
   // "whatever the evidence suggested".
-  const keyOf = (column: string, value: number) => `${column} ${value}`;
-  const isOn = (column: string, e: CodeEntry) => checked[keyOf(column, e.value)] ?? e.suggested;
-  const setAll = (v: boolean | null) => setChecked(
-    v === null ? {} : Object.fromEntries(hits.flatMap(h => h.entries.map(e => [keyOf(h.column, e.value), v]))),
-  );
+  const rows = useMemo(() => {
+    if (!table || !hits.length) return [];
+    const positions = new Map(table.columns.map((column, index) => [column, index]));
+    const candidates = hits.flatMap(({ column, entries }) => entries.map(entry => ({
+      column, entry, key: entryKey(column, entry.value), position: positions.get(column)!,
+    })));
+    return candidates.sort((a, b) => {
+      let priority = 0;
+      if (order === 'likelihood') priority = codeTierRank(a.entry) - codeTierRank(b.entry);
+      if (order === 'alphabetical') priority = collateColumns.compare(a.column, b.column);
+      return priority || a.position - b.position || a.entry.value - b.entry.value;
+    });
+  }, [hits, order, table]);
+  const isOn = (column: string, e: CodeEntry) => checked[entryKey(column, e.value)] ?? e.suggested;
+  const setAll = (value: boolean | null) => {
+    anchor.current = null;
+    setChecked(value === null ? {} : Object.fromEntries(rows.map(row => [row.key, value])));
+  };
+  const toggle = (index: number, next: boolean, shift: boolean) => {
+    const start = anchor.current;
+    const from = shift && start ? rows.findIndex(row => row.key === start.key) : -1;
+    if (start && from >= 0) {
+      const range = rows.slice(Math.min(from, index), Math.max(from, index) + 1);
+      setChecked(previous => ({ ...previous, ...Object.fromEntries(range.map(row => [row.key, start.checked])) }));
+    } else {
+      const key = rows[index].key;
+      anchor.current = { key, checked: next };
+      setChecked(previous => ({ ...previous, [key]: next }));
+    }
+  };
 
   // Closing ends the transaction: the report, the declared codes and every
   // hand-toggled box go with it. Found in a browser run — the declaration box
@@ -77,11 +108,14 @@ export const RecodeDialog = ({
   // stale declaration silently pre-selected columns in a table the user had never
   // declared anything about. Same for `checked`, whose keys are column names and
   // so collide across files. An event handler, not an effect keyed on `open`.
-  const close = () => { setReport(null); setDeclaredText(''); setChecked({}); onClose(); };
+  const close = () => { setReport(null); setDeclaredText(''); setAll(null); setOrder('likelihood'); onClose(); };
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    const onKey = (e: KeyboardEvent) => {
+      // An open InfoTip handles the first Escape and returns focus to its icon.
+      if (e.key === 'Escape' && !panel.current?.querySelector('button[aria-expanded="true"][aria-describedby]')) close();
+    };
     document.addEventListener('keydown', onKey);
     closeBtn.current?.focus();
     const prev = document.body.style.overflow;
@@ -178,7 +212,7 @@ export const RecodeDialog = ({
               <input
                 type="text"
                 value={declaredText}
-                onChange={e => setDeclaredText(e.target.value)}
+                onChange={e => { anchor.current = null; setDeclaredText(e.target.value); }}
                 placeholder="e.g. 9, 99, -99"
                 className="mt-1 w-full bg-[var(--input)] border border-[var(--border)] p-2 text-sm outline-none"
               />
@@ -197,46 +231,46 @@ export const RecodeDialog = ({
               </p>
             ) : (
               <>
-                <div className="flex items-center gap-2 text-[11px] opacity-70">
-                  <span>Tick:</span>
-                  <button className="underline cursor-pointer hover:opacity-100" onClick={() => setAll(true)}>all</button>
-                  <button className="underline cursor-pointer hover:opacity-100" onClick={() => setAll(false)}>none</button>
-                  <button className="underline cursor-pointer hover:opacity-100" onClick={() => setAll(null)}>suggested</button>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <label className="flex items-center gap-2">
+                    Sort by
+                    <select value={order} onChange={e => setOrder(e.target.value as ReviewOrder)}
+                      className="border border-[var(--border)] bg-[var(--input)] px-1 py-1">
+                      <option value="likelihood">Sentinel likelihood</option>
+                      <option value="alphabetical">Column name (A–Z)</option>
+                      <option value="dataset">Dataset column order</option>
+                    </select>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span>Tick:</span>
+                    <button className="underline cursor-pointer" onClick={() => setAll(true)}>all</button>
+                    <button className="underline cursor-pointer" onClick={() => setAll(false)}>none</button>
+                    <button className="underline cursor-pointer" onClick={() => setAll(null)}>suggested</button>
+                  </div>
                 </div>
-                <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
-                  {hits.map(h => (
-                    <div key={h.column} className="border-b pb-2" style={{ borderColor: rule }}>
-                      <div className="font-bold" style={{ color: accent }}>{h.column}</div>
-                      <div className="mt-1 space-y-1">
-                        {h.entries.map(e => {
-                          const k = keyOf(h.column, e.value);
-                          const why = describeCodeEntry(e);
-                          return (
-                            <label key={e.value} className="flex items-start gap-1.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="mt-[3px] shrink-0"
-                                checked={isOn(h.column, e)}
-                                onChange={ev => setChecked(c => ({ ...c, [k]: ev.target.checked }))}
-                              />
-                              <span className="min-w-0">
-                                <b>{e.value}</b>
-                                <span className="opacity-60">
-                                  {` · ${e.count} row${e.count === 1 ? '' : 's'} · `}
-                                </span>
-                                <span className="uppercase tracking-wide text-[10px]" style={tierStyle(e)}>
-                                  {codeTierLabel(e)}
-                                </span>
-                                {why !== '' && (
-                                  <span className="block opacity-55 text-[11px] leading-snug">{why}</span>
-                                )}
-                              </span>
-                            </label>
-                          );
-                        })}
+                <div>
+                  <p className="mb-1 text-[11px] opacity-65">Shift-click to select or clear a range.</p>
+                  <div className="max-h-[46vh] overflow-y-auto pr-1">
+                    {rows.map(({ column, entry, key }, index) => (
+                      <div key={key} className="flex items-center border-b py-1" style={{ borderColor: rule }}>
+                        <label className="grid flex-1 min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_4rem_4rem] items-center gap-x-1.5 cursor-pointer select-none">
+                          <input type="checkbox" aria-label={`${column}, code ${entry.value}`} checked={isOn(column, entry)}
+                            onChange={e => toggle(index, e.target.checked, (e.nativeEvent as MouseEvent).shiftKey)}
+                            onKeyDown={e => {
+                              if (e.shiftKey && e.key === ' ') {
+                                e.preventDefault();
+                                if (!e.repeat) toggle(index, !e.currentTarget.checked, true);
+                              }
+                            }} />
+                          <span className="font-bold [overflow-wrap:anywhere]" style={{ color: accent }}>{column}</span>
+                          <b className="tabular-nums">{entry.value}</b>
+                          <span className="text-right opacity-65">{entry.count} {entry.count === 1 ? 'row' : 'rows'}</span>
+                          <span className="text-right uppercase tracking-wide text-[10px]" style={tierStyle(entry)}>{codeTierLabel(entry)}</span>
+                        </label>
+                        <InfoTip label={`Why ${column}, code ${entry.value}?`} text={describeCodeEntry(entry)} />
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -265,7 +299,7 @@ export const RecodeDialog = ({
                 <button
                   className={btn('go')}
                   disabled={nCols === 0}
-                  onClick={() => setReport(onApply(plan))}
+                  onClick={() => { anchor.current = null; setReport(onApply(plan)); }}
                 >
                   Replace with blanks
                 </button>

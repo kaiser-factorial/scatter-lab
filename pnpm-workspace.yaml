@@ -1,0 +1,20 @@
+packages:
+  - frontend
+  - packages/statistics
+  - frontend/vendor/react-plotly-factory
+
+# Keep one dependency graph and a repository-local virtual store. Each package
+# gets links to its declared dependencies rather than an independent install.
+sharedWorkspaceLockfile: true
+nodeLinker: isolated
+enableGlobalVirtualStore: false
+
+# predev/prebuild prepare the statistics package and public reference assets.
+enablePrePostScripts: true
+
+# Only these existing native build tools need dependency lifecycle scripts.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  fsevents: false

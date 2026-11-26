@@ -3,7 +3,6 @@
 import { EfaBackendControls } from "./EfaBackendControls";
 import { InfoTip } from "./InfoTip";
 import { mvRuntimeAdvice } from "@/lib/efa/runtime-advice";
-import type { EfaService } from "@/lib/efa/service";
 import type { EfaComputeSettings } from "@/lib/efa/backends/types";
 import { useEffect, useMemo, useState } from "react";
 import type { AdvicePatch } from '@/lib/decomposition-advice';
@@ -100,7 +99,6 @@ export interface EfaSetup {
 }
 
 export function EfaPanel({
-  service,
   table,
   state,
   actions,
@@ -111,9 +109,11 @@ export function EfaPanel({
   itemTable = table,
   externalSpec,
   recoveredRunId,
+  tourRunId = null,
+  itemWording,
+  onPlotScores,
   onOrdersChange,
 }: {
-  service: EfaService;
   table: DataTable;
   state: EfaState;
   actions: EfaActions;
@@ -124,6 +124,9 @@ export function EfaPanel({
   itemTable?: DataTable;
   externalSpec?: { seq: number; spec: EfaSpec } | null;
   recoveredRunId?: string | null;
+  tourRunId?: string | null;
+  itemWording?: Record<string, string>;
+  onPlotScores?: (id: string, third: boolean) => Promise<string>;
   onOrdersChange?: (orders: Record<string, OrdinalCategory[]>) => void;
 }) {
   const effectiveSample = sample ?? externalSpec?.spec.sample ?? { partition: "all" };
@@ -181,6 +184,11 @@ export function EfaPanel({
     label = setup?.label ?? localLabel;
   const [externalSeq, setExternalSeq] = useState(0);
   const [adviceSeq, setAdviceSeq] = useState(0);
+  const [seenTourRun, setSeenTourRun] = useState<string | null>(null);
+  if (seenTourRun !== tourRunId) {
+    setSeenTourRun(tourRunId);
+    setResults(tourRunId ?? '');
+  }
   const [seenRecovery, setSeenRecovery] = useState('');
   if (recoveredRunId && seenRecovery !== recoveredRunId && state.runs.some(run => run.id === recoveredRunId)) {
     setSeenRecovery(recoveredRunId); setResults(recoveredRunId);
@@ -401,7 +409,19 @@ export function EfaPanel({
           ))}
         </div>
       </details>
-      <div className="grid grid-cols-2 gap-2">
+      <div data-guide="efa-settings" className="grid grid-cols-2 gap-2">
+        <label className="col-span-2 flex items-center justify-between gap-2">
+          Factor count
+          <input
+            className="w-20 border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs"
+            aria-label="Factor count"
+            type="number"
+            min={1}
+            max={499}
+            value={factors}
+            onChange={(e) => setFactors(+e.target.value)}
+          />
+        </label>
         <label className="col-span-2">
           Correlations<InfoTip label="Correlation method" text={`Auto currently selects ${resolvedCorrelation === "pearson" ? "Pearson" : "Polychoric"} from the fitting sample's item types. Polychoric models ordered categories; Pearson models numeric spacing. Missing-value handling does not change this choice. Categorical mean/median fills remain declared categories.`} />
           <select className={control} aria-label="EFA correlations" value={correlation} onChange={e => setCorrelation(e.target.value as "auto" | "polychoric" | "pearson")}>
@@ -449,7 +469,7 @@ export function EfaPanel({
             <label>Uniqueness floor<input aria-label="ML uniqueness floor" className={control} type="number" min={1e-8} max={0.1} step="any" value={likelihood.uniquenessFloor} onChange={e => setLikelihood(v => ({ ...v, uniquenessFloor: +e.target.value }))} /></label>
           </div>
         </details>}
-        {extraction === "wlsmv" && <EfaBackendControls value={compute} onChange={setCompute} service={service} disabled={!!busy} />}
+        {extraction === "wlsmv" && <EfaBackendControls value={compute} onChange={setCompute} disabled={!!busy} />}
         {extraction === "wlsmv" && compute.backend !== "cpu" && missing === "mice" && <p role="alert" className="col-span-2 text-xs">Accelerated MICE is not connected yet. Select Browser CPU explicitly to run imputation.</p>}
         {!setup && <>
           <label>
@@ -670,20 +690,6 @@ export function EfaPanel({
           </div>
         )}
       </details>
-      <div className="space-y-1">
-        <label className="flex items-center justify-between gap-2">
-          Factor count
-          <input
-            className="w-20 border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs"
-            aria-label="Factor count"
-            type="number"
-            min={1}
-            max={499}
-            value={factors}
-            onChange={(e) => setFactors(+e.target.value)}
-          />
-        </label>
-      </div>
       {sampleScope && <p className="text-xs opacity-70" aria-label="EFA sample scope">Fitting scope: {sampleScope}</p>}
       <div className="flex gap-2">
         <button
@@ -796,6 +802,9 @@ export function EfaPanel({
       )}
       {results && state.runs.length > 0 && (
         <Results
+          itemWording={itemWording}
+          tourItem={tourRunId === results ? 'Plan' : undefined}
+          onPlotScores={onPlotScores}
           key={results}
           state={state}
           activeId={results}

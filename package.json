@@ -1,12 +1,15 @@
 {
   "name": "scatter-lab-workspace",
   "private": true,
-  "workspaces": ["packages/statistics"],
   "scripts": {
-    "build:stats": "npm run build --workspace=@scatterlab/stats",
-    "test:stats": "npm run test --workspace=@scatterlab/stats",
+    "build:stats": "pnpm --filter @scatterlab/stats run build",
+    "test:stats": "pnpm --filter @scatterlab/stats run test",
     "check:package": "node packages/statistics/scripts/check-package.mjs",
-    "setup": "npm ci && npm --prefix frontend ci",
-    "check": "npm run build:stats && npm run test:stats && npm --prefix frontend run ci:fast && npm --prefix frontend run ci:numerical && npm run check:package"
+    "setup": "pnpm install --frozen-lockfile",
+    "check": "pnpm run build:stats && pnpm run test:stats && pnpm --filter frontend run ci:fast && pnpm --filter frontend run ci:numerical && pnpm run check:package"
+  },
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": "24.x"
   }
 }

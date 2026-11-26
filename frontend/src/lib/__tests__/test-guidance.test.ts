@@ -17,6 +17,8 @@ const expectReleaseGuidance = (text: string) => {
   expect(text).toContain('KS inference is temporarily unavailable');
   expect(text).toContain('Descriptive ECDF charts remain available');
   expect(text).toContain('Paired and clustered inference is unsupported');
+  expect(text).toContain('only when the user has confirmed independent observations for this analysis');
+  expect(text).toContain('If the design is unclear, ask the user');
   expect(text).toContain('Do not substitute another hypothesis');
   expect(text).toMatch(/Welch's t: exactly two independent groups, at least 2 usable numeric observations/);
   expect(text).toContain('positive within-group variance in at least one group');
@@ -28,7 +30,7 @@ const expectReleaseGuidance = (text: string) => {
   expect(text).toContain('every expected cell count at least 5');
   expect(text).toContain('without Yates correction');
   expect(text).toContain('after missing/unusable values are excluded');
-  expect(text).toContain('Private mode additionally requires at least 5 usable observations');
+  expect(text).toContain('Reporting additionally requires at least 5 usable observations');
   expect(text).toContain('Nonfinite or degenerate results are rejected');
   expect(text).not.toMatch(/five tests|exact (?:two-sided )?p(?:-value|\b)/i);
 };

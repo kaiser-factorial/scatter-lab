@@ -115,16 +115,18 @@ sparse array holes are invalid input, not missing values to fill automatically.
 From the repository root:
 
 ```sh
-npm ci
-npm run build:stats
-npm run test:stats
-npm run check:package
+pnpm install --frozen-lockfile
+pnpm run build:stats
+pnpm run test:stats
+pnpm run check:package
 ```
 
 The last command packs the actual distribution, installs it in an isolated
 consumer, checks native ESM and declarations, and executes a browser bundle. It
-uses the npm cache populated by installation, so the consumer install is
-offline. Package tests and R comparison data stay outside the shipped tarball.
+prepares the isolated consumer's own lockfile and fetches its dependencies
+(registry access may be needed even after the workspace install). The subsequent
+consumer install is frozen and offline; it does not link the parent workspace.
+Package tests and R comparison data stay outside the shipped tarball.
 
 See [VALIDATION.md](VALIDATION.md) for reference conventions and known numerical
 boundaries. Passing finite reference cases is not a universal equivalence proof.

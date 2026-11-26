@@ -13,8 +13,8 @@ export const sortClusterLabels = (a: string, b: string) => {
   return a.localeCompare(b, undefined, { numeric: true });
 };
 
-export const buildClusterCrosstab = (table: DataTable, attribute: string): ClusterCrosstab | null => {
-  const clusterCol = table.data.Cluster;
+export const buildClusterCrosstab = (table: DataTable, attribute: string, clusterColumn = 'Cluster'): ClusterCrosstab | null => {
+  const clusterCol = table.data[clusterColumn];
   const attrVals = table.data[attribute];
   if (!clusterCol || !attrVals) return null;
 

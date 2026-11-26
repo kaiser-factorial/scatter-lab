@@ -81,8 +81,8 @@ export const WalkthroughStartDialog = ({
 
         <div className="text-xs leading-relaxed space-y-2">
           <p>
-            The walkthrough runs on the built-in Iris demo. It loads that dataset, makes it the
-            <strong> active</strong> one, and adds a PCA run, cluster labels and a pinned view.
+            The walkthrough opens Iris for PCA and clustering, then a synthetic survey for EFA.
+            It adds a pinned Iris view and plots the survey’s estimated factor scores.
           </p>
           <p className="opacity-80">
             {datasetNames.length === 1

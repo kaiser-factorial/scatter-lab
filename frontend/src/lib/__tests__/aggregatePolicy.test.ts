@@ -49,7 +49,7 @@ describe('correlationReport', () => {
   it('applies the private floor to complete pairs and discloses neither their exact count nor coefficients', () => {
     const report = correlationReport('age', 'score', x, [1, 2, 3, 4, null], priv);
     expect(report.ok).toBe(false);
-    expect(report.message).toContain('fewer than 5 in private mode');
+    expect(report.message).toContain('fewer than 5');
     expect(report.message).not.toMatch(/n=|xi\(|Pearson|constant/);
     expect(report).not.toHaveProperty('correlation');
   });

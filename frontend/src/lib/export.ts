@@ -1,5 +1,4 @@
 import { CSV_BOM, csvCell } from './csv';
-import { isPCColumn } from './pca';
 import type { DataTable } from './table';
 
 // Dataset export as pure functions: which columns, and how a table becomes
@@ -16,11 +15,10 @@ export const DATA_FORMATS: { id: DataFormat; label: string; hint: string }[] = [
   { id: 'json', label: 'JSON', hint: 'array of row objects' },
 ];
 
-/** Columns this app added: PC scores, composites and cluster labels. */
-export const isDerivedColumn = (name: string, ownedEfaColumns: string[] = []): boolean => isPCColumn(name) || /^COMP_/i.test(name) || name === 'Cluster' || ownedEfaColumns.includes(name);
-
-export const selectExportColumns = (table: DataTable, includeDerived: boolean, ownedEfaColumns: string[] = []): string[] =>
-  includeDerived ? [...table.columns] : table.columns.filter(c => !isDerivedColumn(c, ownedEfaColumns));
+export const selectExportColumns = (table: DataTable, includeDerived: boolean, owned: readonly string[] = []): string[] => {
+  const excluded = new Set(owned);
+  return table.columns.filter(c => includeDerived || !excluded.has(c));
+};
 
 const tsvCell = (value: unknown): string => {
   if (value == null) return '';

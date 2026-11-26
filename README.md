@@ -1,20 +1,39 @@
 # Scatter Lab
 
-See the shape of your data. Scatter Lab is a fully client-side workbench for
+See the shape of your data. Scatter Lab is a browser-based workbench for
 exploring tabular datasets as interactive 2D/3D scatter plots — built for
 survey and questionnaire research, useful for any table of numbers.
 
 **Live:** [scatter-lab.vercel.app](https://scatter-lab.vercel.app)
 
-**All computation runs locally in the browser.** Parsing, PCA, EFA, clustering,
-statistics, and persistence all happen in the tab, and your dataset is never
-uploaded to a server. There is no backend; the app deploys as a static site.
+**Default analysis runs on your computer.** Opening a CSV, XLSX or Parquet file
+reads it into the browser; parsing, PCA, browser-CPU EFA, clustering and statistics
+do not submit that file to the website's hosting server. Saved workspaces use
+browser storage. The hosting server delivers the app's code and assets; it does
+not need the dataset to run those calculations.
 
-The one exception is the optional AI assistant. If you connect an API key,
-column names and aggregate summaries — never raw rows — are sent to whichever
-provider that key belongs to. See
-[The assistant](#the-assistant-optional-bring-your-own-key) below; leave it
-disconnected and nothing leaves the tab at all.
+The app's compute options are Browser CPU and WebGPU. WebGPU uses the GPU exposed
+by your browser on this computer. The optional assistant and feedback can send
+information to configured services.
+
+| Feature | Where computation or storage happens | What is sent |
+| --- | --- | --- |
+| File import, default CPU analysis, saved workspaces | Browser memory, local workers and IndexedDB | File contents stay in these local paths; normal app/asset requests still reach the hosting server. |
+| WebGPU WLSMV trace acceleration | Local GPU through the browser and graphics driver; other stages use browser workers | Numerical buffers move to the local GPU. This calculation does not use a cloud GPU service. |
+| Assistant | Configured model endpoint | Your chat, dataset/column metadata, permitted aggregate results, app guidance and any retrieved package excerpts. App tools withhold respondent rows; typed chat is not automatically redacted. |
+| Assistant with a local endpoint | The runtime configured at that endpoint | The same permitted context goes to the local runtime. Its own configuration determines whether inference is local; this does not disable feedback or other browser requests. |
+| Optional feedback | Configured Supabase feedback service | A clicked rating sends rating/model/tool metadata. Sending an optional reason can also include your message and the reply; the visible “Include this exchange” checkbox starts checked. Queued feedback may retry later. |
+| Data, plot and workspace exports | Browser-generated downloads | Files are saved through your browser, with no app-managed upload. Data/workspace exports can contain raw data; sharing the resulting file is a separate action. |
+
+OpenRouter sign-in, model-list requests, external links and rendered remote
+Markdown images can also cause network requests. A local analysis path is not a
+claim that the entire page is network-isolated. See the [data-flow details and
+source references](docs/DATA-FLOW.md) and
+[assistant settings](#the-assistant-optional-bring-your-own-key).
+
+Scala/JVM comparison code is retained as development reference material. It is
+not an application compute option and does not require users to install or pair
+a local JVM service.
 
 ## Demo data
 
@@ -86,14 +105,17 @@ are in
 ## Two ways in: a guided walkthrough, or the assistant
 
 **Load demo** on the opening screen is the short way in: one click loads the Iris
-data, opens the panel, and starts the walkthrough. Opening the assistant panel
-directly offers the same choice as a menu.
+data and opens the panel. Select **Begin demo walkthrough** when you’re ready.
+The triangle beside a status line opens its details. Opening the assistant
+panel directly also offers the guided walkthrough.
 
-**The guided walkthrough** is a scripted, click-through tour of the Iris demo —
-eight steps, one button at a time, no API key and no network. It drives the real
-workbench as it goes (loads the data, runs the PCA, clusters the scores, pins a
-comparison) and points at each control with a highlight that holds until you move
-on. Uploading is paused while it runs and it never starts a download. If a dataset
+**The guided walkthrough** has two chapters, with no API key or model calls.
+First, each Iris dot is a flower: project its four measurements onto principal
+components, cluster the scores and compare the views. Next, import a bundled
+synthetic ordinal survey without removing Iris. Fit two factors, inspect the
+item loadings, then plot each simulated respondent's estimated factor scores.
+Both chapters use the real parser and analysis actions. Uploading is paused
+while the tour runs; it never saves a file to your device automatically. If a dataset
 of yours is already loaded it says what it is about to change and offers to save a
 workspace first, and the state you had is one click away afterwards.
 
@@ -103,6 +125,14 @@ where you are and what is left.
 
 The steps live in `frontend/src/lib/walkthrough.ts` as data, so the tour is the
 same every time and a broken step is a failing test rather than a dead end.
+
+**Share an analysis:** In **Export → Analysis record**, preview the masked
+summary or explicitly review the exact settings needed for reconstruction.
+Download the JSONL, Markdown and `SHA256SUMS.txt`. Give your teammate the
+original input separately and retain a trusted copy of the checksums. From the
+download directory, `shasum -a 256 -c SHA256SUMS.txt` checks the two records
+against that copy; it does not prove who created them. Older workspace traces
+may lack settings and are not upgraded into guessed reconstruction steps.
 
 ## The assistant (optional, bring-your-own-key)
 
@@ -128,14 +158,14 @@ demo, it offers the scripted walkthrough above rather than improvising one.
   results. These are descriptive coefficients; no p-value or confidence interval
   is computed.
 - **One-click OpenRouter connect** (OAuth PKCE) or paste any key; any
-  OpenAI-compatible endpoint works, including local runtimes (Ollama) for a
-  fully offline assistant. Keys live in your browser only
-- **Privacy contract:** Private mode exposes permitted column metadata and
+  OpenAI-compatible endpoint works, including local runtimes such as Ollama.
+  Keys are stored in your browser and sent to the chosen endpoint for
+  authentication. A local model endpoint does not disable other network paths.
+- **Privacy contract:** Dataset tools expose permitted column metadata and
   aggregate statistics, with small-group/category suppression and no raw rows.
-  Explicit Public/open mode enables bounded row-reading tools only when every
-  loaded dataset is open. One private dataset keeps the conversation private.
 - **Undo** for anything the assistant changes; optional thumbs-up/down feedback
-  per reply (stored write-only, used to improve the assistant)
+  per reply is submitted to the configured Supabase feedback store, with a
+  separate optional reason/exchange step.
 - Dockable right/bottom or floating, resizable, markdown-rendering chat
 
 ## Methods, stated in the app
@@ -151,31 +181,47 @@ conventions the reported loadings follow.
 
 ## Development
 
+Use Node 24 and pnpm 12.18.0, as pinned by the workspace. Install once from the
+repository root; this covers the frontend, statistics package and local adapters.
+
 ```bash
-npm run setup     # root numerical workspace, then frontend dependencies
-npm run build:stats
+pnpm install --frozen-lockfile
+pnpm run build:stats
 dev start frontend --detach --json --yes  # prints the ready URL
-npm run check     # library, app, numerical references and packed consumer
-npm --prefix frontend run build  # production build
+pnpm run check     # library, app, numerical references and packed consumer
+pnpm --dir frontend run build  # production build
 ```
+
+If `pnpm` is missing or runs another version, substitute
+`npx --yes pnpm@12.18.0` for `pnpm` in these commands; for example,
+`npx --yes pnpm@12.18.0 install --frozen-lockfile`. This does not change the
+globally installed package manager. There is one root
+`pnpm-lock.yaml`. Multiple `node_modules` directories remain normal: pnpm shares
+package contents and creates links for each workspace package's dependencies.
+They are not three independent copies of the app's dependency tree.
 
 The app consumes the local [`@scatterlab/stats`](packages/statistics/README.md)
 package. Its public API separates fitting from scoring new rows, retains full
 precision and training preprocessing, and has no Next.js, React or R runtime
-dependency. The frontend keeps workspace state, workers, optional backends,
+dependency. The frontend keeps workspace state, workers, browser compute controls,
 assistant policy and UI formatting. During development, library source changes
 rebuild automatically and Next reloads the emitted modules.
 
 CI checks both library and app, numerical reference coverage, source contracts,
 production builds and newly introduced lint findings. See [CI.md](docs/CI.md)
 and [the library architecture](docs/STATISTICS-LIBRARY.md) for commands and scope.
+[Deployment setup](docs/DEPLOYMENT.md) documents the workspace installation and
+Vercel build configuration; [dependency maintenance](docs/DEPENDENCIES.md) records
+the current versions, compatibility constraints and local adapter provenance.
 
-Feedback storage is env-gated: copy `.env.local.example` to `.env.local` and
+Feedback storage is env-gated: copy `frontend/.env.local.example` to
+`frontend/.env.local` and
 fill the Supabase values to enable it (unset = feedback UI hidden). Pushes to
 `main` deploy to production via Vercel; tests run in GitHub Actions.
 
 Built with Next.js, Plotly (WebGL), Tailwind CSS, PapaParse, SheetJS, and
-hyparquet. See [HANDOFF.md](HANDOFF.md) for architecture and project state.
+hyparquet. See [HANDOFF.md](HANDOFF.md) for architecture and the
+[teammate-ready EFA roadmap](docs/TEAMMATE-READY-EFA-ROADMAP.md) for release gates and follow-up branches.
 
 The original FastAPI/pandas backend (removed in the client-side migration)
 lives in git history for reference.

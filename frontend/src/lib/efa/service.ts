@@ -5,8 +5,7 @@ import { validateSpec } from './prepare';
 import { inferMeasurement } from '../measurement';
 import { likelihoodSettings, type ConditionalCompletion } from './maximum-likelihood';
 import { convergenceIssueSummary, type ConvergenceIssue } from '../convergence';
-import { computeSettings, type CompanionConnection, type CompanionSession } from "./backends/types";
-import { connectCompanion, createCompanionSession, closeCompanionSession, companionRequest } from "./backends/companion";
+import { computeSettings } from "./backends/types";
 import type { DataTable } from "../table";
 import { assembleCorrelations } from "./correlation";
 import { summarizeParallel, validateReplicates } from "./parallel";
@@ -167,15 +166,6 @@ class WorkerClient {
 /** UI and assistant use the same jobs. Publishing results is the caller's
  * transaction: a completed numerical job never mutates a dataset itself. */
 export class EfaService {
-  private companion?: CompanionConnection;
-  private companionCleanup: Promise<void> = Promise.resolve();
-  private cleanups = new WeakMap<WorkerClient[], () => Promise<void>>();
-  async connectScala(connection: CompanionConnection) {
-    this.companion = await connectCompanion(connection);
-    this.emit();
-  }
-  scalaConnected() { return !!this.companion; }
-  disconnectScala() { this.cancelAll(); this.companion = undefined; this.emit(); }
   private jobs = new Map<string, EfaJob>();
   private listeners = new Set<() => void>();
   private cache = new WeakMap<DataTable, CacheEntry[]>();
@@ -283,9 +273,8 @@ export class EfaService {
         if (job.status !== "running") return;
         job.status = "cancelled";
         trace.cancellation("requested");
-        void this.cleanups.get(workers)?.();
         workers.forEach((w) => w.terminate());
-        if (!this.cleanups.has(workers)) trace.cancellation("workers-terminated");
+        trace.cancellation("workers-terminated");
         trace.finish("cancelled");
         this.emit();
       },
@@ -331,8 +320,7 @@ export class EfaService {
         }
         throw error;
       })
-      .finally(async () => {
-        await this.cleanups.get(workers)?.();
+      .finally(() => {
         workers.forEach((w) => w.terminate());
         this.completedCaches.delete(workers);
         this.emit();
@@ -603,8 +591,6 @@ export class EfaService {
     minimumPairN = 0,
   ): EfaJob<EfaResult> {
     const settings = computeSettings(spec);
-    const connection = this.companion;
-    if (settings.backend === "scala" && !connection) throw new EfaError("companion-unavailable", "Connect the local Scala companion before fitting.");
     const snapshot = structuredClone(spec),
       membership = rows.slice();
     const key = JSON.stringify({
@@ -794,31 +780,9 @@ export class EfaService {
       if (invariant && extraction && JSON.stringify(invariant.extraction) !== JSON.stringify(extraction)) invariant = undefined;
       trace.event("cache", invariant ? "WLSMV inference hit: reusing extraction, ordinal uncertainty, canonical covariance and robust test; recomputing rotation and its standard errors" : "WLSMV inference miss");
       if (invariant) progress({ stage: "Reused rotation-independent WLSMV inference", completed: 1, total: 1 });
-      let companion: CompanionSession | undefined;
-      if (!invariant && settings.backend === "scala" && connection) {
-        progress({ stage: "Starting local Scala companion", completed: 0, total: 1 });
-        await this.companionCleanup;
-        if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
-        companion = { ...connection, id: crypto.randomUUID() };
-        const session = companion;
-        let closing: Promise<void> | undefined;
-        const heartbeat = setInterval(() => {
-          void companionRequest(session, `/v1/jobs/${session.id}/heartbeat`, "POST").catch(() => {});
-        }, 15000);
-        this.cleanups.set(workers, () => closing ??= this.companionCleanup = (async () => {
-          clearInterval(heartbeat);
-          try { await closeCompanionSession(session); trace.cancellation("native-exited"); }
-          catch { trace.cancellation("native-unconfirmed"); }
-          this.emit();
-        })());
-        await createCompanionSession(connection, session.id);
-        if (!live()) { await this.cleanups.get(workers)!(); throw new EfaError("cancelled", "Analysis cancelled."); }
-      }
       const { rotationContext: context } = await first.request<{ rotationContext: RotationDerivativeContext }>(
-        { op: "fit", correlation, spec: snapshot, extraction, invariant, parallelDerivatives: true, companion }, progress,
+        { op: "fit", correlation, spec: snapshot, extraction, invariant, parallelDerivatives: true }, progress,
       );
-      // The resident native source is no longer needed during rotation derivatives.
-      if (companion) await this.cleanups.get(workers)!();
       if (!live()) throw new EfaError("cancelled", "Analysis cancelled.");
       const q = context.identified.free.length, clients = [first];
       for (let slot = 1; slot < Math.min(this.concurrency, Math.ceil(q / 8)); slot++) {

@@ -6,6 +6,7 @@ frontend/public/efa-qualification/
 frontend/public/assistant-reference/
 frontend/src/lib/generated/app-reference-manifest.ts
 node_modules/
+.pnpm-store/
 .next/
 __pycache__/
 *.pyc
@@ -15,7 +16,7 @@ next-env.d.ts
 
 # Real participant-derived view data — keep out of version control
 LS_pca_workbench_views copy/
-node_modules/
+
 packages/statistics/dist/
 packages/statistics/.test-artifacts/
 validation/library-migration/.artifacts/

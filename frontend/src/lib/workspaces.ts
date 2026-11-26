@@ -179,6 +179,14 @@ export const validateWorkspace = (parsed: unknown): void => {
       throw new Error(`Workspace file is damaged: dataset ${where} refers to a table ("${String(d.table)}") that the file does not contain.`);
     }
     if (!isTable(t)) throw new Error(`Workspace file is damaged: dataset ${where} has no usable table.`);
+    const columns = (t as { columns: string[] }).columns;
+    if (d.originalColumns !== undefined && (!Array.isArray(d.originalColumns)
+        || new Set(d.originalColumns).size !== d.originalColumns.length
+        || d.originalColumns.some(column => typeof column !== 'string' || !columns.includes(column))))
+      throw new Error(`Workspace file is damaged: dataset ${where} has invalid original column names.`);
+    if (d.clusterColumn !== undefined && (typeof d.clusterColumn !== 'string' || !columns.includes(d.clusterColumn)
+        || (Array.isArray(d.originalColumns) && d.originalColumns.includes(d.clusterColumn))))
+      throw new Error(`Workspace file is damaged: dataset ${where} has an invalid fitted cluster column.`);
     try {
       validateDatasetPartition(d.samplePartition, (t as { nRows: number }).nRows);
       if (d.samplePartition != null) partitions.push(d.samplePartition as DatasetPartition);
@@ -224,14 +232,19 @@ const ENTRY_KINDS = new Set(['user', 'assistant', 'tool', 'error']);
  * sanitizes rather than throws: a workspace whose data is intact should not be
  * refused because its chat section is damaged — the chat is auxiliary.
  */
-export const sanitizeConversation = (v: unknown): Conversation | null => {
+export const sanitizeConversation = (v: unknown, hadOpenDataset = false): Conversation | null => {
   if (!isRecord(v)) return null;
   const entries = (Array.isArray(v.entries) ? v.entries : [])
     .filter((e: unknown): e is ConversationEntry =>
       isRecord(e) && typeof e.text === 'string' && typeof e.kind === 'string' && ENTRY_KINDS.has(e.kind));
   const history = (Array.isArray(v.history) ? v.history : []).filter(isRecord);
   if (entries.length === 0 && history.length === 0) return null;
-  return { entries, history };
+  // Keep the visible transcript. A retired row tool may have run even if its dataset was later removed.
+  const hasRowCall = history.some(message => Array.isArray(message.tool_calls) && message.tool_calls.some(
+    (call: unknown) => isRecord(call) && isRecord(call.function) &&
+      ['sample_rows', 'get_rows_where', 'list_categories'].includes(String(call.function.name)),
+  ));
+  return { entries, history: hadOpenDataset || hasRowCall ? [] : history };
 };
 
 export const importWorkspaceFile = async (file: File): Promise<{ name: string; payload: unknown }> => {

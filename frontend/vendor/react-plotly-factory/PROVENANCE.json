@@ -1,0 +1,51 @@
+{
+  "format": "scatterlab-vendored-source/1",
+  "upstream": {
+    "name": "react-plotly.js",
+    "version": "4.1.0",
+    "repository": "https://github.com/plotly/react-plotly.js",
+    "resolved": "https://registry.npmjs.org/react-plotly.js/-/react-plotly.js-4.1.0.tgz",
+    "integrity": "sha512-+CJA9xOY4UjH1RnRqQnpBGoFSzsrB/e7CR4k8AMQ20RkBlXjqkiIVLdIA5N1hinEVdoTdhaS6krKEARyfSixXg==",
+    "publishedAt": "2026-07-29T22:19:01.071Z"
+  },
+  "reviewedOn": "2026-11-06",
+  "changes": "None to copied upstream files. Local package metadata exposes only the caller-supplied Plotly factory, omitting the unused default component and full plotly.js peer.",
+  "files": [
+    {
+      "file": "factory.mjs",
+      "upstreamPath": "dist/factory.mjs",
+      "sha256": "9e2d07912004306300210e9058a7308a11d133c2aae945f32ea36cf6ee8cb4af",
+      "bytes": 145
+    },
+    {
+      "file": "factory.mjs.map",
+      "upstreamPath": "dist/factory.mjs.map",
+      "sha256": "cba81f7ad4d5b1b629bf43823f1082e73a10d0c3114c937515e7f8c1047629b3",
+      "bytes": 71
+    },
+    {
+      "file": "chunk-WUFMRSJ6.mjs",
+      "upstreamPath": "dist/chunk-WUFMRSJ6.mjs",
+      "sha256": "78211a39c74a452087527201848f5b4a2e8b467c3a12e56616088e88f432a7aa",
+      "bytes": 7999
+    },
+    {
+      "file": "chunk-WUFMRSJ6.mjs.map",
+      "upstreamPath": "dist/chunk-WUFMRSJ6.mjs.map",
+      "sha256": "35ddcab4401cc2ab9aae1066c70687a561434d76717bdc4399e9b6af35c7c791",
+      "bytes": 15788
+    },
+    {
+      "file": "factory.d.mts",
+      "upstreamPath": "dist/factory.d.mts",
+      "sha256": "4792d1d6c05f464fb9d91e795c6876c7e632bb695705b62cb2b4925c889017b9",
+      "bytes": 2802
+    },
+    {
+      "file": "LICENSE",
+      "upstreamPath": "LICENSE",
+      "sha256": "14a5925769ad7f4b9646160bfa171bf116f1f0afee3020c49897ff8edefc7940",
+      "bytes": 1096
+    }
+  ]
+}

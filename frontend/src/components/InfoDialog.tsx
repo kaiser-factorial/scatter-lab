@@ -9,10 +9,11 @@ const DisclosureLine = ({ line }: { line: string }) => (
   <>{emphasisSegments(line).map((s, i) => s.bold ? <strong key={i}>{s.text}</strong> : <span key={i}>{s.text}</span>)}</>
 );
 import { METHODS } from '@/lib/methods';
+import { ITEM_ASSESSMENT_BASIS } from '@/lib/decomposition-advice';
 
 // The long-form companion to the (i) tooltips.
 //
-// Every word here is READ from disclosures.ts and methods.ts — nothing is
+// The methods notes come from the disclosure, methods and item-assessment sources. Nothing is
 // retyped. That is the whole point: the app already had the same facts written
 // in three places and they had drifted apart (finding A3), so a fourth copy
 // living in a React component would be the same mistake with better formatting.
@@ -23,23 +24,23 @@ import { METHODS } from '@/lib/methods';
 // the sidebar is `overflow-y-auto` and a positioned stacking context, and the
 // plot is a WebGL canvas. Anything floating above both has to leave the tree.
 
-type Tab = 'app' | 'methods';
+type Tab = 'app' | 'methods' | 'assessment';
 
 export const InfoDialog = ({
-  open,
+  initialTab,
   onClose,
   theme,
 }: {
-  open: boolean;
+  initialTab: Tab;
   onClose: () => void;
   theme?: string;
 }) => {
-  const [tab, setTab] = useState<Tab>('app');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const panel = useRef<HTMLDivElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     // Move focus into the dialog so Escape and Tab go somewhere sensible.
@@ -50,10 +51,11 @@ export const InfoDialog = ({
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
+      opener?.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [onClose]);
 
-  if (!open || typeof document === 'undefined') return null;
+  if (typeof document === 'undefined') return null;
 
   const bauhaus = theme === 'primary';
 
@@ -127,43 +129,51 @@ export const InfoDialog = ({
         </header>
 
         <div className="px-4 py-4 space-y-5 text-[12px] leading-relaxed">
-          <p className="opacity-80">
-            Scatter Lab is an <strong>exploratory data analysis</strong> tool. It plots high-dimensional data in
-            two or three dimensions and runs PCA and clustering over it, so you can see what structure is there.
-          </p>
-          <p className="opacity-80">
-            <strong>All computation happens in this browser tab.</strong> Parsing, PCA, clustering and
-            statistics run on your own machine, your dataset is never uploaded to a server — there is no backend
-            to send it to — and closing the tab discards it, so <strong>save a workspace</strong> if you want it back.
-          </p>
-          <p className="opacity-80">
-            <strong>The assistant is the exception.</strong> If you choose to connect an API key, your
-            questions and a summary of the data will be sent to the model provider. The assistant can see:
-          </p>
-          <ul className="list-disc pl-5 space-y-1 opacity-80">
-            <li>column names</li>
-            <li>each numeric column&apos;s range, mean, standard deviation and quartiles</li>
-            <li>the common values of categorical columns</li>
-            <li>the results of the analyses it runs</li>
-          </ul>
-          <p className="opacity-80">
-            <strong>It never sees individual rows.</strong> A categorical value is only named if it covers at
-            least five rows, which reduces the chance of the model seeing an email address, name or
-            free-text answer.
-          </p>
-          <p className="opacity-80">
-            If this is more than you are comfortable with, leave the assistant disconnected; everything else
-            here works without it.
-          </p>
-
-
-          <div className="flex justify-center gap-2 pt-1">
-            <button className={tabCls('app')} onClick={() => setTab('app')}>Defaults &amp; trade-offs</button>
-            <button className={tabCls('methods')} onClick={() => setTab('methods')}>Methods reference</button>
+          <div className="flex flex-wrap justify-center gap-2 pt-1">
+            <button className={tabCls('app')} aria-pressed={tab === 'app'} onClick={() => setTab('app')}>Defaults &amp; trade-offs</button>
+            <button className={tabCls('assessment')} aria-pressed={tab === 'assessment'} onClick={() => setTab('assessment')}>Item assessment</button>
+            <button className={tabCls('methods')} aria-pressed={tab === 'methods'} onClick={() => setTab('methods')}>Methods reference</button>
           </div>
 
-          {tab === 'app' ? (
+          {tab === 'assessment' ? (
+            <section className="space-y-3">
+              {sectionTitle('How selected items are assessed')}
+              <ul className="list-disc pl-5 space-y-2">
+                {ITEM_ASSESSMENT_BASIS.map(line => <li key={line}>{line}</li>)}
+              </ul>
+            </section>
+          ) : tab === 'app' ? (
             <div className="space-y-5">
+              <p className="opacity-80">
+                Scatter Lab is an <strong>exploratory data analysis</strong> tool. It plots high-dimensional data in
+                two or three dimensions and runs PCA and clustering over it, so you can see what structure is there.
+              </p>
+              <p className="opacity-80">
+                <strong>Default analysis runs locally.</strong> Opening a file reads it into the browser;
+                parsing, PCA, browser-CPU EFA, clustering and statistics do not upload it to the website host.
+                Browser CPU and WebGPU are the compute options; WebGPU uses your local GPU. Workspaces and session
+                autosave use browser storage; export a workspace file for a separate copy.
+              </p>
+              <p className="opacity-80">
+                <strong>The assistant sends context to your configured endpoint.</strong> This includes your
+                questions and conversation, and the following information.
+              </p>
+              <ul className="list-disc pl-5 space-y-1 opacity-80">
+                <li>column names</li>
+                <li>permitted numeric summaries, with rare extremes withheld</li>
+                <li>permitted categorical counts, with rare category values withheld</li>
+                <li>permitted analysis results, app guidance and retrieved package-source excerpts</li>
+              </ul>
+              <p className="opacity-80">
+                Dataset tools withhold individual rows. Text you type in chat is not automatically redacted. A local model endpoint keeps model
+                requests local only when that runtime performs inference locally.
+              </p>
+              <p className="opacity-80">
+                Statistical analysis works with the assistant disconnected. Optional feedback has its own
+                destination: ratings send metadata to the configured feedback service, and sending a reason can
+                include your message and the reply when the exchange checkbox is checked. Website assets,
+                sign-in, external links and remote images can also cause network requests.
+              </p>
               <p className="opacity-70 text-[11px] text-center">
                 The choices this app makes on your behalf, and what each one costs.{' '}
                 <em>This page is an extension of the notes behind the <span className="font-bold">(i)</span> icons in the sidebar.</em>

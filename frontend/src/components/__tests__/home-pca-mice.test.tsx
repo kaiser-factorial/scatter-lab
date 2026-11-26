@@ -9,7 +9,6 @@ import type { PCAResult } from "../../lib/pca";
 // workspace serialization. Replace rendering-heavy surfaces and external IO.
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
 vi.mock("next-themes", () => ({ useTheme: () => ({ theme: "primary", setTheme: vi.fn() }) }));
-vi.mock("ccru/components", () => ({ CyberStackGroup: () => null, CyberContainer: () => null, CyberPanel: () => null }));
 vi.mock("puxel", () => ({
   Accordion: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   AccordionItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,

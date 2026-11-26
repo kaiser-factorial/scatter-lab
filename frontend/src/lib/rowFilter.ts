@@ -136,7 +136,7 @@ export const validateConditionsForPolicy = (profile: AnalysisProfile, conds: Fil
     if (col.isNumeric) continue;
     const listed = (col.groups ?? []).filter(g => !g.withheld).map(g => g.value);
     if (!listed.length) {
-      problems.push(`"${column}" has no value covering enough rows to describe a group, so it cannot be filtered on in private mode.`);
+      problems.push(`"${column}" has no value covering enough rows to describe a group, so it cannot be used for this filter.`);
       continue;
     }
     if (op === 'eq' || op === 'neq' || op === 'in') {

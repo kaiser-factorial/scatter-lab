@@ -72,3 +72,29 @@ it('offers no Apply action for blocked item sets', async () => {
   expect(document.body.textContent).toContain('Only one distinct observed value');
   expect([...document.querySelectorAll('button')].some(button => button.textContent === 'Apply these settings')).toBe(false);
 });
+
+it('keeps continuous PCA results compact and links to the assessment reference', async () => {
+  const numeric = { ...table, data: Object.fromEntries(columns.map(c => [c, Array.from({ length: 40 }, (_, i) => i / 3)])), columns };
+  const pca = { method: 'pca' as const };
+  const showAssessment = vi.fn();
+  await render({ table: numeric, options: pca, onShowAssessment: showAssessment });
+  await click(button('Analyze selected items'));
+  await finish(0, analyzeDecompositionItems(numeric, columns, pca));
+  expect(document.body.textContent).toContain('3 items · 40 fitting rows');
+  expect(document.body.textContent).toContain('continuous candidate');
+  for (const redundant of ['numeric appearance', 'PCA of the numeric item values', 'EFA extraction', 'Complete cases:', 'Tukey']) {
+    expect(document.body.textContent).not.toContain(redundant);
+  }
+  expect(document.querySelector('[aria-label="A type"]')).toBeNull();
+  await click(button('How this was assessed'));
+  expect(showAssessment).toHaveBeenCalledOnce();
+});
+
+it('keeps the spacing assumption visible for PCA on ordinal candidates', async () => {
+  const options = { method: 'pca' as const };
+  await render({ options });
+  await click(button('Analyze selected items'));
+  await finish(0, analyzeDecompositionItems(table, columns, options));
+  expect(document.body.textContent).toContain('equal steps between numeric response codes');
+  expect(document.body.textContent).not.toContain('EFA extraction');
+});

@@ -156,7 +156,7 @@ CONGRUENCE_ENTRY=scripts/efa-reference/congruence/check-ordinal.ts CONGRUENCE_OU
 CONGRUENCE_ENTRY=scripts/efa-reference/congruence/check-extensions.ts CONGRUENCE_OUTPUT=scripts/efa-reference/congruence/extensions-report.json node scripts/efa-reference/congruence/run.mjs
 CONGRUENCE_ENTRY=scripts/efa-reference/congruence/check-weighted-se.ts CONGRUENCE_OUTPUT=scripts/efa-reference/congruence/weighted-se-report.json node scripts/efa-reference/congruence/run.mjs
 python3 scripts/efa-reference/congruence/summarize.py
-npx vitest run src/lib/__tests__/efa-congruence.test.ts
+pnpm exec vitest run src/lib/__tests__/efa-congruence.test.ts
 ```
 
 Regenerate R fixtures in the pinned offline image with the entire `congruence` script directory mounted read-only at `/source`, the fixture destination at `/out`, and entrypoint `Rscript /source/generate.R /out /source`. Ordinal regeneration uses `generate-ordinal.R` and the retained `generate-weighted.R` helper under its expected `pair-moments-source.R` name; exact successful snapshots are archived for reproducing this run's source hashes. Export replay: `Rscript replay-completion.R operation.json r-completed.csv`, followed by `verify-completion-replay.R` on that folder. Iris: `check-iris-boundary.R SOURCE INPUT NATIVE OUTPUT`; retained probe source and hashes document native input generation.

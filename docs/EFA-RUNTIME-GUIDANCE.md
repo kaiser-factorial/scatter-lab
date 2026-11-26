@@ -1,6 +1,6 @@
 # Runtime guidance and paired MV qualification
 
-The runtime UI keeps **exact correction as the default** and offers a separate selection of Browser CPU, WebGPU and Scala. Each runtime has a keyboard- and touch-accessible information button. WebGPU is labeled **exact** or **estimated** according to the selected correction; it is not intrinsically approximate. Scala remains an explicitly paired local JVM/BLAS benchmark. Probe count, seed, block size and memory budget also have contextual explanations.
+The runtime UI keeps **exact correction as the default** and offers a separate selection of Browser CPU and WebGPU. Each runtime has a keyboard- and touch-accessible information button. WebGPU is labeled **exact** or **estimated** according to the selected correction; it is not intrinsically approximate. Scala has been removed from the application; its sources and previously recorded measurements remain available for reference only. Probe count, seed, block size and memory budget also have contextual explanations.
 
 After sample preview, advice uses the actual fitting rows, item-pair count, factor count, probe budget and allocation plan. It never changes the chosen method or backend. Small feasible moment-space calculations favor exact CPU as a starting point. Estimated case-space traces are suggested for consideration when their arithmetic count is lower. These are operation estimates, not device timing predictions or accuracy guarantees. Invalidated previews hide the advice until refreshed.
 
@@ -71,6 +71,8 @@ These deliberately constructed operators locate estimator weaknesses; they are n
 
 ## Reproduction
 
+The performance campaigns below retain their original source snapshots and receipts. Their timings and UI observations are historical qualification, not measurements rerun by the Scala removal. Current application choices are Browser CPU and WebGPU; historical Scala integration scripts require their recorded checkout.
+
 Start the current checkout with `dev start frontend --detach --json --yes`. From `frontend/`:
 
 ```
@@ -108,7 +110,7 @@ The fresh small pilot (1,000 × 20) took 1.455 s exact versus 1.822 s estimated 
 
 [Fresh timing plot](figures/efa-mv-paired-full-v7.png) · [PDF](figures/efa-mv-paired-full-v7.pdf) · [timing CSV](figures/efa-mv-paired-full-v7.csv).
 
-## Final verification
+## Historical campaign verification
 
 The full unit suite passed with 691 tests passed and four skipped. TypeScript and the production build passed; all 202 application source files in the isolated build match the current checkout. The lint regression comparison remains at its existing 117 errors and six warnings, with no additional file/rule/severity counts. This is a passing regression gate, not a clean lint baseline. The runtime UI checks passed in both themes, including keyboard focus and the narrow viewport. Benchmark source archives and the compressed result were verified against their recorded hashes and lossless decompression.
 

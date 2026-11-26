@@ -18,7 +18,7 @@ try {
     { timeout: 60000 },
   );
   await page.evaluate(async () =>
-    window.__scatterlabBridge.current.loadDemoData("open"),
+    window.__scatterlabBridge.current.loadDemoData('iris'),
   );
   await page.waitForFunction(
     () => window.__scatterlabBridge.current.snapshot().datasets.length > 0,
@@ -77,7 +77,7 @@ try {
       document.documentElement.classList.add(theme);
     }, theme);
     for (const view of ["Pattern", "Structure"]) {
-      await dialog.getByRole("button", { name: view, exact: true }).click();
+      await dialog.getByLabel("Loading matrix", { exact: true }).selectOption(view.toLowerCase());
       await expect(
         dialog.getByRole("table", {
           name: `${view.toLowerCase()} heatmap`,

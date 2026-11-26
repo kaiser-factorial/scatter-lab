@@ -1,14 +1,14 @@
 "use client";
-import { useEffect, useRef, useState, memo, useMemo, startTransition } from 'react';
+import { useEffect, useEffectEvent, useImperativeHandle, useLayoutEffect, useRef, useState, memo, useMemo, startTransition } from 'react';
 import { createPortal } from 'react-dom';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList, Lock, Globe } from 'lucide-react';
+import { ArrowLeft, Sparkles, Settings2, Minus, CornerDownLeft, ThumbsUp, ThumbsDown, PanelRight, PanelBottom, PictureInPicture2, Compass, LayoutList } from 'lucide-react';
 import {
   AppBridge, DEFAULT_BASE_URL, DEFAULT_MODEL, MUTATING_TOOLS, ModelInfo,
   runAssistantTurn, fetchModels, suggestModels, describeApiError, paintYield,
 } from '@/lib/assistant';
 import {
-  WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP,
+  WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP, DEMO_ENTRY, type WalkthroughStep,
   walkthroughStep, walkthroughIndex, stepAnchorsChoice, assistantGreeting,
 } from '@/lib/walkthrough';
 import { WalkthroughStartDialog } from '@/components/WalkthroughStartDialog';
@@ -26,6 +26,8 @@ import type { Conversation, ConversationEntry } from '@/lib/workspaces';
 // thumbs feedback) is ConversationEntry, because entries persist in the
 // autosaved session and in workspaces.
 type ChatEntry = ConversationEntry;
+type TourEntry = ChatEntry & { summary?: string };
+type TourChoice = WalkthroughStep['choices'][number];
 
 // What the panel is showing. The menu is the front door on a first visit; after
 // that the panel opens where the user works and the menu stays one click away
@@ -91,7 +93,7 @@ const AssistantMarkdown = memo(({ text }: { text: string }) => (
 ));
 AssistantMarkdown.displayName = 'AssistantMarkdown';
 
-const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, startWalkthroughRef, accessMode = 'private', onAccessClick, undoScopeKey = '[]' }: {
+const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversationChange, dock, onDockChange, onWalkthroughChange, exitWalkthroughRef, tourPlotScoresRef, demoRequest = 0, undoScopeKey = '[]' }: {
   bridgeRef: React.MutableRefObject<AppBridge>,
   theme: string | undefined,
   askRef?: React.MutableRefObject<((q: string) => void) | null>,
@@ -102,17 +104,9 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // The page disables uploading while the walkthrough drives the workbench, and
   // offers its own way out next to the disabled control.
   onWalkthroughChange?: (active: boolean) => void,
+  tourPlotScoresRef?: React.MutableRefObject<(() => Promise<void>) | null>,
   exitWalkthroughRef?: React.MutableRefObject<(() => void) | null>,
-  // "Load demo" on the empty state opens the panel straight into the tour,
-  // which loads the data itself as its first act.
-  startWalkthroughRef?: React.MutableRefObject<(() => void) | null>,
-  // What the assistant may see, decided by the loaded datasets' data modes:
-  // 'open' = every dataset open (row tools available), 'mixed' = some open but
-  // at least one private (runs private), 'private' = aggregates only.
-  accessMode?: 'private' | 'open' | 'mixed',
-  // Opens the access-info dialog for the active dataset (the mode itself is
-  // locked at upload); absent = nothing loaded to describe.
-  onAccessClick?: () => void,
+  demoRequest?: number,
   undoScopeKey?: string,
 }) => {
   const [open, setOpen] = useState(false);
@@ -139,8 +133,13 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   // --- walkthrough ----------------------------------------------------------
   const [view, setView] = useState<PanelView>('menu');
   const [wtStepId, setWtStepId] = useState<string>(FIRST_STEP);
-  const [wtLog, setWtLog] = useState<ChatEntry[]>([]);
+  const [wtLog, setWtLog] = useState<TourEntry[]>([]);
+  const handledDemoRequest = useRef(0);
+  const preparedDataset = useRef<number | null>(null);
   const [wtBusy, setWtBusy] = useState(false);
+  const [wtFailed, setWtFailed] = useState(false);
+  const wtGeneration = useRef(0);
+  const visits = useRef(new Map<string, { log: TourEntry[]; plot: ReturnType<AppBridge['captureTourPlot']> }>());
   const [startDialog, setStartDialog] = useState(false);
   // The held pointer ring, and the state to put back if the walkthrough ran
   // over someone's own workspace.
@@ -148,31 +147,50 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   const wtSnap = useRef<unknown>(null);
   const [wtUndo, setWtUndo] = useState<unknown>(null);
   const wtScrollRef = useRef<HTMLDivElement>(null);
+  const tourNext = useRef<HTMLButtonElement>(null);
+  const panelToggle = useRef<HTMLButtonElement>(null);
   // Set when a key is saved from the settings form, so the chat that replaces it
   // opens with the same greeting the menu route gives.
   const greetRef = useRef(false);
 
-  // Replace the whole conversation (session restore / workspace load). Chat
-  // only — walkthrough progress is its own thing and deliberately not persisted.
-  const applyConversation = (c: Conversation | null) => {
-    setChat((c?.entries ?? []) as ChatEntry[]);
-    historyRef.current = (c?.history ?? []) as ChatCompletionMessageParam[];
-    setFb({});          // feedback state indexes into the old transcript
-    setUndoSnap(null);  // the snapshot refers to app state that no longer exists
-  };
+  const entriesRef = useRef(chat);
+  useLayoutEffect(() => { entriesRef.current = chat; }, [chat]);
+
+  // Restore may finish while React is still rendering the lazy panel. Only a
+  // committed instance can accept the conversation or answer an autosave.
+  useLayoutEffect(() => {
+    if (!convRef) return;
+    const bridge = convRef.current;
+    const handle: ConversationHandle = {
+      get: () => ({ entries: entriesRef.current, history: historyRef.current }),
+      set: conversation => {
+        const entries = conversation?.entries ?? [];
+        entriesRef.current = entries;
+        historyRef.current = (conversation?.history ?? []) as ChatCompletionMessageParam[];
+        setChat(entries);
+        setFb({});
+        setUndoSnap(null);
+      },
+    };
+    bridge.handle = handle;
+    if (bridge.pending !== undefined) {
+      handle.set(bridge.pending);
+      delete bridge.pending;
+    }
+    return () => {
+      if (bridge.handle === handle) {
+        bridge.pending = handle.get();
+        bridge.handle = null;
+      }
+    };
+  }, [convRef]);
 
   useEffect(() => {
-    // A restore that finished before this panel loaded left its conversation
-    // waiting in the bridge — apply it now.
-    if (convRef && convRef.current.pending !== undefined) {
-      applyConversation(convRef.current.pending ?? null);
-      convRef.current.pending = undefined;
-    }
     setApiKey(localStorage.getItem(LS.key) ?? '');
     // The menu is the front door exactly once. Landing a returning user back on
     // it every time would put a choice in front of them they already made, and
     // "remember the walkthrough" would re-run a demo they have seen.
-    setView(localStorage.getItem(LS.menuSeen) === '1' ? 'chat' : 'menu');
+    if (wtGeneration.current === 0) setView(localStorage.getItem(LS.menuSeen) === '1' ? 'chat' : 'menu');
     setModel(localStorage.getItem(LS.model) ?? DEFAULT_MODEL);
     setBaseURL(localStorage.getItem(LS.baseURL) ?? DEFAULT_BASE_URL);
     try {
@@ -200,14 +218,13 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
         setOpen(true);
         setAuthError(`Connect failed: ${err?.message ?? err} Try again, or paste a key manually.`);
       });
-    // convRef is a stable ref prop — listed to satisfy the lint, never changes
-  }, [convRef]);
+  }, []);
 
   useEffect(() => {
     // OpenRouter's catalog is public — fetch even before a key exists so the
     // model suggestions render during first-time setup
-    if (open) fetchModels(baseURL, apiKey).then(setModels);
-  }, [apiKey, baseURL, open]);
+    if (open && view !== 'walkthrough') fetchModels(baseURL, apiKey).then(setModels);
+  }, [apiKey, baseURL, open, view]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -215,7 +232,15 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
 
   useEffect(() => {
     wtScrollRef.current?.scrollTo({ top: wtScrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [wtLog]);
+  }, [wtLog, open]);
+
+  useEffect(() => {
+    if (view === 'walkthrough' && !wtBusy && document.activeElement === document.body) {
+      const next = tourNext.current;
+      const target = next && (!open || panelRef.current?.contains(next)) ? next : panelToggle.current;
+      target?.focus({ preventScroll: true });
+    }
+  }, [view, wtBusy, wtStepId, open]);
 
   // Drop the held pointer if the panel unmounts mid-step — it lives on <body>
   // and nothing else would ever clean it up.
@@ -368,40 +393,55 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
 
   const dropHighlight = () => { wtHighlight.current?.(); wtHighlight.current = null; };
 
-  const enterStep = async (id: string) => {
+  const enterStep = async (id: string, choiceLabel?: string) => {
     const step = walkthroughStep(id);
     if (!step) return;
+    // Capture the view as the reader leaves the latest step, including last-minute axis choices.
+    const previous = visits.current.get(wtStepId);
+    const latest = Array.from(visits.current.keys()).at(-1);
+    if (previous && wtStepId === latest) previous.plot = bridgeRef.current.captureTourPlot();
+
     dropHighlight();
+    const generation = ++wtGeneration.current;
+    setWtFailed(false);
     setWtStepId(id);
+    if (step !== DEMO_ENTRY) setOpen(!stepAnchorsChoice(step));
     setWtBusy(true);
-    // Let the click's own frame paint (pressed button, busy state) BEFORE the
-    // step's actions run. Without this, loading the demo or running a PCA
-    // executes in the same task as the click and blocks that first paint —
-    // a ~200ms INP on the "Begin" button, measured on the Vercel preview.
+    const saved = visits.current.get(id);
+    const prior = id === DEMO_ENTRY.id ? [] : wtLog;
+    const log: TourEntry[] = saved ? [...saved.log] : [...prior];
+    if (!saved && choiceLabel) log.push({ kind: 'user', text: choiceLabel });
+    setWtLog([...log]);
     await paintYield();
-    const notes: ChatEntry[] = [];
-    for (const action of step.run ?? []) {
-      try {
-        // bridgeRef.current per action, and a paint yield after it: the bridge
-        // closes over the page's state and is rebuilt on every commit, so a
-        // second call against a stale one runs against pre-commit state.
-        notes.push({ kind: 'tool', text: await action(bridgeRef.current) });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        notes.push({ kind: 'error', text: `That step didn’t complete: ${msg}` });
+    if (generation !== wtGeneration.current) return;
+    try {
+      if (saved) {
+        if (saved.plot) bridgeRef.current.showTourPlot(saved.plot, id !== latest);
+      } else {
+        for (const [summary, action] of step.run ?? []) {
+          log.push({ kind: 'tool', summary, text: await action(bridgeRef.current) });
+          await paintYield();
+          if (generation !== wtGeneration.current) return;
+        }
+        if (step.say && !stepAnchorsChoice(step)) log.push({ kind: 'assistant', text: step.say, local: true });
+        if (id !== DEMO_ENTRY.id) visits.current.set(id, { log, plot: bridgeRef.current.captureTourPlot() });
       }
-      await paintYield();
+    } catch (err: unknown) {
+      if (generation !== wtGeneration.current) return;
+      const message = err instanceof Error ? err.message : String(err);
+      setWtLog([...log, { kind: 'error', text: `That step didn’t complete: ${message}` }]);
+      setWtFailed(true);
+      setOpen(true);
+      setWtBusy(false);
+      return;
     }
-    // Anchored steps speak through their bubble ONLY — logging the same prose
-    // showed it a second time in the panel the moment the step advanced.
-    setWtLog(prev => stepAnchorsChoice(step)
-      ? [...prev, ...notes]
-      : [...prev, ...notes, { kind: 'assistant', text: step.say, local: true }]);
+    setWtLog(log);
     setWtBusy(false);
     // After the step's own effects have painted: the section being pointed at
     // may not have existed until this step loaded the data that reveals it.
     if (step.highlight) {
       await paintYield();
+      if (generation !== wtGeneration.current) return;
       // Anchored steps bring the coach bubble, whose tail is the pointer —
       // the ring's own arrow would be a second one aimed at the same spot.
       wtHighlight.current = bridgeRef.current.holdHighlight(step.highlight, { arrow: !stepAnchorsChoice(step) });
@@ -414,20 +454,27 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     // Snapshotted before anything moves, and offered back on the way out. The
     // walkthrough is the one place in the panel that mutates the workbench
     // without being asked turn by turn.
+    visits.current.clear();
     wtSnap.current = bridgeRef.current.snapshot();
     setWtUndo(null);
     setWtLog([]);
     setView('walkthrough');
-    onWalkthroughChange?.(true);
-    await enterStep(FIRST_STEP);
+    preparedDataset.current = null;
+    const generation = wtGeneration.current + 1;
+    await enterStep(DEMO_ENTRY.id);
+    if (generation !== wtGeneration.current) return;
+    preparedDataset.current = (bridgeRef.current.snapshot() as { activeId: number | null }).activeId;
+    setOpen(true);
   };
 
   const beginWalkthrough = () => {
     // Loading Iris over someone's own data is the one destructive path here, so
     // it asks first — and offers the save inline, since "go save your work"
     // that costs you the dialog is advice nobody takes.
-    if (bridgeRef.current.getState().datasets.length > 0) setStartDialog(true);
-    else void launchWalkthrough();
+    if (bridgeRef.current.getState().datasets.length > 0) {
+      setOpen(true);
+      setStartDialog(true);
+    } else void launchWalkthrough();
   };
 
   const greet = () => {
@@ -449,6 +496,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
   }, [apiKey]);
 
   const endWalkthrough = (to: 'assistant' | 'exit') => {
+    ++wtGeneration.current;
     dropHighlight();
     onWalkthroughChange?.(false);
     localStorage.setItem(LS.menuSeen, '1');
@@ -456,6 +504,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     const snap = wtSnap.current as { datasets?: unknown[] } | null;
     setWtUndo(snap?.datasets?.length ? snap : null);
     wtSnap.current = null;
+    visits.current.clear();
     if (to === 'assistant') {
       setView('chat');
       if (apiKey) greet();
@@ -474,22 +523,27 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
 
   const undoWalkthrough = () => {
     if (!wtUndo) return;
-    bridgeRef.current.restore(wtUndo);
+    const restored = bridgeRef.current.restore(wtUndo, 'walkthrough');
     setWtUndo(null);
-    setChat(prev => [...prev, { kind: 'tool', text: 'restored the workspace you had before the walkthrough' }]);
+    setChat(prev => [...prev, { kind: 'tool', text: restored === false ? 'Dataset locks changed. Your current workspace was kept.' : 'Restored your pre-walkthrough workspace.' }]);
   };
 
   // Let the page quit the walkthrough from beside the controls it disables
-  if (exitWalkthroughRef) exitWalkthroughRef.current = () => endWalkthrough('exit');
-  // …and start it from the empty state's "Load demo"
-  if (startWalkthroughRef) startWalkthroughRef.current = () => {
-    setOpen(true);
+  const canAdvanceToScores = view === 'walkthrough' && wtStepId === 'efa' && !wtBusy;
+  useImperativeHandle(canAdvanceToScores ? tourPlotScoresRef : null, () => () => enterStep('scores', 'Plot respondent scores'));
+  useImperativeHandle(exitWalkthroughRef, () => () => endWalkthrough('exit'));
+  const openRequestedDemo = useEffectEvent(() => {
     setShowSettings(false);
     beginWalkthrough();
-  };
+  });
+  useEffect(() => {
+    if (handledDemoRequest.current === demoRequest) return;
+    handledDemoRequest.current = demoRequest;
+    openRequestedDemo();
+  }, [demoRequest]);
 
   // Allow the rest of the app to open the panel with a prefilled question
-  if (askRef) askRef.current = (q: string) => {
+  useImperativeHandle(askRef, () => (q: string) => {
     if (view === 'walkthrough') endWalkthrough('assistant');
     setOpen(true);
     setView('chat');
@@ -502,15 +556,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     }
     setShowSettings(false);
     send(q);
-  };
-  // ...and to read/replace the conversation (session autosave, workspace load).
-  // Reassigned every render so `get` sees the current transcript.
-  if (convRef) {
-    convRef.current.handle = {
-      get: () => ({ entries: chat, history: historyRef.current }),
-      set: applyConversation,
-    };
-  }
+  });
 
   const primary = theme === 'primary';
   const panelCls = primary
@@ -523,26 +569,31 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
     ? 'bg-white border border-[#111111] text-[#111111]'
     : 'bg-[var(--input)] border border-[var(--border)] text-[var(--foreground)]';
 
-  if (!open) {
-    // Filled red on both themes. Terminal's --primary is its red; the
-    // outlined-green version this replaces read as one more piece of panel
-    // chrome rather than the way in to the assistant.
-    return (
-      <button
-        // startTransition: mounting the whole panel (dynamic chunks, markdown
-        // pipeline) in the click's own task blocked the pressed-state frame
-        // for ~300ms — the launcher's INP flag on the preview deployment.
-        onClick={() => startTransition(() => setOpen(true))}
-        title="Open the assistant"
-        className={`absolute bottom-4 z-40 flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-150 ${primary
-          ? 'bauhaus-btn bg-[var(--p-red)] text-white'
-          : 'bg-[var(--primary)] border border-[var(--primary)] text-white hover:brightness-110'}`}
-        style={{ right: layout.right }}
-      >
-        <Sparkles className="w-4 h-4" /> Assistant
-      </button>
-    );
-  }
+  const chooseStep = (choice: TourChoice) => {
+    if (!choice.next) return endWalkthrough(choice.then ?? 'exit');
+    if (wtStepId === DEMO_ENTRY.id) {
+      if (choice.next === DEMO_ENTRY.id || preparedDataset.current !== (bridgeRef.current.snapshot() as { activeId: number | null }).activeId) {
+        beginWalkthrough();
+        return;
+      }
+      onWalkthroughChange?.(true);
+      void enterStep(FIRST_STEP);
+      return;
+    }
+    void enterStep(choice.next, choice.label);
+  };
+
+  const step = walkthroughStep(wtStepId);
+  const previous = WALKTHROUGH[walkthroughIndex(wtStepId) - 1];
+  const back = view === 'walkthrough' && !wtBusy && !wtFailed && previous && visits.current.has(previous.id)
+    ? <PreviousStepButton previous={previous.title} primary={primary} onClick={() => void enterStep(previous.id)} />
+    : undefined;
+  const nextLabel = (choice: TourChoice) => choice.next && visits.current.has(choice.next)
+    ? walkthroughStep(choice.next)?.title ?? choice.label : choice.label;
+  const callout = view === 'walkthrough' && !wtBusy && !wtFailed && step?.highlight && stepAnchorsChoice(step)
+    ? <AnchoredCallout nextStep={step.choices[0].next} target={step.highlight} title={step.title} say={step.say} label={nextLabel(step.choices[0])}
+        back={back} primary={primary} nextRef={tourNext} onClick={() => chooseStep(step.choices[0])} />
+    : null;
 
   const settingsMode = view === 'chat' && (!apiKey || showSettings);
   // The menu sizes to its content; a transcript needs the full panel height.
@@ -568,7 +619,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
           style: { height: layout.h } as React.CSSProperties,
         };
 
-  return (
+  const panel = open ? (
     <div ref={panelRef} {...rootProps}>
       {/* resize handles per dock mode */}
       {(dock === 'float' || dock === 'right') && (
@@ -591,26 +642,6 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
           {view === 'walkthrough'
             ? <><Compass className="w-3.5 h-3.5" /> Walkthrough</>
             : <><Sparkles className="w-3.5 h-3.5" /> Assistant</>}
-          {view !== 'walkthrough' && (
-            // Session-level data access at a glance: just the icon. 'mixed'
-            // runs private (the minimum of the loaded datasets' modes) and the
-            // title says why. Clicking opens the access-info dialog for the
-            // active dataset — modes themselves are locked at upload.
-            <button
-              onClick={onAccessClick}
-              disabled={!onAccessClick}
-              className={`p-0.5 border border-current/30 opacity-70 ${onAccessClick ? 'hover:opacity-100 cursor-pointer' : 'cursor-default'}`}
-              aria-label={accessMode === 'open' ? 'Full data access — click for details' : 'Aggregates only — click for details'}
-              title={(accessMode === 'open'
-                ? 'Full data access: every loaded dataset is marked public/open, so the assistant may read raw rows.'
-                : accessMode === 'mixed'
-                  ? 'Aggregates only: some datasets are open, but at least one is private, so the whole conversation runs at the private level.'
-                  : 'Aggregates only: the assistant sees column summaries, never raw rows.')
-                + (onAccessClick ? ' Click for details — modes are set when a dataset is added.' : '')}
-            >
-              {accessMode === 'open' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-            </button>
-          )}
         </span>
         <span className="flex items-center gap-1" onPointerDown={e => e.stopPropagation()}>
           {/* The menu stops being the front door after the first visit, so it
@@ -643,7 +674,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
               <Settings2 className="w-4 h-4" />
             </button>
           )}
-          <button onClick={() => setOpen(false)} title="Minimize — your conversation is kept" className="p-1 hover:opacity-60 cursor-pointer">
+          <button ref={panelToggle} onClick={() => setOpen(false)} title="Minimize — your conversation is kept" className="p-1 hover:opacity-60 cursor-pointer">
             <Minus className="w-4 h-4" />
           </button>
         </span>
@@ -657,14 +688,9 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
           log={wtLog}
           stepId={wtStepId}
           busy={wtBusy}
+          failed={wtFailed}
           scrollRef={wtScrollRef}
-          onChoose={choice => {
-            if (!choice.next) return endWalkthrough(choice.then ?? 'exit');
-            // Echo the press as a user turn before the next beat arrives, so the
-            // transcript reads as an exchange and each step has a visible start.
-            setWtLog(prev => [...prev, { kind: 'user', text: choice.label }]);
-            void enterStep(choice.next);
-          }}
+          onChoose={chooseStep} back={back} nextLabel={nextLabel} nextRef={tourNext}
           onSkip={() => endWalkthrough('exit')}
         />
       ) : settingsMode ? (
@@ -707,7 +733,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
                   ▸ {e.text}
                 </div>
               ) : (
-                <div key={i} className={`text-xs leading-relaxed ${e.kind === 'assistant' ? '' : 'whitespace-pre-wrap'} ${e.kind === 'user'
+                <div key={i} role={e.kind === 'error' ? 'alert' : undefined} className={`text-xs leading-relaxed ${e.kind === 'assistant' ? '' : 'whitespace-pre-wrap'} ${e.kind === 'user'
                   ? (primary ? 'font-bold' : 'text-[var(--system-green)]')
                   : e.kind === 'error' ? 'text-red-500' : ''}`}>
                   {e.kind === 'user' && <span className="opacity-50">&gt; </span>}
@@ -780,7 +806,7 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
               </button>
             </div>
             <p className="text-[9px] leading-snug opacity-40">
-              Sends column names &amp; summary stats to {baseURL.includes('openrouter') ? 'OpenRouter' : 'your API endpoint'} — never raw data rows.
+              Sends chat and permitted summaries to {baseURL.includes('openrouter') ? 'OpenRouter' : 'your API endpoint'}.
             </p>
           </div>
         </>
@@ -794,14 +820,27 @@ const AssistantPanelInner = ({ bridgeRef, theme, askRef, convRef, onConversation
         onCancel={() => setStartDialog(false)}
       />}
     </div>
+  ) : (
+    <button
+      ref={panelToggle}
+      onClick={() => startTransition(() => setOpen(true))}
+      title={view === 'walkthrough' ? 'Open the walkthrough panel' : 'Open the assistant'}
+      className={`absolute bottom-4 z-40 flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-150 ${primary
+        ? 'bauhaus-btn bg-[var(--p-red)] text-white'
+        : 'bg-[var(--primary)] border border-[var(--primary)] text-white hover:brightness-110'}`}
+      style={{ right: layout.right }}
+    >
+      {view === 'walkthrough' ? <><Compass className="w-4 h-4" /> Walkthrough</> : <><Sparkles className="w-4 h-4" /> Assistant</>}
+    </button>
   );
+  return <>{callout}{panel}</>;
 };
 
 // The front door: two ways in, and the one that costs nothing comes first.
 //
 // Before this, a visitor without an API key met the settings form and nothing
 // else — the app asked for a credential before showing what it was for. The
-// walkthrough needs no key, no account and no network, so it leads.
+// walkthrough needs no model key or account; it loads the demo from the app host.
 const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
   primary: boolean,
   hasKey: boolean,
@@ -821,8 +860,8 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
           <Compass className="w-3.5 h-3.5" /> Guided walkthrough
         </span>
         <span className="block mt-1 text-[10px] leading-snug opacity-70">
-          {WALKTHROUGH_STEPS} steps on the built-in Iris demo. Click through at your own pace —
-          no API key, nothing leaves your browser.
+          {WALKTHROUGH_STEPS} steps with Iris and a synthetic survey. Click through at your own pace —
+          no API key or model calls; analysis runs in your browser.
         </span>
       </button>
       <button onClick={onAssistant} className={`w-full p-3 text-left cursor-pointer ${card}`}>
@@ -849,17 +888,27 @@ const PanelMenu = ({ primary, hasKey, onWalkthrough, onAssistant }: {
 // position, tracking the anchor's rect on the highlight ring's 100ms cadence;
 // renders nothing while the anchor is off screen.
 const CALLOUT_W = 300;
-const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick }: {
+const PreviousStepButton = ({ previous, primary, onClick }: { previous: string; primary: boolean; onClick: () => void }) => (
+  <button type="button" onClick={onClick} aria-label={`Previous step: ${previous}`} title={`Back to ${previous}`}
+    className={`flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-sm hover:bg-current/10 focus-visible:outline-2 ${primary ? 'text-[var(--p-red)]' : 'text-[var(--system-green)]'}`}>
+    <ArrowLeft size={15} strokeWidth={2.25} aria-hidden="true" />
+  </button>
+);
+
+const AnchoredCallout = ({ target, title, say, label, primary, back, nextRef, nextStep, onClick }: {
+  nextStep: string | null,
+  back?: React.ReactNode,
   target: string,
   title: string,
   say: string,
   label: string,
-  disabled: boolean,
+  nextRef: React.RefObject<HTMLButtonElement | null>,
   primary: boolean,
   onClick: () => void,
 }) => {
   const [pos, setPos] = useState<{ left: number; top: number; tailTop: number } | null>(null);
   const card = useRef<HTMLDivElement>(null);
+  const scoreStep = target === 'factor-score-rows';
   useEffect(() => {
     const place = () => {
       const el = document.querySelector(`[data-guide="${target}"]`);
@@ -886,6 +935,7 @@ const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick
   return createPortal(
     <div
       ref={card}
+      data-walkthrough-target={target}
       role="dialog"
       aria-label={title}
       style={{
@@ -893,7 +943,7 @@ const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick
         width: CALLOUT_W, zIndex: 96,
         ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.5)' : 'rgba(16, 255, 80, 0.4)',
       }}
-      className={`wt-anchored-glow p-3 text-xs leading-relaxed ${primary
+      className={`${scoreStep ? '' : 'wt-anchored-glow'} p-3 text-xs leading-relaxed ${primary
         ? 'bg-white border-[3px] border-[#111111] text-[#111111]'
         : 'bg-black border border-[var(--system-green)]/60 text-[var(--foreground)]'}`}
     >
@@ -904,14 +954,15 @@ const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick
           borderTop: '8px solid transparent', borderBottom: '8px solid transparent',
           borderRight: primary ? '10px solid #111111' : '10px solid var(--system-green)' }}
       />
-      <div className={`text-[10px] uppercase tracking-widest font-bold mb-1.5 ${primary ? 'text-[var(--p-red)]' : 'text-[var(--system-green)]'}`}>
-        {title}
+      <div className={`flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest font-bold mb-1.5 ${primary ? 'text-[var(--p-red)]' : 'text-[var(--system-green)]'}`}>
+        {title}{back}
       </div>
       <AssistantMarkdown text={say} />
       <button
         onClick={onClick}
-        disabled={disabled}
-        className={`mt-2.5 w-full py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer ${primary
+        ref={nextRef}
+        data-next-step={nextStep}
+        className={`${scoreStep ? 'wt-next-action' : ''} mt-2.5 w-full py-2 px-3 text-[11px] font-bold disabled:opacity-30 cursor-pointer ${primary
           ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
           : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
       >
@@ -922,19 +973,47 @@ const AnchoredCallout = ({ target, title, say, label, disabled, primary, onClick
   );
 };
 
-const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSkip }: {
+const WalkthroughView = ({ primary, log, stepId, busy, failed, scrollRef, onChoose, onSkip, back, nextLabel, nextRef }: {
+  back?: React.ReactNode,
+  nextLabel: (choice: TourChoice) => string,
+  nextRef: React.RefObject<HTMLButtonElement | null>,
   primary: boolean,
-  log: ChatEntry[],
+  log: TourEntry[],
   stepId: string,
   busy: boolean,
+  failed: boolean,
   scrollRef: React.RefObject<HTMLDivElement | null>,
-  onChoose: (choice: { label: string; next: string | null; then?: 'assistant' | 'exit' }) => void,
+  onChoose: (choice: TourChoice) => void,
   onSkip: () => void,
 }) => {
   const index = walkthroughIndex(stepId);
   const step = walkthroughStep(stepId);
-  const anchored = !!step && stepAnchorsChoice(step);
+  const anchored = !failed && !!step && stepAnchorsChoice(step);
   const accent = primary ? 'var(--p-red)' : 'var(--system-green)';
+
+  const receipt = (entry: TourEntry, index: number) => (
+    <details key={index} className={`text-xs ${primary ? 'text-[var(--p-blue)]' : 'text-[var(--system-green)]'}`}>
+      <summary className="list-item cursor-pointer font-medium">{entry.summary}</summary>
+      <p className="mt-1 pl-4 whitespace-pre-wrap text-[var(--foreground)]">{entry.text}</p>
+    </details>
+  );
+
+  if (step === DEMO_ENTRY) return (
+    <div className="space-y-3 p-3">
+      {busy ? <p role="status" className="text-xs">Loading Iris…</p> : failed ? <>
+        <p role="alert" className="text-xs">{log.at(-1)?.text}</p>
+        <button type="button" className="underline" onClick={() => onChoose({ label: 'Retry', next: DEMO_ENTRY.id })}>Retry</button>
+        <button type="button" className="ml-3 underline" onClick={onSkip}>Exit demo</button>
+      </> : <>
+        {log.filter(entry => entry.kind === 'tool').map(receipt)}
+        <button type="button" ref={nextRef} onClick={() => onChoose(DEMO_ENTRY.choices[0])}
+          style={{ ['--wt-glow' as string]: 'rgba(255, 214, 0, 0.5)' }}
+          className="wt-anchored-glow w-full cursor-pointer border-2 border-black bg-[#ffd600] px-3 py-2.5 text-sm font-bold text-black focus-visible:outline-2 focus-visible:outline-offset-2">
+          {DEMO_ENTRY.choices[0].label}
+        </button>
+      </>}
+    </div>
+  );
 
   return (
     <>
@@ -942,9 +1021,9 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
         {/* The button you pressed is echoed as your turn, and rules off the beat
             above it. Without the break the whole tour ran together as one wall
             of text with no seam between one step and the next.
-            While a bubble leads (anchored steps — all of the tour's middle),
-            the panel minimizes to the step counter alone: the log returns when
-            a panel-voiced step (welcome, done) has the floor again. */}
+            When a reader reopens the panel during a bubble, show the step list.
+            Panel-led steps show their transcript and navigation here. */}
+        {!anchored && back && <div className="sticky top-0 z-10 float-right ml-2 bg-[var(--background)]">{back}</div>}
         {!anchored && log.map((e, i) => (
           e.kind === 'user' ? (
             <div
@@ -955,12 +1034,8 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
             >
               <span className="opacity-50">&gt; </span>{e.text}
             </div>
-          ) : e.kind === 'tool' ? (
-            <div key={i} className={`text-[10px] uppercase tracking-wider ${primary ? 'text-[var(--p-blue)]' : 'text-[var(--system-green)]/70'}`}>
-              ▸ {e.text}
-            </div>
-          ) : (
-            <div key={i} className={`text-xs leading-relaxed ${e.kind === 'error' ? 'text-red-500 whitespace-pre-wrap' : ''}`}>
+          ) : e.kind === 'tool' ? receipt(e, i) : (
+            <div key={i} role={e.kind === 'error' ? 'alert' : undefined} className={`text-xs leading-relaxed ${e.kind === 'error' ? 'text-red-500 whitespace-pre-wrap' : ''}`}>
               {e.kind === 'error' ? e.text : <AssistantMarkdown text={e.text} />}
             </div>
           )
@@ -969,11 +1044,11 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
 
         {/* Where you are and what is left. An in-app tour of unknown length is
             the one people abandon, so the whole shape of it is on screen. */}
-        {!busy && (
+        {!busy && !failed && (
           <div className={`space-y-1 ${anchored ? '' : `mt-3 pt-2 ${primary ? 'border-t border-[#111111]/20' : 'border-t border-[var(--system-green)]/20'}`}`}>
-            <div className="text-[9px] uppercase tracking-widest opacity-40">
+            <details><summary className="list-item cursor-pointer text-[10px] uppercase tracking-widest opacity-70">
               Step {index + 1} of {WALKTHROUGH_STEPS}
-            </div>
+            </summary>
             {WALKTHROUGH.map((s, i) => (
               <div
                 key={s.id}
@@ -985,6 +1060,8 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
                 <span className={i < index ? 'line-through' : ''}>{s.title}</span>
               </div>
             ))}
+            </details>
+            {stepId === FIRST_STEP && <details className="text-xs"><summary className="list-item cursor-pointer">Tip: move this panel</summary>Use the dock buttons in the header to move it to the right, bottom, or a floating window.</details>}
             {/* In-chat steps (no bubble to anchor to) put the way forward HERE,
                 right under the timeline the eye is already on — the same big
                 yellow glowing button the bubbles use, not a small blue one lost
@@ -992,13 +1069,14 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
             {!anchored && (step?.choices ?? []).map(choice => (
               <button
                 key={choice.label}
+                ref={choice === step?.choices[0] ? nextRef : undefined}
                 onClick={() => onChoose(choice)}
                 style={{ ['--wt-glow' as string]: primary ? 'rgba(255, 214, 0, 0.5)' : 'rgba(16, 255, 80, 0.4)' }}
                 className={`wt-anchored-glow mt-2 w-full py-2.5 px-3 text-xs font-bold cursor-pointer ${primary
                   ? 'bauhaus-btn bg-[var(--p-yellow)] text-[#111111]'
                   : 'border border-[var(--system-green)]/60 bg-black text-[var(--system-green)] hover:bg-[var(--system-green)]/10'}`}
               >
-                {choice.next ? `Next: ${choice.label}` : choice.label}
+                {choice.next ? `Next: ${nextLabel(choice)}` : choice.label}
               </button>
             ))}
           </div>
@@ -1006,27 +1084,7 @@ const WalkthroughView = ({ primary, log, stepId, busy, scrollRef, onChoose, onSk
       </div>
 
       <div className="px-3 pb-2 pt-1 flex-shrink-0 space-y-1.5">
-        {/* The way forward never lives down here: anchored steps carry it in
-            their bubble, in-chat steps put it at the end of the timeline above.
-            This strip only hosts the bubble portal and its pointer hint. */}
-        {anchored && step?.highlight && (
-          <>
-            {!busy && (
-              <AnchoredCallout
-                target={step.highlight}
-                title={step.title}
-                say={step.say}
-                label={step.choices[0].label}
-                disabled={busy}
-                primary={primary}
-                onClick={() => onChoose(step.choices[0])}
-              />
-            )}
-            <div className="text-[10px] opacity-60 py-1.5 px-2">
-              ▸ Follow the bubble next to the highlighted area in the sidebar.
-            </div>
-          </>
-        )}
+        {anchored && <p className="text-[10px] opacity-60 py-1.5 px-2">Follow the highlighted bubble.</p>}
 
         {/* The way out lives on the end of the dead composer rather than as a
             link under it: that row is where the eye already goes when typing
@@ -1121,7 +1179,7 @@ const SettingsForm = ({ primary, inputCls, apiKey, model, baseURL, models, authE
       <div className="space-y-1">
         <div className={labelCls}>
           Model
-          <InfoTip text="Suggestions are the newest full-strength model per family. Only models that support tool calling are allowed — others can't drive the app." />
+          <InfoTip text="Choose a suggested model or search your endpoint’s tool-capable models." />
         </div>
         {suggested.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -1150,7 +1208,7 @@ const SettingsForm = ({ primary, inputCls, apiKey, model, baseURL, models, authE
       <div className="space-y-1">
         <div className={labelCls}>
           Endpoint
-          <InfoTip text="Any OpenAI-compatible endpoint works. Default is OpenRouter; point it at a local runtime (e.g. Ollama) for a fully offline assistant." />
+          <InfoTip text="Any OpenAI-compatible endpoint works. Default is OpenRouter. A local runtime (e.g. Ollama) can perform model inference on this computer; this setting does not disable feedback or other browser requests." />
         </div>
         <input type="text" value={url} onChange={e => setUrl(e.target.value)}
           className={`w-full px-2 py-1.5 text-xs outline-none ${inputCls}`} />
@@ -1227,7 +1285,7 @@ const FeedbackControls = ({ primary, state, onRate, onReason, onDismiss }: {
           />
           <label className="flex items-start gap-1.5 cursor-pointer opacity-70">
             <input type="checkbox" checked={include} onChange={e => setInclude(e.target.checked)} className="mt-0.5" />
-            <span>Include this exchange (your message + the reply — may contain column names/summaries) to help debugging</span>
+            <span>Include this exchange (your message + the reply, including any data they contain) with feedback</span>
           </label>
           <div className="flex gap-2 justify-end">
             <button onClick={onDismiss} className="underline-offset-2 hover:underline opacity-50 cursor-pointer">no thanks</button>

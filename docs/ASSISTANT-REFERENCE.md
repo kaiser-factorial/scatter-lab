@@ -44,18 +44,19 @@ reference, automatic guide and About/help disclosures reuse that guidance:
 | Kruskal–Wallis | At least two independent groups; at least 5 usable numeric values per group; not all values equal |
 | Pearson chi-square | Two categorical variables with at least two observed levels each; positive usable margins; every expected cell count at least 5 |
 
-Private mode also requires at least 5 usable observations per reported group or
+Reporting also requires at least 5 usable observations per reported group or
 contingency margin. Nonfinite or degenerate results are rejected. The returned
 p-value approximation must be named; these are not exact tests. These release
 limits are conservative eligibility rules, not universal calibration guarantees.
-Independence requires substantive confirmation; paired and clustered inference
-are unsupported. The assistant has no significance-test sidebar to point users
-to while that entry point remains disabled.
+The assistant must ask if the sampling design is unclear. New tests require
+an explicit, user-confirmed `design: "independent"`; omitted, unknown, paired
+and clustered designs do not execute. Reading a saved result does not require
+this field or rerun the test. The assistant has no significance-test sidebar
+to point users to while that entry point remains disabled.
 
 ### Read-only package tools
 
-Two read-only tools inspect the `@scatterlab/stats` package in both private and
-open data modes:
+Two read-only tools inspect the `@scatterlab/stats` package:
 
 - `search_app_reference`: search published file paths and contents, or list files
   with an empty query. Results contain paths, source hashes, line numbers and
@@ -107,7 +108,7 @@ results; no separate embedding/search provider receives the query.
 
 `predev` and `prebuild` build the numerical package and then generate the source
 snapshot. `pretest` and `ci:fast` generate it for tests. Generated assets and the
-manifest are ignored by Git. `npm run build:reference` in `frontend/` can refresh
+manifest are ignored by Git. `pnpm run build:reference` in `frontend/` can refresh
 the reference explicitly; it snapshots source and does not compile the package.
 
 The `dev` launcher runs the normal frontend development script, which watches
@@ -125,8 +126,8 @@ source version.
 Verification commands, from `frontend/`:
 
 ```sh
-npm run ci:fast
-npm run build
+pnpm run ci:fast
+pnpm run build
 # Start/reuse the local app from the repository with the required launcher:
 dev start frontend --detach --json --yes
 node scripts/check-app-reference-browser.mjs http://localhost:3000

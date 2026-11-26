@@ -18,7 +18,7 @@ import { GUIDE_TARGETS } from './assistant';
 // what caused finding A3, and this would have been a fourth.
 //
 // The spine is deliberately linear and follows the sidebar top to bottom
-// (Data → Variables → PCA → Cluster → View → Export), so the timeline the panel
+// (Iris PCA and clustering, then survey EFA and export), so the timeline the panel
 // draws is just this array in order and the user's position in it is one index.
 
 export type GuideTarget = (typeof GUIDE_TARGETS)[number];
@@ -33,7 +33,7 @@ export type GuideTarget = (typeof GUIDE_TARGETS)[number];
 // loop documents at length. Splitting the step into actions lets the runner
 // re-read `bridgeRef.current` and paint-yield between each, which makes the
 // correct thing the only thing a step can express.
-export type StepAction = (bridge: AppBridge) => string | Promise<string>;
+export type StepAction = [summary: string, execute: (bridge: AppBridge) => string | Promise<string>];
 
 export type WalkthroughStep = {
   id: string;
@@ -71,145 +71,97 @@ export const stepAnchorsChoice = (step: WalkthroughStep): boolean =>
 
 const IRIS_VARIABLES = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm'];
 
-// The 3D view the tour opens and returns to: the flower measurements themselves,
-// as distinct from the PC score space it detours through.
+// The Iris welcome starts with three of the original flower measurements.
 const FLOWER_VIEW = { x: 'PetalLengthCm', y: 'PetalWidthCm', z: 'SepalLengthCm' };
+
+export const DEMO_ENTRY: WalkthroughStep = {
+  id: 'load-iris', title: 'Demo', say: '',
+  run: [['Iris demo loaded', bridge => bridge.loadDemoData('iris')]],
+  choices: [{ label: 'Begin demo walkthrough', next: 'welcome' }],
+};
 
 export const WALKTHROUGH: WalkthroughStep[] = [
   {
     id: 'welcome',
     title: 'Welcome',
+    run: [['Settings applied', bridge => bridge.setPlot({ ...FLOWER_VIEW, color_by: 'Species', shape_by: 'none', view_mode: '3D' })]],
     say:
-      'This is a guided walkthrough of Scatter Lab, using the built-in **Iris** demo — 150 flowers, ' +
-      'four measurements, three species. It takes about five minutes.\n\n' +
-      'I drive the workbench as we go: adding the data, assigning axes, running a PCA, clustering ' +
-      'it, and pointing at each control as I describe it.',
+      'Welcome to **Scatter Lab**! We’ve loaded the **Iris dataset**. Each dot is a flower; its colour shows its species.\n\n' +
+      'We’ll explore the flower measurements with PCA, then try factor analysis on a survey.',
     choices: [{ label: 'Start with the Data section', next: 'data' }],
   },
   {
     id: 'data',
     title: 'Data',
     highlight: 'upload-dropzone',
-    // The demo loads on the NEXT step — teach the door, then walk through it.
-    // Loading here would put data on screen before the user has seen where
-    // data comes from. (The advance button floats beside the dropzone, like
-    // every sidebar-pointing step — see stepAnchorsChoice.)
-    say:
-      'Here is where you add your own data — drop a **CSV, XLSX, or Parquet** file on the ' +
-      'highlighted box, or click it to browse. A dialog then configures the add: the data mode, ' +
-      'missing-value scanning, and an optional components file.',
-    choices: [{ label: 'Add the Iris demo', next: 'data-added' }],
-  },
-  {
-    id: 'data-added',
-    title: 'Dataset added',
-    highlight: 'datasets-list',
-    // Idempotent, so arriving with Iris already loaded is fine. Private mode
-    // on purpose: the tour should show the default most real data gets, not
-    // the open mode the demo uses elsewhere.
-    run: [b => b.loadDemoData('private')],
-    say:
-      'The **Iris dataset** is in, with its Private data mode badge, a gear for its settings, and ' +
-      'an ✕ to remove it. Several datasets can be loaded at once; clicking one makes it active.\n\n' +
-      '**Private mode** is default: everything computes in your browser and the AI assistant sees ' +
-      'only column names, aggregate summaries and analysis results — never raw rows. The mode is ' +
-      'chosen and locked in in the add dialog.',
+    say: 'Drop a **CSV, XLSX, or Parquet** file here, or click to browse.\n\nFor this demo, we’ve loaded the **Iris dataset** for you.',
     choices: [{ label: 'Look at the variables', next: 'variables' }],
   },
   {
     id: 'variables',
     title: 'Variables',
     highlight: 'variables',
-    say:
-      'The **Variables** panel is both the data profile and the plot control.\n\n' +
-      'Each row shows a column\'s **type**, **range or category count**, **missing values**, and a ' +
-      '**mini histogram**. The small buttons do the plotting:\n\n' +
-      '- **X**, **Y**, **Z** — put a numeric column on that axis\n' +
-      '- **C** — colour the points by it\n' +
-      '- **S** — encode it as the marker shape',
+    say: 'Choose a variable for each part of your plot.\n\n- **X, Y, Z** — axis variables\n- **C** — marker color\n- **S** — marker shape',
     choices: [{ label: 'Run a PCA on the measurements', next: 'pca' }],
   },
   {
     id: 'pca',
     title: 'PCA',
     highlight: 'pca',
-    say:
-      'To run a PCA: tick the variables, choose how many components to keep, and press Run PCA. ' +
-      'One has just been run on the four flower measurements with `Id` excluded.\n\n' +
-      '*Standardize* is on, which makes this a correlation-based PCA. The scree bars show how much ' +
-      'variance each component explains, and *Top PC contributors* lists which measurements load on ' +
-      'each one.\n\n' +
-      'The new `PC1`–`PC3` columns are now on the axes: a look into four variables plotted in three ' +
-      'dimensions.',
-    run: [b => b.runPCA({ variables: IRIS_VARIABLES, n_components: 3, standardize: true })],
+    say: 'The axes show **PC1–PC3** from four standardized flower measurements. The scree bars show how much variance each component explains.',
+    run: [['PCA result', b => b.runPCA({ variables: IRIS_VARIABLES, n_components: 3, standardize: true })]],
     choices: [{ label: 'Cluster the PC scores', next: 'cluster' }],
   },
   {
     id: 'cluster',
     title: 'Clustering',
-    highlight: 'cluster',
-    say:
-      'K-means clustering (k=3) has just run on those 3 PC values. **Clustering always runs on the ' +
-      'plotted axes**.\n\n' +
-      'Colour is now the cluster, and `Species` has moved onto the **shape** channel, so you are ' +
-      'reading two variables at once: do the found clusters line up with the known species? ' +
-      '*Cluster info by* below the button cross-tabulates the two, as *% of cluster* or *% of group*, ' +
-      'and saves as a heatmap PNG.',
+    highlight: 'cluster-breakdown',
+    say: '**Color** shows cluster and **shape** shows species. In the sidebar, look under **Cluster Info by → Species**. **% of cluster** shows each species’ share of that cluster.',
     run: [
-      b => b.runClustering('KMEANS', { k: 3, standardize: false }),
-      b => b.setPlot({ shape_by: 'Species' }),
-      b => b.getClusterBreakdown('Species'),
+      ['Clustering result', b => b.runClustering('KMEANS', { k: 3, standardize: false })],
+      ['Shape settings', b => b.setPlot({ shape_by: 'Species' })],
+      ['Species breakdown', b => b.getClusterBreakdown('Species', { showInSidebar: true })],
     ],
-    choices: [{ label: 'Compare two views side by side', next: 'compare' }],
+    choices: [{ label: 'Load the synthetic survey', next: 'survey' }],
   },
   {
-    id: 'compare',
-    title: 'Compare',
-    // Anchored on the View section like every other sidebar step. The panel
-    // still docks to the bottom first (two plots side by side need the width;
-    // pinning beside a right-docked panel produces two unreadable slivers),
-    // but the move is no longer narrated.
-    highlight: 'view',
-    say:
-      'The **View** section switches 2D/3D, toggles the axis grids, renames axis labels for exports, ' +
-      'and starts the auto-rotation you can see now. Drag the plot to rotate it yourself, scroll to zoom.\n\n' +
-      '**Pin View** freezes the current plot as a snapshot and tiles the canvas — up to four panes — so ' +
-      'different axes, colourings or cluster runs sit next to each other. The flat ' +
-      '`PC1 × PC2` view has been pinned, and the live plot is back on the flower measurements, still ' +
-      'coloured by cluster and shaped by species.',
-    run: [
-      // Dock first: pinning into the narrow strip beside a right-docked panel
-      // produces two unreadable slivers.
-      b => b.setAssistantDock('bottom'),
-      b => b.setPlot({ x: 'PC1', y: 'PC2', view_mode: '2D' }),
-      b => b.pinView(),
-      b => b.setPlot({ ...FLOWER_VIEW, view_mode: '3D' }),
-      b => b.controlView({ rotation: 'start' }),
-    ],
+    id: 'survey', title: 'Synthetic survey', highlight: 'datasets-list',
+    run: [['Survey loaded', b => b.loadDemoData('survey', 'development')]],
+    say: 'Now we’ll explore EFA with a dataset of synthetic survey responses.\n\nBoth datasets are loaded. The survey includes **Likert responses and demographic information** for 1,500 synthetic respondents.',
+    choices: [{ label: 'See the survey split', next: 'split' }],
+  },
+  {
+    id: 'split', title: 'Development / holdout', highlight: 'survey-split',
+    say: 'At import, **Create development / holdout sets** splits the survey. We’ll fit the EFA on Development. Holdout stays locked.',
+    choices: [{ label: 'Review EFA settings', next: 'efa-setup' }],
+  },
+  {
+    id: 'efa-setup', title: 'EFA settings', highlight: 'efa-settings',
+    run: [['Settings selected', b => b.configureDemoSurvey()]],
+    say: 'In **PCA / EFA**, choose **EFA** for the eight Likert items.\n\n- **Polychoric correlations** for ordered responses\n- **MINRES extraction** to estimate two factors\n- **Promax rotation** so the factors can correlate',
+    choices: [{ label: 'Fit two factors with demo settings', next: 'efa' }],
+  },
+  {
+    id: 'efa', title: 'Factor loadings', run: [['Factor fit', b => b.fitDemoSurvey()]],
+    say: 'In the saved result, compare F1 and F2 for **Plan** (“I make a plan before starting a task.”).',
+    choices: [{ label: 'Plot respondent scores', next: 'scores' }],
+  },
+  {
+    id: 'scores', title: 'Factor scores', highlight: 'factor-score-rows', run: [['Respondent scores', b => b.scoreDemoSurvey()], ['Score plot settings', b => b.plotDemoScores()]],
+    say: 'Each dot is **one Development respondent**. The axes show their estimated F1 and F2 scores. **Color** shows gender.',
     choices: [{ label: 'See the export options', next: 'export' }],
   },
   {
     id: 'export',
     title: 'Export',
     highlight: 'export',
-    say:
-      'The **Export** section has two buttons. **Image** saves the active view as a **PNG** (1×, 2× or 4×), ' +
-      'an **SVG** of a 2D view, a rotating **GIF** of the 3D plot, or a self-contained interactive **HTML** ' +
-      'file that spins offline in any browser, with or without the title, legend and axes. **Data** writes ' +
-      'the dataset back out as CSV, TSV, XLSX or JSON — all rows or only the filtered ones, with or without ' +
-      'the PCA scores and cluster labels this app added.',
+    say: '- **Image** — save the plot\n- **Data** — save the rows\n- **Analysis record** — share the steps and settings',
     choices: [{ label: 'Finish the walkthrough', next: 'done' }],
   },
   {
     id: 'done',
     title: 'Done',
-    say:
-      'That is the tour: **load → inspect → decompose → cluster → compare → export**, which is also ' +
-      'the sidebar from top to bottom.\n\n' +
-      'The workspace is yours now — the Iris data, the PCA run and the clusters are all still loaded, ' +
-      'so nothing here is a dead end. Everything you just watched is also available to the AI ' +
-      'assistant, which can drive the same controls from a description of what you want.',
-    run: [b => b.controlView({ rotation: 'stop' })],
+    say: 'Both datasets are ready to explore. Switch between them in **Data**.',
     choices: [
       { label: 'Set up the assistant', next: null, then: 'assistant' },
       { label: 'Explore on my own', next: null, then: 'exit' },
@@ -219,11 +171,15 @@ export const WALKTHROUGH: WalkthroughStep[] = [
 
 export const WALKTHROUGH_STEPS = WALKTHROUGH.length;
 
+// A running preview can still hold a removed step during a hot update.
+const legacySteps: Readonly<Partial<Record<string, string>>> = { 'data-added': 'variables', compare: 'cluster' };
+const currentStepId = (id: string) => legacySteps[id] ?? id;
+
 export const walkthroughStep = (id: string): WalkthroughStep | undefined =>
-  WALKTHROUGH.find(s => s.id === id);
+  id === DEMO_ENTRY.id ? DEMO_ENTRY : WALKTHROUGH.find(s => s.id === currentStepId(id));
 
 export const walkthroughIndex = (id: string): number =>
-  WALKTHROUGH.findIndex(s => s.id === id);
+  WALKTHROUGH.findIndex(s => s.id === currentStepId(id));
 
 export const FIRST_STEP = WALKTHROUGH[0].id;
 

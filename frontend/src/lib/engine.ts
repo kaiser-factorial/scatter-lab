@@ -1,3 +1,4 @@
+import { availableColumn } from './columnOwnership';
 import { DataTable, asNumber, isNumericColumn, median, numericValues } from './table';
 
 // Ports backend/main.py's process_upload: median imputation, z-scaling,
@@ -142,7 +143,8 @@ export const processUpload = (df: DataTable, components: DataTable | null): Proc
     // there is no intermediate n-by-k of small arrays to allocate and then map
     // over three times (F22).
     const k = Math.min(pcCols.length, 3);
-    const pcNames = Array.from({ length: k }, (_, c) => `PC${c + 1}`);
+    const occupied = new Set(df.columns);
+    const pcNames = Array.from({ length: k }, (_, c) => availableColumn(`PC${c + 1}`, occupied));
     const pcData = pcNames.map(() => new Array<number>(n).fill(0));
     for (let c = 0; c < k; c++) {
       const out = pcData[c];
@@ -169,7 +171,7 @@ export const processUpload = (df: DataTable, components: DataTable | null): Proc
     // Per PC: variables ranked by |loading|, signed values kept
     const topContributors: TopContributors = {};
     for (let c = 0; c < k; c++) {
-      topContributors[`PC${c + 1}`] = intersect
+      topContributors[pcNames[c]] = intersect
         .map(({ v }, j) => ({ var: v, loading: Math.round(L[j][c] * 1000) / 1000 }))
         .sort((a, b) => Math.abs(b.loading) - Math.abs(a.loading))
         .slice(0, 5);

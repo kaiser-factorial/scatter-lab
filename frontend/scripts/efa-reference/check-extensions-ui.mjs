@@ -26,7 +26,7 @@ try {
     { timeout: 60000 },
   );
   await page.evaluate(() =>
-    window.__scatterlabBridge.current.loadDemoData("open"),
+    window.__scatterlabBridge.current.loadDemoData('iris'),
   );
   await page.waitForFunction(
     () => window.__scatterlabBridge.current.snapshot().datasets.length > 0,
@@ -171,9 +171,8 @@ try {
   await page.getByRole("button", { name: "Run EFA", exact: true }).click();
   const efa = page.getByRole("dialog", { name: /EFA ·/ });
   await expect(efa).toBeVisible({ timeout: 30000 });
-  await efa
-    .getByRole("button", { name: "Resampling stability", exact: true })
-    .click();
+  await efa.getByRole("button", { name: "Model checks", exact: true }).click();
+  await efa.getByLabel("Model check", { exact: true }).selectOption("stability");
   await efa.getByLabel("Resamples", { exact: true }).fill("10");
   await efa
     .getByRole("button", { name: "Run resampling stability", exact: true })

@@ -26,7 +26,7 @@ try {
     { timeout: 60000 },
   );
   await page.evaluate(async () =>
-    window.__scatterlabBridge.current.loadDemoData("open"),
+    window.__scatterlabBridge.current.loadDemoData('iris'),
   );
   await page.waitForFunction(
     () => window.__scatterlabBridge.current.snapshot().datasets.length > 0,
@@ -70,9 +70,9 @@ try {
   await page.getByRole("button", { name: "Run EFA", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: /EFA · Likert/ });
   await expect(dialog).toBeVisible({ timeout: 30000 });
-  await expect(
-    dialog.getByText("WLSMV fit and uncertainty", { exact: true }),
-  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Model checks", exact: true }).click();
+  await expect(dialog.getByLabel("Fit and uncertainty")).toBeVisible();
+  await dialog.getByRole("button", { name: "Loadings", exact: true }).click();
   await expect(dialog.getByTitle(longItem, { exact: true })).toBeVisible();
   await expect(
     dialog.getByRole("table", { name: "pattern heatmap", exact: true }),
@@ -84,7 +84,7 @@ try {
     .locator("td")
     .first()
     .innerText();
-  await dialog.getByRole("button", { name: "Structure", exact: true }).click();
+  await dialog.getByLabel("Loading matrix", { exact: true }).selectOption("structure");
   await expect(
     dialog.getByRole("table", { name: "structure heatmap", exact: true }),
   ).toBeVisible();
@@ -104,7 +104,7 @@ try {
     throw new Error(
       "Expected distinct oblique pattern and structure values in this fixture.",
     );
-  await dialog.getByRole("button", { name: "Pattern", exact: true }).click();
+  await dialog.getByLabel("Loading matrix", { exact: true }).selectOption("pattern");
   const csvDownload = page.waitForEvent("download");
   await dialog
     .getByRole("button", { name: "Export loadings CSV", exact: true })
@@ -113,8 +113,8 @@ try {
   const csvText = await readFile(await csvFile.path(), "utf8");
   if (!csvText.includes("pattern_SE_F1") || !csvText.includes(",wlsmv,"))
     throw new Error("Weighted CSV metadata missing");
-  await dialog.getByLabel("Saved run", { exact: true }).focus();
-  await expect(dialog.getByLabel("Saved run", { exact: true })).toBeFocused();
+  await dialog.getByLabel("Loading matrix", { exact: true }).focus();
+  await expect(dialog.getByLabel("Loading matrix", { exact: true })).toBeFocused();
   await mkdir(`${artifactDirectory}/screenshots`, { recursive: true });
   await page.screenshot({
     path: `${artifactDirectory}/screenshots/efa-weighted-loadings.png`,
@@ -128,6 +128,7 @@ try {
   await expect(dialog.getByLabel("Loading color legend")).toBeVisible();
   if ((await dialog.locator('[aria-label^="Comparison F1:"]').count()) !== 8)
     throw new Error("Expected separately colored comparison loading cells.");
+  await dialog.getByLabel("Review instrument").check();
   await page
     .getByLabel("Note item1", { exact: true })
     .fill("Keep content coverage under review.");
@@ -146,20 +147,18 @@ try {
     () => window.__scatterlabBridge.current.snapshot().datasets[0].efa.runs[0],
   );
   await page
-    .getByRole("button", { name: "Add scores to dataset", exact: true })
+    .getByRole("button", { name: "Save score columns only", exact: true })
     .click();
   await page.waitForFunction(() =>
     window.__scatterlabBridge.current
       .snapshot()
       .datasets[0].table.columns.some((c) => c.startsWith("FA1_")),
   );
-  await page
-    .getByRole("button", { name: "Pair sample sizes", exact: true })
-    .click();
+  await dialog.getByRole("button", { name: "Model checks", exact: true }).click();
+  await dialog.getByLabel("Model check", { exact: true }).selectOption("counts");
   await dialog.getByLabel("First row").first().fill("7");
-  await page
-    .getByRole("button", { name: "Factor correlations", exact: true })
-    .click();
+  await dialog.getByRole("button", { name: "Correlations", exact: true }).click();
+  await dialog.getByLabel("Correlation matrix", { exact: true }).selectOption("phi");
   await expect(dialog.getByLabel("First row").first()).toHaveValue("1");
   await mkdir(`${artifactDirectory}/screenshots`, { recursive: true });
   for (const theme of ["primary", "terminal"]) {

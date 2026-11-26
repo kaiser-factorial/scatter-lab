@@ -7,6 +7,14 @@ import type { DataTable } from '../../lib/table';
 import type { DecompositionAdvice } from '../../lib/decomposition-advice';
 import type { ConvergenceIssue } from '../../lib/convergence';
 import type { EfaSpec } from '../../lib/efa/types';
+import mixedFixture from '../../lib/__tests__/fixtures/efa/mixed.input.json';
+import { setTimeout as wait } from 'node:timers/promises';
+import { demoSurveySpec } from '../../lib/demo-survey';
+import { EfaService, type EfaJob } from '../../lib/efa/service';
+import { ComputeTrace } from '../../lib/efa/telemetry';
+import { prepareEfa } from '../../lib/efa/prepare';
+import { correlate } from '../../lib/efa/correlation';
+import { fitEfa, scoreEfa } from '../../lib/efa/fit';
 
 const captured = vi.hoisted(() => ({ bridgeRef: undefined as { current: AppBridge } | undefined, controller: undefined as EfaController | undefined }));
 // Keep Home, shared setup, category editor, and aggregate projection real. Only
@@ -21,7 +29,6 @@ vi.mock('next/dynamic', () => ({ default: (load: () => unknown) => {
   return () => null;
 } }));
 vi.mock('next-themes', () => ({ useTheme: () => ({ theme: 'primary', setTheme: vi.fn() }) }));
-vi.mock('ccru/components', () => ({ CyberStackGroup: () => null, CyberContainer: () => null, CyberPanel: () => null }));
 vi.mock('puxel', () => ({
   Accordion: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   AccordionItem: ({ children }: { children: ReactNode }) => <div>{children}</div>, Separator: () => null,
@@ -47,7 +54,7 @@ import Home from '../../app/page';
 import { EfaPanel } from '../EfaPanel';
 import { readTable } from '../../lib/parse';
 import { analyzeItemsAsync } from '../../lib/decomposition-advice-service';
-import { analyzeDecompositionItems, adviceForAssistant } from '../../lib/decomposition-advice';
+import { analyzeDecompositionItems } from '../../lib/decomposition-advice';
 import { EfaController } from '../../lib/efa/controller';
 
 const table: DataTable = {
@@ -98,43 +105,94 @@ async function input(label: string, value: string) {
     element.dispatchEvent(new Event('input', { bubbles: true }));
   });
 }
-async function upload(open = false) {
+async function upload() {
   const host = document.createElement('div'); document.body.append(host); root = createRoot(host);
   await act(async () => root!.render(<Home />));
   const file = document.querySelector<HTMLInputElement>('[data-guide="upload-dropzone"] input[type="file"]')!;
   Object.defineProperty(file, 'files', { configurable: true, value: [new File(['fixture'], 'responses.csv', { type: 'text/csv' })] });
   await act(async () => file.dispatchEvent(new Event('change', { bubbles: true })));
-  if (open) { await choice('Public / open data'); await choice('I confirm this dataset contains no personal'); }
+  expect(document.querySelector('[name="upload-data-mode"]')).toBeNull();
   await choice('Skip — my data has none'); await choice('No — use the full dataset'); await click('Add dataset');
   expect(captured.bridgeRef).toBeDefined();
+  await vi.waitFor(async () => {
+    await act(async () => { await wait(1); });
+    expect(bridge().getState().datasets).toHaveLength(1);
+  });
 }
 
-it('rejects late open-policy advice when only the disclosure policy changes, then applies the private floor to a fresh request', async () => {
-  await upload(true);
-  expect(bridge().getState().datasets[0].dataMode).toBe('open');
-  let resolve!: (report: DecompositionAdvice) => void;
-  vi.mocked(analyzeItemsAsync).mockImplementationOnce(() => new Promise(done => { resolve = done; }));
-  const pending = bridge().analyzeDecomposition!({});
-  const [source, columns, options] = vi.mocked(analyzeItemsAsync).mock.calls[0];
-  expect(options).toMatchObject({ minimumPairN: 0 });
-  const report = analyzeDecompositionItems(source, columns, options);
-  expect(adviceForAssistant(report, 0).items[0].missing).toBe(1);
-
-  // Dataset modes are immutable in the upload UI. Restore is the real host
-  // state transition; preserving table/id/filter isolates the policy guard.
-  const before = bridge().snapshot() as Snapshot;
-  await act(async () => bridge().restore({ ...before, datasets: before.datasets.map(dataset => ({ ...dataset, dataMode: 'private' })) }));
+it('opens the updated survey alongside an older copy and reuses it on the next visit', async () => {
+  await upload();
+  const columns = demoSurveySpec().items.map(item => item.column);
+  const legacy = { nRows: 24, columns: ['ResponseID', ...columns, 'Gender', 'Age'], data: {
+    ResponseID: Array.from({ length: 24 }, (_, i) => i + 1),
+    ...Object.fromEntries(columns.map(c => [c, Array(24).fill(2)])), Gender: Array(24).fill('Woman'), Age: Array(24).fill(25),
+  } };
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('fixture')));
+  vi.mocked(readTable).mockResolvedValueOnce({ table: legacy, warnings: [] });
+  await act(async () => { await bridge().loadDemoData('survey'); });
+  const saved = bridge().snapshot() as Snapshot;
+  const previous = { ...saved.datasets.at(-1)!, demoSurveyVersion: undefined };
+  await act(async () => bridge().restore({ ...saved, datasets: [...saved.datasets.slice(0, -1), previous] }));
+  const current = { ...legacy, data: { ...legacy.data, Gender: Array(24).fill('Man') } };
+  vi.mocked(readTable).mockResolvedValueOnce({ table: current, warnings: [] });
+  await act(async () => { await bridge().loadDemoData('survey'); });
+  await act(async () => { await bridge().loadDemoData('survey'); });
   const after = bridge().snapshot() as Snapshot;
-  expect(after.activeId).toBe(before.activeId);
-  expect(after.datasets[0].table).toBe(before.datasets[0].table);
-  expect(bridge().getState().rowFilter).toBeNull();
-  expect(bridge().getState().datasets[0].dataMode).toBe('private');
-  let late!: string;
-  await act(async () => { resolve(report); late = await pending; });
-  expect(JSON.parse(late)).toEqual({ error: 'The fitting dataset, filter or access policy changed. Analyze the current items again.' });
+  expect(after.datasets).toHaveLength(3);
+  expect(after.datasets.find(d => d.id === previous.id)).toEqual(previous);
+  expect(after.datasets.find(d => d.id === after.activeId)?.table.data.Gender).toEqual(current.data.Gender);
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
 
+it('scores only the fitted demo and plots its published names without overwriting a collision', async () => {
+  await upload();
+  const spec = demoSurveySpec(), columns = spec.items.map(item => item.column);
+  const fixture: DataTable = mixedFixture;
+  const collision = 'FA1_DemoSurvey_r1';
+  const survey = { nRows: fixture.nRows, columns: ['ResponseID', ...columns, 'Gender', 'Age', collision], data: {
+    ResponseID: Array.from({ length: fixture.nRows }, (_, i) => i + 1), Gender: Array(fixture.nRows).fill('Nonbinary'), Age: Array(fixture.nRows).fill(30),
+    ...Object.fromEntries(columns.map((column, index) => [column, fixture.data[fixture.columns[index]]])), [collision]: Array(fixture.nRows).fill(0),
+  } };
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('fixture')));
+  vi.mocked(readTable).mockResolvedValue({ table: survey, warnings: [] });
+  await expect(bridge().fitDemoSurvey()).rejects.toThrow(/select the synthetic survey/i);
+  await act(async () => { await bridge().loadDemoData('survey'); });
+  await expect(bridge().fitDemoSurvey()).rejects.toThrow(/Development/);
+  const beforeSplit = bridge().snapshot() as Snapshot;
+  await act(async () => { await bridge().loadDemoData('survey', 'development'); });
+  const snap = bridge().snapshot() as Snapshot;
+  const development = snap.datasets.find(d => d.id === snap.activeId)!.table;
+  expect(development.nRows).toBe(1050);
+  const prepared = prepareEfa(development, spec, Array.from({ length: development.nRows }, (_, index) => index));
+  const fit = fitEfa(prepared, correlate(prepared), spec);
+  const job = <Result,>(result: Result): EfaJob<Result> => ({ id: 'test', trace: new ComputeTrace('test'), status: 'completed', progress: { stage: 'done', completed: 1, total: 1 }, cancel: () => {}, promise: Promise.resolve(result) });
+  vi.spyOn(EfaService.prototype, 'fit').mockReturnValue(job(fit));
+  vi.spyOn(EfaService.prototype, 'scores').mockReturnValue(job(scoreEfa(prepared, fit)));
+  await act(async () => { await bridge().fitDemoSurvey(); });
+  expect(() => bridge().plotDemoScores()).toThrow(/no score columns/i);
+  await act(async () => { await bridge().scoreDemoSurvey(); });
+  await act(async () => { expect(await bridge().scoreDemoSurvey()).toMatch(/existing/); });
+  expect(EfaService.prototype.scores).toHaveBeenCalledTimes(1);
+  const target = `${collision}_2`;
+  await act(async () => {
+    expect(bridge().transferColumn({ source_dataset: 'Synthetic survey', column: 'Age', mode: 'match', key_column: 'ResponseID', new_name: target })).toMatch(/unused/i);
+  });
+  expect((bridge().snapshot() as Snapshot).datasets.find(d => d.id === snap.activeId)!.table.data[target]).not.toEqual(development.data.Age);
+  await act(async () => { bridge().plotDemoScores(); });
+  expect(bridge().getState()).toMatchObject({ viewMode: '2D', colorBy: 'Gender', axes: { x: `${collision}_2`, y: 'FA2_DemoSurvey_r1' } });
+  await act(async () => { expect(bridge().restore(beforeSplit)).toBe(false); });
+  expect(bridge().getState().datasets).toHaveLength(5);
+  await act(async () => { bridge().restore(beforeSplit, 'walkthrough'); });
+  expect(bridge().getState().datasets.map(dataset => dataset.name)).toEqual(['responses', 'Synthetic survey']);
+});
+
+it('uses the aggregate floor after restoring a legacy snapshot with an open dataset', async () => {
+  await upload();
+  const before = bridge().snapshot() as Snapshot;
+  await act(async () => bridge().restore({ ...before, datasets: before.datasets.map(d => ({ ...d, dataMode: 'open' })) }));
+  expect(bridge().getState().datasets[0]).not.toHaveProperty('dataMode');
   const fresh = JSON.parse(await bridge().analyzeDecomposition!({}));
-  expect(vi.mocked(analyzeItemsAsync).mock.calls[1][2]).toMatchObject({ minimumPairN: 5 });
+  expect(vi.mocked(analyzeItemsAsync).mock.calls[0][2]).toMatchObject({ minimumPairN: 5 });
   expect(fresh.items[0]).toMatchObject({ column: 'A', observed: 'withheld', missing: 'withheld' });
   expect(fresh.sample.missingCells).toBe('withheld');
 });
@@ -204,8 +262,11 @@ it('captures accepted EFA retry metadata before dispatch consumes it and synchro
   expect(tool).toHaveBeenCalledWith('retry_efa', { jobId: 'failed-original', settings });
   expect(document.querySelector<HTMLInputElement>('input[aria-label="Run label"]')!.value).toBe('captured retry');
   expect(document.querySelector<HTMLInputElement>('input[aria-label="Select D"]')!.checked).toBe(false);
+  const missing = document.querySelector<HTMLSelectElement>('select[aria-label="Missing values"]')!;
+  expect(missing.disabled).toBe(true); // The fitting rows exclude the only incomplete respondent.
+  expect(missing.selectedOptions[0].textContent).toBe('No missing values');
   expect(bridge().getState().analysisSetup).toEqual({
-    method: 'efa', variables: ['C', 'A', 'B'], missing: 'fiml', measurements: { C: 'continuous', A: 'continuous', B: 'continuous' },
+    method: 'efa', variables: ['C', 'A', 'B'], missing: 'complete', measurements: { C: 'continuous', A: 'continuous', B: 'continuous' },
   });
   for (const [label, value] of [['ML maximum iterations', 1000], ['ML tolerance', 1e-8], ['ML starts', 4], ['ML uniqueness floor', 1e-6]] as const)
     expect(Number(document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!.value)).toBe(value);
@@ -216,7 +277,7 @@ it('captures accepted EFA retry metadata before dispatch consumes it and synchro
   for (const column of table.columns)
     expect(fittingTable.data[column]).toEqual(retrySpec.sample.fixedRows!.map(row => table.data[column][row]));
   expect(columns).toEqual(['C', 'A', 'B']);
-  expect(options).toMatchObject({ method: 'efa', missing: 'fiml', minimumPairN: 5 });
+  expect(options).toMatchObject({ method: 'efa', missing: 'complete', minimumPairN: 5 });
   expect(advice.sample.rows).toBe(12);
   expect(advice.sample.missingCells).toBe(0); // The only missing value belongs to excluded row 1.
   expect((bridge().snapshot() as Snapshot).datasets[0].table.nRows).toBe(24);

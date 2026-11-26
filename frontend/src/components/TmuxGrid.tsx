@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { CyberGridGroup, CyberStackGroup, CyberContainer } from "ccru/components";
 import { useTheme } from "next-themes";
 
 // Module-level component: defining this inside TmuxGrid gave it a new identity
@@ -20,7 +19,7 @@ const WrappedView = ({ view, index, theme, renderView }: {
                 <div className="absolute top-3 left-3 z-10 pointer-events-none text-[10px] font-bold uppercase tracking-widest text-[#10ff50]/50">
                     {title}
                 </div>
-                <div className="flex-grow w-full relative">
+                <div className="relative min-h-0 w-full flex-1">
                     {renderView(view, index)}
                 </div>
             </div>
@@ -61,8 +60,8 @@ export function TmuxGrid({ views, renderView }: { views: any[], renderView: (vie
    const { cols, rows } = GRID[n];
 
    return (
-       <div
-           className="w-full h-full p-2 grid gap-2"
+       <div className="plot-grid-frame w-full h-full"><div data-panes={n}
+           className="w-full h-full grid gap-4 p-4"
            style={{ gridTemplateColumns: cols, gridTemplateRows: rows }}
        >
            {views.slice(0, 4).map((view, i) => (
@@ -76,6 +75,6 @@ export function TmuxGrid({ views, renderView }: { views: any[], renderView: (vie
                    <WrappedView view={view} index={i} theme={theme} renderView={renderView} />
                </div>
            ))}
-       </div>
+       </div></div>
    );
 }

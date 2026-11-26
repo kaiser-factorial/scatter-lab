@@ -1,10 +1,12 @@
 import { it, expect, vi, afterEach } from "vitest";
-import { ordinalSourceChunks, ordinalSourceSize, encodeOrdinalSource } from "../efa/backends/native-protocol";
+import { ordinalSourceChunks, ordinalSourceSize, encodeOrdinalSource } from "../../../scripts/efa-companion/reference-backends/native-protocol";
 import { checkSource, numericalSelfCheck } from "../efa/backends/self-check";
 import { cpuTraceBlock } from "../efa/trace-kernel";
 import { computeSettings } from "../efa/backends/types";
 import { createBackend } from "../efa/backends/runtime";
-import { validateConnection, connectCompanion } from "../efa/backends/companion";
+import { validateConnection, connectCompanion } from "../../../scripts/efa-companion/reference-backends/companion";
+import { createBackend as createReferenceBackend } from "../../../scripts/efa-companion/reference-backends/runtime";
+import { EfaService } from "../efa/service";
 import type { EfaSpec } from "../efa/types";
 const spec = { extraction: "wlsmv" } as EfaSpec;
 afterEach(() => vi.unstubAllGlobals());
@@ -20,8 +22,8 @@ it("validates method/backend/block budgets and rejects saved credentials", () =>
   expect(computeSettings(spec)).toMatchObject({ backend: "cpu", blockSize: 32 });
   expect(computeSettings({ ...spec, compute: { backend: "webgpu" } })).toMatchObject({ space: "cases", blockSize: 128 });
   expect(computeSettings({ ...spec, compute: { backend: "webgpu", blockSize: 256 } })).toMatchObject({ blockSize: 256 });
-  expect(() => computeSettings({ ...spec, extraction: "minres", compute: { backend: "scala" } })).toThrow(/WLSMV/);
-  expect(() => computeSettings({ ...spec, compute: { backend: "scala", token: "secret" } as never })).toThrow(/session-only/);
+  expect(() => computeSettings({ ...spec, extraction: "minres", compute: { backend: "webgpu" } })).toThrow(/WLSMV/);
+  expect(() => computeSettings({ ...spec, compute: { backend: "scala", token: "secret" } as never })).toThrow(/credentials are not accepted/);
 });
 it.each(["https://remote.example:443", "http://localhost:8787", "http://127.0.0.1:8787/path", "http://127.0.0.1:8787/?token=secret", "http://user@127.0.0.1:8787"])("rejects nonliteral or credential-bearing companion target %s without fetching", url => {
   const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
@@ -33,7 +35,7 @@ it("does not follow redirects or expose response text on a rejected pairing", as
   expect(fetch.mock.calls[0][1]).toMatchObject({ redirect: "error", credentials: "omit" });
 });
 
-it("a failed native self-check prevents any analysis-source request and is visible in execution telemetry", async () => {
+it("the retained reference-only native self-check prevents any analysis-source request and is visible in execution telemetry", async () => {
   const snapshots: unknown[] = [], operations: string[] = [];
   const fetch = vi.fn(async (url: string, init: { body?: ArrayBuffer }) => {
     const route = new URL(url).pathname; operations.push(route);
@@ -45,7 +47,7 @@ it("a failed native self-check prevents any analysis-source request and is visib
     return Response.json({ runtime: "synthetic rejection fixture" });
   });
   vi.stubGlobal("fetch", fetch);
-  await expect(createBackend({ ...spec, compute: { backend: "scala" } }, { url: "http://127.0.0.1:8787", token: "a".repeat(64), id: "00000000-0000-0000-0000-000000000000" }, value => snapshots.push(value), () => {})).rejects.toThrow(/self-check/);
+  await expect(createReferenceBackend({ ...spec, compute: { backend: "scala" } }, { url: "http://127.0.0.1:8787", token: "a".repeat(64), id: "00000000-0000-0000-0000-000000000000" }, value => snapshots.push(value), () => {})).rejects.toThrow(/self-check/);
   expect(operations.filter(p => p.endsWith("/source-start"))).toHaveLength(1);
   expect(snapshots.at(-1)).toMatchObject({ state: "failed", failure: "backend-self-check" });
 });
@@ -59,4 +61,28 @@ it("bounded source chunks reproduce the qualified native bytes exactly, includin
 
 it.each([null, false, 0, "", [], { backend: "webgpu", blockSize: null }, { backend: "scala", memoryMiB: null }])("rejects malformed compute settings without silently defaulting to CPU", compute => {
   expect(() => computeSettings({ ...spec, compute: compute as never })).toThrow();
+});
+
+it("rejects a legacy Scala selection before any worker, GPU or network work instead of substituting CPU", async () => {
+  const fetch = vi.fn(), workerFactory = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  const legacy = { ...spec, compute: { backend: "scala" } } as unknown as EfaSpec;
+  const before = structuredClone(legacy);
+  expect(() => computeSettings(legacy)).toThrow(/Scala.*no longer.*Explicitly select Browser CPU or WebGPU/);
+  const service = new EfaService(workerFactory);
+  expect(() => service.fit({ columns: [], data: {}, nRows: 0 }, legacy, [])).toThrow(/no backend was substituted/);
+  await expect(createBackend(legacy, () => {}, () => {})).rejects.toThrow(/Scala.*no longer/);
+  expect(service.listJobs()).toHaveLength(0);
+  expect(workerFactory).not.toHaveBeenCalled();
+  expect(fetch).not.toHaveBeenCalled();
+  expect(legacy).toEqual(before);
+});
+
+it("fails an unavailable WebGPU request explicitly without switching to CPU or using network", async () => {
+  const fetch = vi.fn(), snapshots: unknown[] = [];
+  vi.stubGlobal("fetch", fetch);
+  vi.stubGlobal("navigator", {});
+  await expect(createBackend({ ...spec, compute: { backend: "webgpu" } }, value => snapshots.push(value), () => {})).rejects.toThrow(/No fallback was used/);
+  expect(snapshots.at(-1)).toMatchObject({ backend: "webgpu", state: "failed", failure: "backend-initialization" });
+  expect(fetch).not.toHaveBeenCalled();
 });

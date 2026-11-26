@@ -12,13 +12,13 @@ export function currentPackageBuild(root = statisticsRoot, relativeTo = process.
   const manifestPath = resolve(root, 'dist/build-manifest.json');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   if (manifest.format !== 'scatterlab-stats-build/1' || !manifest.sourceHashes ||
-      Object.keys(manifest.sourceHashes).length === 0) throw new Error('Missing statistics source manifest. Run npm run build:stats from the repository root.');
+      Object.keys(manifest.sourceHashes).length === 0) throw new Error('Missing statistics source manifest. Run pnpm run build:stats from the repository root.');
   const hashes = { [relative(relativeTo, manifestPath)]: sha(readFileSync(manifestPath)) };
   for (const [path, expected] of Object.entries(manifest.sourceHashes)) {
     const absolute = resolve(root, path);
     if (!path.startsWith('src/') || !absolute.startsWith(resolve(root, 'src') + '/')) throw new Error(`Invalid statistics source path: ${path}`);
     const actual = sha(readFileSync(absolute));
-    if (actual !== expected) throw new Error(`Statistics package build is stale: ${path}. Run npm run build:stats.`);
+    if (actual !== expected) throw new Error(`Statistics package build is stale: ${path}. Run pnpm run build:stats.`);
     hashes[relative(relativeTo, absolute)] = actual;
   }
   return hashes;

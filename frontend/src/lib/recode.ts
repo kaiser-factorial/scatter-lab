@@ -169,6 +169,9 @@ export type CodeEntry = {
   suggested: boolean;
 };
 
+const tierOrder = { certain: 0, likely: 1, possible: 2, declared: 3 };
+export const codeTierRank = (entry: CodeEntry): number => tierOrder[entry.confidence ?? 'declared'];
+
 export type ColumnCodes = {
   column: string;
   /** Codes present in this column, ascending by value. */
@@ -250,8 +253,7 @@ export const scanForCodes = (table: DataTable, declared: number[] = []): ColumnC
   // Strongest evidence first, and within a tier the table's own column order.
   // Declaring 9 in a survey turns up an incidental 9 in the id column, and file
   // order put that above the battery of items the user is actually here for.
-  const rank = (h: ColumnCodes) => Math.min(...h.entries.map(e =>
-    e.confidence === 'certain' ? 0 : e.confidence === 'likely' ? 1 : e.confidence === 'possible' ? 2 : 3));
+  const rank = (h: ColumnCodes) => Math.min(...h.entries.map(codeTierRank));
   return out.map((h, i) => ({ h, i })).sort((a, b) => rank(a.h) - rank(b.h) || a.i - b.i).map(x => x.h);
 };
 

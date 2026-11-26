@@ -1,0 +1,32 @@
+{
+  "name": "@scatterlab/react-plotly-factory",
+  "version": "4.1.0-scatterlab.1",
+  "private": true,
+  "description": "Unmodified react-plotly.js 4.1.0 factory for a caller-supplied Plotly bundle.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./factory.mjs",
+  "types": "./factory.d.mts",
+  "exports": {
+    ".": {
+      "types": "./factory.d.mts",
+      "import": "./factory.mjs",
+      "default": "./factory.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "factory.mjs",
+    "factory.mjs.map",
+    "chunk-WUFMRSJ6.mjs",
+    "chunk-WUFMRSJ6.mjs.map",
+    "factory.d.mts",
+    "LICENSE",
+    "README.md",
+    "PROVENANCE.json"
+  ],
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  }
+}

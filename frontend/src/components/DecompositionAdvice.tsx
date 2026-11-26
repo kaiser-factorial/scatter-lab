@@ -6,8 +6,9 @@ import { analyzeItemsAsync } from '@/lib/decomposition-advice-service';
 import { InfoTip } from './InfoTip';
 
 const button = 'scatterlab-action-button border border-[var(--border)] bg-[var(--input)] px-2 py-1 text-xs font-bold disabled:opacity-40';
-export function DecompositionAdvice({ table, columns, options, contextKey = '', onApply }: {
+export function DecompositionAdvice({ table, columns, options, contextKey = '', onShowAssessment, onApply }: {
   table: DataTable; columns: string[]; options: DecompositionAdviceOptions; contextKey?: string;
+  onShowAssessment?: () => void;
   onApply: (patch: AdvicePatch) => void;
 }) {
   const key = JSON.stringify({ columns, options, contextKey });
@@ -31,29 +32,35 @@ export function DecompositionAdvice({ table, columns, options, contextKey = '', 
   return <section className="space-y-2 border border-[var(--border)]/50 p-2" aria-label="Item and method guidance">
     <div className="flex items-center gap-1">
       <button type="button" className={button + ' flex-1'} disabled={columns.length < 2 || busy} onClick={() => void analyze()}>{busy ? 'Analyzing items…' : 'Analyze selected items'}</button>
-      <InfoTip label="About method guidance" text="Profiles the selected items in the current fitting sample. Measurement levels are suggestions until confirmed. Distribution diagnostics do not establish a Gaussian joint model or reveal why responses are missing. Applying a suggestion changes controls; it does not run an analysis." />
+      <InfoTip label="About method guidance" text="Profiles the selected items in the current fitting sample. Measurement levels are suggestions until confirmed." />
       {busy && <button type="button" className={button} onClick={() => { abort.current?.abort(); setPending(null); }}>Cancel</button>}
     </div>
     {saved && !report && <p className="text-[11px] opacity-70">Items, settings or fitting rows changed. Analyze again for current guidance.</p>}
     {report && <div className="space-y-2" aria-live="polite">
       <p>{report.itemCount} items · {report.sample.rows.toLocaleString()} fitting rows · {(report.sample.missingRate * 100).toFixed(1)}% missing cells</p>
-      <p className="text-[11px] opacity-75">Complete cases: {report.sample.completeRows.toLocaleString()} retained, {report.sample.incompleteRows.toLocaleString()} dropped. Minimum observed pair: {report.sample.pairSupportChecked ? report.sample.minimumObservedPairN?.toLocaleString() : 'not checked at this size'}. Missingness patterns: {report.sample.missingnessPatternsTruncated ? '≥' : ''}{report.sample.missingnessPatternCount.toLocaleString()}.</p>
+      {report.sample.incompleteRows > 0 && <p className="text-[11px] opacity-75">Complete cases: {report.sample.completeRows.toLocaleString()} retained, {report.sample.incompleteRows.toLocaleString()} dropped. Minimum observed pair: {report.sample.pairSupportChecked ? report.sample.minimumObservedPairN?.toLocaleString() : 'not checked at this size'}. Missingness patterns: {report.sample.missingnessPatternsTruncated ? '≥' : ''}{report.sample.missingnessPatternCount.toLocaleString()}.</p>}
       <details><summary className="cursor-pointer">Item types and distributions</summary>
         <div className="max-h-52 overflow-auto mt-2"><table className="w-full text-[11px]"><thead><tr className="text-left"><th>Item</th><th>Type</th><th>Shape</th></tr></thead><tbody>
-          {report.items.map(item => <tr key={item.column} className="border-t border-[var(--border)]/20"><td className="max-w-28 truncate py-1" title={item.column}>{item.column}</td><td>{item.classification.replace(/-/g, ' ')}<InfoTip label={`${item.column} type`} text={item.basis} /></td><td>{item.distribution?.assessed ? [item.distribution.skewed ? 'Skewed' : 'No strong skew flag', item.distribution.heavyTailed ? 'Heavy tails' : ''].filter(Boolean).join(' · ') : 'Not assessed'}</td></tr>)}
+          {report.items.map(item => <tr key={item.column} className="border-t border-[var(--border)]/20"><td className="max-w-28 truncate py-1" title={item.column}>{item.column}</td><td>{item.classification.replace(/-/g, ' ')}{item.classification !== 'continuous-candidate' && <InfoTip label={`${item.column} type`} text={item.basis} />}</td><td>{item.distribution?.assessed ? [item.distribution.skewed ? 'Skewed' : 'No strong skew flag', item.distribution.heavyTailed ? 'Heavy tails' : ''].filter(Boolean).join(' · ') : 'Not assessed'}</td></tr>)}
         </tbody></table></div>
       </details>
-      {report.issues.map((issue, index) => <p key={`${issue.code}-${index}`} className={issue.severity === 'blocker' ? 'font-bold' : 'opacity-80'}>{issue.message}</p>)}
-      {report.recommendations.map(recommendation => <details key={recommendation.id} open={recommendation.priority === 'primary'} className="border-t border-[var(--border)]/30 pt-1">
-        <summary className="cursor-pointer font-bold">{recommendation.title}</summary>
-        <div className="space-y-1 py-2">
-          {recommendation.reasons.map(reason => <p key={reason}>{reason}</p>)}
-          {recommendation.assumptions.map(assumption => <p key={assumption} className="opacity-75">{assumption}</p>)}
-          {!!Object.keys(recommendation.patch).length && <p className="font-bold">Settings: {Object.entries(recommendation.patch).map(([name, value]) => `${name}: ${value}`).join(' · ')}</p>}
-          {!!Object.keys(recommendation.patch).length && <button type="button" className={button} disabled={report.issues.some(issue => issue.severity === 'blocker')} onClick={() => { onApply(recommendation.patch); setMessage('Suggested settings applied. Review the setup before running.'); }}>Apply these settings</button>}
-        </div>
-      </details>)}
-      <details><summary className="cursor-pointer opacity-70">How this was assessed</summary>{report.diagnosticBasis.map(text => <p key={text} className="mt-1 opacity-70">{text}</p>)}</details>
+      {report.issues.filter(issue => issue.code !== 'measurement-unconfirmed').map((issue, index) => <p key={`${issue.code}-${index}`} className={issue.severity === 'blocker' ? 'font-bold' : 'opacity-80'}>{issue.message}</p>)}
+      {report.recommendations.map(recommendation => {
+        if (recommendation.id === 'pca-numeric') {
+          return recommendation.assumptions.map(text => <p key={text}>{text}</p>);
+        }
+        return <details key={recommendation.id} open={recommendation.priority === 'primary'} className="border-t border-[var(--border)]/30 pt-1">
+          <summary className="cursor-pointer font-bold">{recommendation.title}</summary>
+          <div className="space-y-1 py-2">
+            {recommendation.reasons.map(reason => <p key={reason}>{reason}</p>)}
+            {recommendation.assumptions.map(assumption => <p key={assumption} className="opacity-75">{assumption}</p>)}
+            {!!Object.keys(recommendation.patch).length && <p className="font-bold">Settings: {Object.entries(recommendation.patch).map(([name, value]) => `${name}: ${value}`).join(' · ')}</p>}
+            {!!Object.keys(recommendation.patch).length && <button type="button" className={button} disabled={report.issues.some(issue => issue.severity === 'blocker')} onClick={() => { onApply(recommendation.patch); setMessage('Suggested settings applied. Review the setup before running.'); }}>Apply these settings</button>}
+          </div>
+        </details>;
+      })}
+      {onShowAssessment && <button type="button" aria-haspopup="dialog" onClick={onShowAssessment}
+        className="cursor-pointer text-[11px] underline underline-offset-2">How this was assessed</button>}
     </div>}
     {message && <p role="status">{message}</p>}
   </section>;

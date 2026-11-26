@@ -15,7 +15,7 @@ const grouped = (...groups: unknown[][]): DataTable => table({
   condition: groups.flatMap((values, i) => values.map(() => `group${i + 1}`)),
 });
 const planFor = (test: TestKind): TestPlan => ({
-  kind: 'test', test, column: 'score', groupBy: 'condition',
+  kind: 'test', test, design: 'independent', column: 'score', groupBy: 'condition',
 });
 const run = (test: TestKind, data: DataTable, mode: DataMode = 'open') =>
   runTestPlan({ ...planFor(test), ...(test !== 'chi_square' ? {
@@ -36,12 +36,16 @@ const failureMessage = (action: () => unknown): string => {
 };
 
 describe('temporary significance-test release gate', () => {
-  it.each(['open', 'private'] as const)('does not advertise KS in %s mode', mode => {
+  it.each(['open', 'private'] as const)('requires a design and does not advertise KS in %s mode', mode => {
     const tool = toolsFor(policyFor(mode)).find(t => t.type === 'function' && t.function.name === 'run_test');
     expect(tool?.type).toBe('function');
     if (!tool || tool.type !== 'function') throw new Error('run_test tool is missing');
     const parameters = tool.function.parameters as { properties: { test: { enum: string[] } } };
     expect(parameters.properties.test.enum).toEqual(['t', 'mann_whitney', 'kruskal_wallis', 'chi_square']);
+    expect(parameters).toMatchObject({
+      required: expect.arrayContaining(['design']),
+      properties: { design: { enum: ['independent', 'paired', 'clustered', 'unknown'] } },
+    });
     expect(tool.function.description).not.toMatch(/EXACT p|exact p-value/i);
   });
 
@@ -61,6 +65,21 @@ describe('temporary significance-test release gate', () => {
     expect(validatePlan(plan, profile)).toEqual([]);
     expect(compileChart(plan, data, profile).summary).toMatch(/ECDF|cumulative/i);
   });
+
+  it.each(['t', 'mann_whitney', 'kruskal_wallis', 'chi_square'] as const)(
+    'requires affirmative independence before %s inference', test => {
+      const values = Array.from({ length: 12 }, (_, index) => index);
+      const data = test === 'chi_square' ? contingency([[8, 6], [6, 8]]) : grouped(values, values);
+      const profile = analysisProfileOf(data, policyFor('open'));
+      const plan: TestPlan = { kind: 'test', test, column: 'score', groupBy: 'condition' };
+      expect(validatePlan(plan, profile)).toMatchObject([{ code: 'test_unavailable' }]);
+      expect(() => runTestPlan(plan, data, profile)).toThrow(/requires independent observations/);
+      expect(validatePlan({ ...plan, design: 'independent' }, profile)).toEqual([]);
+      for (const design of ['paired', 'clustered', 'unknown'] as const) {
+        expect(validatePlan({ ...plan, design }, profile)).toMatchObject([{ code: 'test_unavailable' }]);
+        expect(() => runTestPlan({ ...plan, design }, data, profile)).toThrow(/requires independent observations/);
+      }
+    });
 
   it('does not let direct dispatch bypass private category validation', () => {
     const data = grouped([1, 2], [3, 4, 5, 6, 7, 8]);

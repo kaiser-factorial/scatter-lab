@@ -7,7 +7,7 @@ import { DecompositionSetup, type SharedAnalysisSetup } from "../DecompositionSe
 const columns = ["ResponseId", "itemA", "other", "itemB", "itemC", "itemD", "description", "PC1", "Cluster", "savedFactor"];
 const table = {
   columns, nRows: 8,
-  data: Object.fromEntries(columns.map(column => [column, Array.from({ length: 8 }, (_, i) => column === "description" ? `text ${i}` : i % 4 + 1)])),
+  data: Object.fromEntries(columns.map(column => [column, Array.from({ length: 8 }, (_, i) => column === "description" ? `text ${i}` : column === "itemC" && i === 7 ? null : i % 4 + 1)])),
 };
 let root: Root | undefined;
 beforeEach(() => vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true));
@@ -43,7 +43,7 @@ function current(): SharedAnalysisSetup {
 async function mount(externalRun?: { seq: number; vars: string[]; label: string; missing: SharedAnalysisSetup['missing']; measurements?: SharedAnalysisSetup['measurements'] }) {
   function Harness() {
     const [method, setMethod] = useState<"pca" | "efa">("pca");
-    return <DecompositionSetup table={table} method={method} onMethodChange={setMethod} ownedScores={["savedFactor"]} externalRun={externalRun}>
+    return <DecompositionSetup table={table} method={method} onMethodChange={setMethod} ownedScores={["PC1", "Cluster", "savedFactor"]} externalRun={externalRun}>
       {setup => <output>{JSON.stringify(setup)}</output>}
     </DecompositionSetup>;
   }
@@ -105,6 +105,25 @@ it("preserves setup across methods and exposes all missing methods except iterat
   await click(button("PCA")); await select("Missing values", "iterative"); await click(button("EFA"));
   expect(current().missing).toBe("median");
   expect(current().label).toBe("Custom run"); expect(current().selected).toEqual(previous.selected);
+});
+
+it.each(['PCA', 'EFA'])('updates %s missingness and bypasses MICE when the only incomplete item is removed', async method => {
+  await mount();
+  await click(button(method));
+  const missing = control<HTMLSelectElement>('Missing values');
+  expect(missing.disabled).toBe(false);
+  expect(document.body.textContent).toContain('1 missing cell');
+  await select('Missing values', 'mice');
+  await click(control('Select itemC'));
+  expect(missing.disabled).toBe(true);
+  expect(missing.selectedOptions[0].textContent).toBe('No missing values');
+  expect(current().missing).toBe('complete');
+  await click(control('Select itemC'));
+  expect(missing.disabled).toBe(false);
+  expect(current().missing).toBe('mice');
+  await click(button('none'));
+  expect(missing.disabled).toBe(true);
+  expect(missing.selectedOptions[0].textContent).toBe('Select items');
 });
 
 it("delivers per-item measurement overrides to the selected analysis", async () => {

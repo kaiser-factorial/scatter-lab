@@ -9,7 +9,6 @@ import type { DataTable } from "../../lib/table";
 // partitioning, activation, lock dialogs, and workspace serialization are real.
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
 vi.mock("next-themes", () => ({ useTheme: () => ({ theme: "primary", setTheme: vi.fn() }) }));
-vi.mock("ccru/components", () => ({ CyberStackGroup: () => null, CyberContainer: () => null, CyberPanel: () => null }));
 vi.mock("puxel", () => ({
   Accordion: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   AccordionItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,

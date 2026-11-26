@@ -287,3 +287,23 @@ it("rotation comparisons reject changed items or preprocessing before launching"
     /requires/,
   );
 });
+
+it('verifies restored score values and rejects an edited score before plotting', async () => {
+  const t = setup();
+  const fitting = t.controller.run(spec);
+  t.pending.resolve(result);
+  const id = await fitting;
+  const values = Array.from({ length: table.nRows }, (_, row) => Array.from({ length: spec.nFactors }, (_, factor) => row + factor));
+  const scorer = vi.spyOn(t.service, 'scores').mockReturnValue({ ...t.job, result: values, promise: Promise.resolve(values) });
+  const { columns } = await t.controller.ensureScores(id);
+  await t.controller.ensureScores(id);
+  expect(scorer).toHaveBeenCalledTimes(1);
+  const restored = structuredClone(t.get().table);
+  t.set({ table: restored });
+  expect((await t.controller.ensureScores(id)).message).toMatch(/verified existing/i);
+  const edited = structuredClone(restored);
+  edited.data[columns[0]][0] = 80;
+  t.set({ table: edited });
+  await expect(t.controller.ensureScores(id)).rejects.toThrow(/differ from this fit/);
+  expect(t.get().table.data[columns[0]][0]).toBe(80);
+});

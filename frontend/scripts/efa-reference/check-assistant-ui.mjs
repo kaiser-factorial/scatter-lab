@@ -48,7 +48,7 @@ try {
     { timeout: 60000 },
   );
   await page.evaluate(() =>
-    window.__scatterlabBridge.current.loadDemoData("open"),
+    window.__scatterlabBridge.current.loadDemoData('iris'),
   );
   await page.waitForFunction(
     () => window.__scatterlabBridge.current.snapshot().datasets.length > 0,

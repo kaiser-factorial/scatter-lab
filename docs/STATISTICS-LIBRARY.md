@@ -1,9 +1,10 @@
 # Statistics library architecture
 
 Scatter Lab is now a host application for the local `@scatterlab/stats` package
-under `packages/statistics`. The package is private and is not published. Root
-npm workspaces manage that package; the frontend retains its own package lock
-and depends on it through `file:../packages/statistics`.
+under `packages/statistics`. The package is private and is not published. One
+pnpm workspace manages the frontend, statistics package and local UI adapters,
+with one root `pnpm-lock.yaml`. The frontend uses `workspace:*` to resolve the
+statistics package locally.
 
 ## Ownership
 
@@ -18,8 +19,13 @@ The package owns numerical input validation, measurement and category semantics,
 correlations, extraction, rotation, imputation, scoring, model serialization and
 numerical diagnostics. The frontend owns dataset IDs/locks, splits, row filters,
 saved runs, score-column naming, formatting, downloads, React, worker lifecycles,
-GPU/Scala adapters, and assistant permission/privacy projections. Pure CPU entry
+WebGPU adapters, and assistant permission/privacy projections. Pure CPU entry
 points do not create workers or select acceleration implicitly.
+
+The active compute contract permits only CPU and WebGPU. Retired Scala settings
+are rejected explicitly rather than migrated to CPU. Scala benchmark sources
+and transport reference code remain under `frontend/scripts/efa-companion/`;
+they are excluded from the application import graph and the package tarball.
 
 PCA's public fit and legacy app run share one raw calculation. Public models
 retain full precision; the app adapter retains its original display rounding
@@ -35,8 +41,8 @@ aggregate projection is still the route used by the assistant.
 ## Build and development
 
 ```sh
-npm run setup
-npm run build:stats
+pnpm install --frozen-lockfile
+pnpm run build:stats
 dev start frontend --detach --json --yes
 ```
 
@@ -49,13 +55,13 @@ The frontend development script watches library TypeScript and rebuilds it;
 predev and prebuild also build it before starting Next.
 
 For other local applications, build the package and install its directory or
-an `npm pack` tarball. See the package README and API documents. The exported
+a `pnpm pack` tarball. See the package README and API documents. The exported
 `internal/*` path remains an explicitly unstable bridge for the current app
 and validation harness; new external clients should use the named public APIs.
 
 ## Verification and provenance
 
-`npm run check` combines package tests, the frontend's component/worker/type
+`pnpm run check` combines package tests, the frontend's component/worker/type
 checks, retained R reference comparisons and actual tarball-consumer checks.
 The package-consumer gate verifies emitted hashes, installs the packed artifact,
 executes native ESM PCA/EFA and completion, type-checks a separate consumer, and

@@ -51,11 +51,24 @@ const bridgeFor = (mode: 'private' | 'open'): { current: AppBridge } => {
   };
 };
 
-const run = (mode: 'private' | 'open', t: ReturnType<typeof replayTransport>) =>
-  runAssistantTurn('', '', 'replay', [] as ChatCompletionMessageParam[], 'go', bridgeFor(mode),
+const run = (mode: 'private' | 'open', t: ReturnType<typeof replayTransport>, userText = 'go') =>
+  runAssistantTurn('', '', 'replay', [] as ChatCompletionMessageParam[], userText, bridgeFor(mode),
     { onText: () => {}, onToolUse: () => {} }, t);
 
 describe('run_test through the loop', () => {
+  it.each([undefined, null, 'unknown', 'paired', 'clustered', true, 'yes'])(
+    'does not treat wire design %j as confirmation', async design => {
+      const transport = replayTransport([
+        call('run_test', { test: 't', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'], design }),
+        say('What was the sampling design?'),
+      ]);
+      await run('open', transport);
+      const observation = transport.seen[1].lastObservation;
+      expect(observation).toContain('[test_unavailable]');
+      expect(observation).toContain('Ask the user');
+      expect(observation).not.toContain('p=');
+    });
+
   it('rejects a stale KS tool call and permits a descriptive ECDF instead', async () => {
     const t = replayTransport([
       call('run_test', { test: 'ks', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] }),
@@ -75,7 +88,7 @@ describe('run_test through the loop', () => {
 
   it('happy path: t-test result reaches the model with p, CI, effect', async () => {
     const t = replayTransport([
-      call('run_test', { test: 't', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] }),
+      call('run_test', { test: 't', design: 'independent', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] }),
       ctx => {
         expect(ctx.lastObservation).toContain('t=');
         expect(ctx.lastObservation).toContain('95% CI');
@@ -83,16 +96,16 @@ describe('run_test through the loop', () => {
         return say('done');
       },
     ]);
-    await run('open', t);
+    await run('open', t, 'The observations are independent. Compare mean sepal length in these two groups.');
   });
 
   it('misspelled column → typed rejection → scripted revision succeeds', async () => {
     const t = replayTransport([
-      call('run_test', { test: 't', column: 'sepal_length', group_by: 'species', groups: ['setosa', 'virginica'] }),
+      call('run_test', { test: 't', design: 'independent', column: 'sepal_length', group_by: 'species', groups: ['setosa', 'virginica'] }),
       ctx => {
         expect(ctx.lastObservation).toContain('[unknown_column]');
         expect(ctx.lastObservation).toContain('Available: sepal_len');
-        return call('run_test', { test: 't', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] });
+        return call('run_test', { test: 't', design: 'independent', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'virginica'] });
       },
       ctx => {
         expect(ctx.lastObservation).toContain('t=');
@@ -104,7 +117,7 @@ describe('run_test through the loop', () => {
 
   it('private mode: probing the withheld group reads as nonexistent', async () => {
     const t = replayTransport([
-      call('run_test', { test: 't', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'ghost_orchid'] }),
+      call('run_test', { test: 't', design: 'independent', column: 'sepal_len', group_by: 'species', groups: ['setosa', 'ghost_orchid'] }),
       ctx => {
         expect(ctx.lastObservation).toContain('[unknown_group_value]');
         expect(ctx.lastObservation).toContain('Available: setosa, virginica');
@@ -116,7 +129,7 @@ describe('run_test through the loop', () => {
   });
 
   it('the revision cap is enforced in the loop, not just prompted', async () => {
-    const bad = () => call('run_test', { test: 't', column: 'nope', group_by: 'species', groups: ['setosa', 'virginica'] });
+    const bad = () => call('run_test', { test: 't', design: 'independent', column: 'nope', group_by: 'species', groups: ['setosa', 'virginica'] });
     const steps = [bad(), bad(), bad(), bad(),
       (ctx: { lastObservation: string | null }) => {
         expect(ctx.lastObservation).toContain(`Revision limit reached (${MAX_PLAN_REVISIONS})`);

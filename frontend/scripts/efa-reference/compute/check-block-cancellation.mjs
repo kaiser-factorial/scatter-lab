@@ -20,7 +20,7 @@ try {
   await expect(inspector).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Open computation inspector" })).toBeFocused();
   await page.waitForFunction(() => window.__scatterlabBridge?.current);
-  await page.evaluate(async () => window.__scatterlabBridge.current.loadDemoData("open"));
+  await page.evaluate(async () => window.__scatterlabBridge.current.loadDemoData('iris'));
   await page.waitForFunction(() => window.__scatterlabBridge.current.snapshot().datasets.length > 0);
   await page.evaluate(table => {
     const bridge = window.__scatterlabBridge.current, snapshot = bridge.snapshot(), first = snapshot.datasets[0];

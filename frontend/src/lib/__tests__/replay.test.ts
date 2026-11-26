@@ -116,12 +116,12 @@ describe('replayTransport inside runAssistantTurn', () => {
       ctx => {
         expect(ctx.toolNames).not.toContain('sample_rows');
         expect(ctx.toolNames).toContain('correlate');
-        expect(ctx.system).toContain('PRIVATE — aggregates only');
+        expect(ctx.system).toContain('never see raw data rows');
         // A stale/hallucinated row call must hit the second fence…
         return call('sample_rows', { n: 5 });
       },
       ctx => {
-        expect(ctx.lastObservation).toBe('Row access is not available: the session is in Private data mode.');
+        expect(ctx.lastObservation).toBe('Dataset tools provide aggregate summaries only.');
         return say('understood');
       },
     ]);
@@ -129,16 +129,20 @@ describe('replayTransport inside runAssistantTurn', () => {
     expect(t.seen.length).toBe(2);
   });
 
-  it('open session offers the row tools', async () => {
+  it('refuses a retired tool even with an open legacy dataset and a row-capable bridge', async () => {
     const t = replayTransport([
       ctx => {
-        expect(ctx.toolNames).toContain('sample_rows');
-        expect(ctx.toolNames).toContain('get_rows_where');
-        expect(ctx.toolNames).toContain('list_categories');
+        expect(ctx.toolNames).not.toContain('sample_rows');
+        expect(ctx.toolNames).not.toContain('get_rows_where');
+        expect(ctx.toolNames).not.toContain('list_categories');
+        return call('get_rows_where', { column: 'id', value: 1 });
+      },
+      ctx => {
+        expect(ctx.lastObservation).toBe('Dataset tools provide aggregate summaries only.');
         return say('ok');
       },
     ]);
-    await run(bridgeWith([{ name: 'iris', nRows: 150, active: true, dataMode: 'open' }]), t);
+    await run(bridgeWith([{ name: 'iris', nRows: 150, active: true, dataMode: 'open' }], { getRowsWhere: () => 'raw data' }), t);
   });
 
   it('an exhausted script throws with the last observation in the message', async () => {

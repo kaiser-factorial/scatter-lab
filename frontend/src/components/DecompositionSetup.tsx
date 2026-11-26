@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DataTable } from '@/lib/table';
 import { numericColumnsOf } from '@/lib/profile';
-import { deriveRunLabel, isPCColumn, type MissingStrategy } from '@/lib/pca';
+import { deriveRunLabel, type MissingStrategy } from '@/lib/pca';
 import { isIdentifierColumn } from '@/lib/defaults';
 import { inferMeasurement, type MeasurementChoice } from '@/lib/measurement';
 import { InfoTip } from './InfoTip';
@@ -29,14 +29,16 @@ export const MISSING_METHODS = [
   { value: 'iterative', name: 'Iterative PCA', info: 'Reconstruct missing cells from a low-rank PCA model, keeping observed cells unchanged. Available for PCA only.' },
 ] as const;
 
-export function DecompositionSetup({ table, fittingTable = table, method, onMethodChange, externalRun, children, ownedScores = [], completedItems = [], contextKey = '', minimumPairN = 0, onSetupChange }: {
+export function DecompositionSetup({ table, fittingTable = table, method, onMethodChange, externalRun, initialItems, children, ownedScores = [], completedItems = [], contextKey = '', minimumPairN = 0, onShowAssessment, onSetupChange }: {
   table: DataTable; fittingTable?: DataTable;
   method: 'pca' | 'efa'; onMethodChange: (method: 'pca' | 'efa') => void;
   externalRun?: { seq: number; vars: string[]; label: string; missing: SharedAnalysisSetup['missing']; measurements?: Record<string, MeasurementChoice> } | null;
+  initialItems?: readonly string[];
   ownedScores?: string[];
   completedItems?: string[];
   contextKey?: string;
   minimumPairN?: number;
+  onShowAssessment?: () => void;
   onSetupChange?: (setup: SharedAnalysisSetup) => void;
   children: (setup: SharedAnalysisSetup, bindings: { onOrdersChange: (orders: Record<string, OrdinalCategory[]>) => void }) => ReactNode;
 }) {
@@ -45,12 +47,15 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
   const completed = useMemo(() => new Set(completedKey.split('\u0000')), [completedKey]);
   const columns = useMemo(() => {
     const scores = new Set(scoreKey.split('\u0000'));
-    return table.columns.filter(c => !isPCColumn(c) && c !== 'Cluster' && !scores.has(c));
+    return table.columns.filter(c => !scores.has(c));
   }, [table.columns, scoreKey]);
   const numeric = useMemo(() => new Set(numericColumnsOf(table)), [table]);
-  const [selected, setSelected] = useState<string[]>(() => externalRun ? externalRun.vars.filter(c => columns.includes(c)) : columns.filter(c => numeric.has(c) && !isIdentifierColumn(c) && !completed.has(c)));
+  const [selected, setSelected] = useState<string[]>(() => {
+    const preset = externalRun?.vars ?? initialItems;
+    return preset ? preset.filter(c => columns.includes(c)) : columns.filter(c => numeric.has(c) && !isIdentifierColumn(c) && !completed.has(c));
+  });
   const [label, setLabel] = useState(externalRun?.label ?? '');
-  const [missing, setMissing] = useState<SharedAnalysisSetup['missing']>(externalRun?.missing ?? 'median');
+  const [preferredMissing, setMissing] = useState<SharedAnalysisSetup['missing']>(externalRun?.missing ?? 'median');
   const [measurements, setMeasurements] = useState<Record<string, MeasurementChoice>>(externalRun?.measurements ?? {});
   const [orders, setOrders] = useState<Record<string, OrdinalCategory[]>>({});
   const [advice, setAdvice] = useState<SharedAnalysisSetup['advice']>();
@@ -74,7 +79,6 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
     setAdvice(undefined);
   }
   const liveSelected = useMemo(() => selected.filter(c => columns.includes(c)), [selected, columns]);
-  useEffect(() => { onSetupChange?.({ label, selected: liveSelected, missing, measurements, orders }); }, [label, liveSelected, missing, measurements, orders, onSetupChange]);
   const visible = useMemo(() => columns.filter(c => c.toLowerCase().includes(search.toLowerCase())), [columns, search]);
   const suggestions = useMemo(() => Object.fromEntries(liveSelected.map(c => {
     try {
@@ -82,14 +86,18 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
       return [c, inferred.kind === 'ordinal' ? 'categorical' : inferred.kind];
     } catch { return [c, 'Needs review']; }
   })), [liveSelected, fittingTable, measurements]);
-  const missingPct = useMemo(() => Object.fromEntries(table.columns.map(c => {
+  const missingCounts = useMemo(() => Object.fromEntries(table.columns.map(c => {
     let missing = 0;
     for (let i = 0; i < fittingTable.nRows; i++) {
       const v = fittingTable.data[c]?.[i];
-      if (v === null || v === undefined || v === '' || (typeof v === 'number' && !Number.isFinite(v))) missing++;
+      if (v === null || v === undefined || (typeof v === 'string' && !v.trim()) || (typeof v === 'number' && !Number.isFinite(v))) missing++;
     }
-    return [c, fittingTable.nRows ? missing / fittingTable.nRows * 100 : 0];
+    return [c, missing];
   })), [table.columns, fittingTable]);
+  const missingCells = liveSelected.reduce((sum, column) => sum + missingCounts[column], 0);
+  const missing = missingCells ? preferredMissing : 'complete';
+  const emptyReason = !liveSelected.length ? 'Select items' : !fittingTable.nRows ? 'No fitting rows' : 'No missing values';
+  useEffect(() => { onSetupChange?.({ label, selected: liveSelected, missing, measurements, orders }); }, [label, liveSelected, missing, measurements, orders, onSetupChange]);
   const choose = (next: string[]) => {
     setSelected(next);
     if (!labelTouched) setLabel(deriveRunLabel(next) ?? '');
@@ -130,7 +138,7 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
           <span className="truncate flex-1" title={c}>{c}</span>
           {isIdentifierColumn(c) && <span className="text-[10px] opacity-50" title="Identifier: excluded from automatic selection">ID</span>}
           {completed.has(c) && <span className="text-[10px] opacity-60">Completed</span>}
-          {missingPct[c] > 0 && <span className="flex-shrink-0 text-[10px] opacity-50" title={`${missingPct[c].toFixed(0)}% missing in the fitting sample`}>{missingPct[c].toFixed(0)}% NA</span>}
+          {missingCounts[c] > 0 && <span className="flex-shrink-0 text-[10px] opacity-50" title={`${(100 * missingCounts[c] / fittingTable.nRows).toFixed(0)}% missing in the fitting sample`}>{(100 * missingCounts[c] / fittingTable.nRows).toFixed(0)}% NA</span>}
         </label>)}
         {!visible.length && <p className="opacity-50 p-1">No matching items.</p>}
       </div>
@@ -146,17 +154,27 @@ export function DecompositionSetup({ table, fittingTable = table, method, onMeth
     </div>
     <div className="flex gap-2" role="group" aria-label="Analysis method">
       {(['pca', 'efa'] as const).map(value => <PanelChoiceButton key={value} selected={method === value}
-        onClick={() => { if ((value === 'efa' && missing === 'iterative') || (value === 'pca' && missing === 'fiml')) setMissing('median'); onMethodChange(value); }}>{value.toUpperCase()}</PanelChoiceButton>)}
+        onClick={() => { if ((value === 'efa' && preferredMissing === 'iterative') || (value === 'pca' && preferredMissing === 'fiml')) setMissing('median'); onMethodChange(value); }}>{value.toUpperCase()}</PanelChoiceButton>)}
     </div>
-    <DecompositionAdvice table={fittingTable} columns={liveSelected} contextKey={contextKey}
+    <DecompositionAdvice onShowAssessment={onShowAssessment} table={fittingTable} columns={liveSelected} contextKey={contextKey}
       options={{ method, measurements, orders, missing, minimumPairN }} onApply={patch => {
         if (patch.missing && (method === 'pca' ? patch.missing !== 'fiml' : patch.missing !== 'iterative')) setMissing(patch.missing);
         setAdvice({ seq: ++adviceSeq.current, patch });
       }} />
-    <div className="space-y-1"><label htmlFor="analysis-missing" className="opacity-70">Missing values</label>
-      <div className="flex items-center gap-1"><select id="analysis-missing" aria-label="Missing values" value={missing} onChange={e => setMissing(e.target.value as SharedAnalysisSetup['missing'])} className="flex-1 min-w-0 bg-[var(--input)] border border-[var(--border)] p-1.5">
-        {MISSING_METHODS.filter(m => method === 'pca' ? m.value !== 'fiml' : m.value !== 'iterative').map(m => <option key={m.value} value={m.value}>{m.name}</option>)}
-      </select><InfoTip label={missingMethod.name} text={missingMethod.info} /></div>
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <label htmlFor="analysis-missing" className="opacity-70">Missing values</label>
+        {missingCells > 0 && <span className="text-[10px] opacity-60">{missingCells.toLocaleString()} missing {missingCells === 1 ? 'cell' : 'cells'}</span>}
+      </div>
+      <div className="flex items-center gap-1">
+        <select id="analysis-missing" aria-label="Missing values" disabled={!missingCells} value={missingCells ? missing : ''}
+          onChange={e => setMissing(e.target.value as SharedAnalysisSetup['missing'])}
+          className="flex-1 min-w-0 bg-[var(--input)] border border-[var(--border)] p-1.5 disabled:opacity-50">
+          {missingCells ? MISSING_METHODS.filter(m => method === 'pca' ? m.value !== 'fiml' : m.value !== 'iterative')
+            .map(m => <option key={m.value} value={m.value}>{m.name}</option>) : <option value="">{emptyReason}</option>}
+        </select>
+        {missingCells > 0 && <InfoTip label={missingMethod.name} text={missingMethod.info} />}
+      </div>
     </div>
     {children({ label, selected: liveSelected, missing, measurements, advice }, { onOrdersChange })}
   </div>;

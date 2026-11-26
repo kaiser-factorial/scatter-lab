@@ -719,7 +719,7 @@ describe("bounded EFA item collaboration", () => {
 
 
 describe("EFA backend assistant replay", () => {
-  it.each(["webgpu", "scala"] as const)("passes an explicit %s selection through the shared controller", async backend => {
+  it.each(["cpu", "webgpu"] as const)("passes an explicit %s selection through the shared controller", async backend => {
     const { bridge, service } = setup();
     await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute: { backend } } }), ctx => {
       expect(JSON.parse(ctx.lastObservation!).jobId).toBeDefined(); return say("done");
@@ -727,7 +727,7 @@ describe("EFA backend assistant replay", () => {
     expect(service.fit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ compute: { backend } }), expect.anything(), undefined, 5);
   });
   it.each([
-    { backend: "unknown" }, { backend: "scala", token: "do-not-export" },
+    { backend: "unknown" }, { backend: "scala" }, { backend: "scala", token: "do-not-export" },
     { backend: "cpu", correction: "estimated" }, { backend: "scala", correction: "estimated" },
     { backend: "webgpu", correction: "unknown" }, { backend: "webgpu", correction: "estimated", probes: 1 },
     { backend: "webgpu", correction: "estimated", probes: 4097 }, { backend: "webgpu", correction: "estimated", probes: 16.5 },
@@ -749,11 +749,11 @@ describe("EFA backend assistant replay", () => {
   });
 });
 
-it("offline assistant replay cannot start Scala without an explicit UI pairing", async () => {
+it("offline assistant replay rejects the retired Scala backend without starting a replacement", async () => {
   const { bridge, service } = setup();
   vi.mocked(service.fit).mockRestore();
   await play(bridge, [call("run_efa", { spec: { ...spec, extraction: "wlsmv", compute: { backend: "scala" } } }), ctx => {
-    expect(ctx.lastObservation).toContain("EFA action failed (companion-unavailable)"); return say("done");
+    expect(ctx.lastObservation).toContain("EFA action failed (backend-removed)"); return say("done");
   }]);
   expect(service.listJobs()).toHaveLength(0);
 });
