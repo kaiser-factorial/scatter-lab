@@ -1,0 +1,295 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T10:05:45.274Z",
+  "dimensions": {
+    "items": 20,
+    "rows": 1000,
+    "factors": 5
+  },
+  "robustComputed": true,
+  "method": "DWLS plus explicit WLSMV only when robustComputed=true; weighted rotations use varimax convergence 1e-14",
+  "timingsMs": {
+    "FullPreparation": 2,
+    "FullCorrelations": 18.100000023841858,
+    "FullUncertainty": 14.399999976158142,
+    "FullDWLS": 6.600000023841858,
+    "Fulloblimin": 9.600000023841858,
+    "FullScores": 1.2999999523162842,
+    "FullobliminRobustInference": 715.1000000238419,
+    "FullobliminRotatedSE": 817.6000000238419,
+    "Fullpromax": 0.5999999642372131,
+    "FullpromaxRobustInference": 657,
+    "FullpromaxRotatedSE": 90.90000003576279,
+    "Fullvarimax": 0.8999999761581421,
+    "FullvarimaxRobustInference": 698.6000000238419,
+    "FullvarimaxRotatedSE": 313.5999999642372,
+    "HoldoutPreparation": 0.699999988079071,
+    "HoldoutCorrelations": 11.800000011920929,
+    "HoldoutUncertainty": 6.699999988079071,
+    "HoldoutDWLS": 3.100000023841858,
+    "Holdoutoblimin": 2.699999988079071,
+    "HoldoutScores": 0.09999996423721313,
+    "HoldoutobliminRobustInference": 81.40000003576279,
+    "HoldoutobliminRotatedSE": 799.8000000119209,
+    "Holdoutpromax": 0.2999999523162842,
+    "HoldoutpromaxRobustInference": 78.10000002384186,
+    "HoldoutpromaxRotatedSE": 82.60000002384186,
+    "Holdoutvarimax": 0.8999999761581421,
+    "HoldoutvarimaxRobustInference": 66.60000002384186,
+    "HoldoutvarimaxRotatedSE": 315.5999999642372
+  },
+  "full": {
+    "inputSha256": "0b87cf458df2ddc2188cca41ff1e27ee1cfaf8909e5e3778d239e3029a8cba34",
+    "rows": 1000,
+    "convergence": {
+      "converged": true,
+      "iterations": 20,
+      "objective": 0.03263400775862184,
+      "gradient": 3.7147751541510843e-9,
+      "maxIterations": 2000
+    },
+    "rotations": {
+      "oblimin": {
+        "convergence": {
+          "converged": true,
+          "iterations": 29,
+          "objective": 0.016734789736053895,
+          "gradient": 1.7600799146505494e-9,
+          "maxIterations": 4000
+        },
+        "test": {
+          "rawStatistic": 32.60137375086322,
+          "df": 100,
+          "trace": 39.284298752629205,
+          "traceSquared": 17.956892383506514,
+          "scalingFactor": 0.4237557360497497,
+          "shift": 7.29494515204118,
+          "statistic": 84.22929902008123,
+          "denominator": 999,
+          "pValue": 0.8711894062707657
+        },
+        "plan": {
+          "space": "cases",
+          "parameters": 90,
+          "pairs": 190,
+          "rows": 1000,
+          "blockSize": 32,
+          "estimatedBytes": 1566816,
+          "budgetBytes": 1073741824,
+          "approximateMultiplyAdds": 149558000
+        },
+        "derivativeMaxRelativeChange": 0.000010188186955735132
+      },
+      "promax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 17,
+          "objective": 4.75528839729167,
+          "gradient": 0
+        },
+        "test": {
+          "rawStatistic": 32.60137375086322,
+          "df": 100,
+          "trace": 39.284298752629205,
+          "traceSquared": 17.956892383506514,
+          "scalingFactor": 0.4237557360497497,
+          "shift": 7.29494515204118,
+          "statistic": 84.22929902008123,
+          "denominator": 999,
+          "pValue": 0.8711894062707657
+        },
+        "plan": {
+          "space": "cases",
+          "parameters": 90,
+          "pairs": 190,
+          "rows": 1000,
+          "blockSize": 32,
+          "estimatedBytes": 1566816,
+          "budgetBytes": 1073741824,
+          "approximateMultiplyAdds": 149558000
+        },
+        "derivativeMaxRelativeChange": 0.0000014777714024138966
+      },
+      "varimax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 14,
+          "objective": -14.168638657641795,
+          "gradient": 0
+        },
+        "test": {
+          "rawStatistic": 32.60137375086322,
+          "df": 100,
+          "trace": 39.284298752629205,
+          "traceSquared": 17.956892383506514,
+          "scalingFactor": 0.4237557360497497,
+          "shift": 7.29494515204118,
+          "statistic": 84.22929902008123,
+          "denominator": 999,
+          "pValue": 0.8711894062707657
+        },
+        "plan": {
+          "space": "cases",
+          "parameters": 90,
+          "pairs": 190,
+          "rows": 1000,
+          "blockSize": 32,
+          "estimatedBytes": 1566816,
+          "budgetBytes": 1073741824,
+          "approximateMultiplyAdds": 149558000
+        },
+        "derivativeMaxRelativeChange": 0.0000074770763932004505
+      }
+    },
+    "varianceRange": [
+      0.7766889830881025,
+      1.3384680967974973
+    ],
+    "robustPlan": {
+      "space": "moments",
+      "parameters": 90,
+      "pairs": 190,
+      "rows": 1000,
+      "blockSize": 32,
+      "estimatedBytes": 3092256,
+      "budgetBytes": 1073741824,
+      "approximateMultiplyAdds": 27626000
+    }
+  },
+  "holdout": {
+    "inputSha256": "bed3453eca17d99479375290a50b50469f8ed8007c6625bdec5c69ded27cf564",
+    "rows": 300,
+    "convergence": {
+      "converged": true,
+      "iterations": 26,
+      "objective": 0.1292591987537794,
+      "gradient": 5.157128921389614e-9,
+      "maxIterations": 2000
+    },
+    "rotations": {
+      "oblimin": {
+        "convergence": {
+          "converged": true,
+          "iterations": 20,
+          "objective": 0.0427868954445116,
+          "gradient": 3.3693310314446914e-9,
+          "maxIterations": 4000
+        },
+        "test": {
+          "rawStatistic": 38.648500427380036,
+          "df": 100,
+          "trace": 41.26262582379594,
+          "traceSquared": 25.756819754141485,
+          "scalingFactor": 0.5075117708402583,
+          "shift": 18.696219093638433,
+          "statistic": 94.84913346524387,
+          "denominator": 299,
+          "pValue": 0.6267665614547814
+        },
+        "plan": {
+          "space": "cases",
+          "parameters": 90,
+          "pairs": 190,
+          "rows": 300,
+          "blockSize": 32,
+          "estimatedBytes": 911616,
+          "budgetBytes": 1073741824,
+          "approximateMultiplyAdds": 16488000
+        },
+        "derivativeMaxRelativeChange": 0.00000890280807123306
+      },
+      "promax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 14,
+          "objective": 4.797602984245608,
+          "gradient": 0
+        },
+        "test": {
+          "rawStatistic": 38.648500427380036,
+          "df": 100,
+          "trace": 41.26262582379594,
+          "traceSquared": 25.756819754141485,
+          "scalingFactor": 0.5075117708402583,
+          "shift": 18.696219093638433,
+          "statistic": 94.84913346524387,
+          "denominator": 299,
+          "pValue": 0.6267665614547814
+        },
+        "plan": {
+          "space": "cases",
+          "parameters": 90,
+          "pairs": 190,
+          "rows": 300,
+          "blockSize": 32,
+          "estimatedBytes": 911616,
+          "budgetBytes": 1073741824,
+          "approximateMultiplyAdds": 16488000
+        },
+        "derivativeMaxRelativeChange": 0.000003586296529078936
+      },
+      "varimax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 12,
+          "objective": -13.596468024331507,
+          "gradient": 0
+        },
+        "test": {
+          "rawStatistic": 38.648500427380036,
+          "df": 100,
+          "trace": 41.26262582379594,
+          "traceSquared": 25.756819754141485,
+          "scalingFactor": 0.5075117708402583,
+          "shift": 18.696219093638433,
+          "statistic": 94.84913346524387,
+          "denominator": 299,
+          "pValue": 0.6267665614547814
+        },
+        "plan": {
+          "space": "cases",
+          "parameters": 90,
+          "pairs": 190,
+          "rows": 300,
+          "blockSize": 32,
+          "estimatedBytes": 911616,
+          "budgetBytes": 1073741824,
+          "approximateMultiplyAdds": 16488000
+        },
+        "derivativeMaxRelativeChange": 0.000009236155177026967
+      }
+    },
+    "varianceRange": [
+      0.7354236158609961,
+      1.5034246041371
+    ],
+    "robustPlan": {
+      "space": "moments",
+      "parameters": 90,
+      "pairs": 190,
+      "rows": 300,
+      "blockSize": 32,
+      "estimatedBytes": 3041856,
+      "budgetBytes": 1073741824,
+      "approximateMultiplyAdds": 14991000
+    }
+  },
+  "heartbeats": 56,
+  "maxHeartbeatGapMs": 131.5,
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "hardwareConcurrency": 8,
+  "cancelMs": 0,
+  "cancellationStage": "Exact robust trace blocks",
+  "progressAtCancellation": "{\"stage\":\"Exact robust trace blocks\",\"completed\":433,\"total\":528}",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 982843392,
+    "method": "1-second samples of summed RSS for this isolated browser process tree; shared pages may be counted more than once"
+  },
+  "workerSha256": "77166c380e78416c0b8c5f3438d4052709f56868e8dfd64b8f8970ec5e32b326",
+  "url": "http://localhost:3000/efa-qualification/weighted/index.html?robust=true&n=1000&p=20&space=cases&cancelStage=Exact%20robust%20trace%20blocks"
+}

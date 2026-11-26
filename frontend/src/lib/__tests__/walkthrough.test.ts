@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP,
+  WALKTHROUGH, WALKTHROUGH_STEPS, FIRST_STEP, DEMO_ENTRY,
   walkthroughStep, walkthroughIndex, stepAnchorsChoice, assistantGreeting,
 } from '../walkthrough';
 import { GUIDE_TARGETS } from '../assistant';
@@ -11,6 +11,12 @@ import type { AppBridge } from '../assistant';
 // Neither shows up in a type check — both are trivially provable here.
 describe('walkthrough graph', () => {
   const ids = WALKTHROUGH.map(s => s.id);
+
+  it('explains all three export choices without starting a download', () => {
+    const step = walkthroughStep('export')!;
+    expect(step.say.split('\n').map(line => line.match(/^- \*\*(.*?)\*\*/)?.[1])).toEqual(['Image', 'Data', 'Analysis record']);
+    expect(step.run).toBeUndefined();
+  });
 
   it('has unique step ids', () => {
     expect(new Set(ids).size).toBe(ids.length);
@@ -73,35 +79,43 @@ const recordingBridge = () => {
 
 const runAll = async (stepId: string) => {
   const { bridge, calls } = recordingBridge();
-  for (const action of walkthroughStep(stepId)!.run ?? []) await action(bridge);
+  for (const [, action] of walkthroughStep(stepId)!.run ?? []) await action(bridge);
   return calls;
 };
 
 const runWholeTour = async () => {
   const { bridge, calls } = recordingBridge();
-  for (const step of WALKTHROUGH) for (const action of step.run ?? []) await action(bridge);
+  for (const step of [DEMO_ENTRY, ...WALKTHROUGH]) for (const [, action] of step.run ?? []) await action(bridge);
   return calls;
 };
 
 describe('walkthrough step actions', () => {
-  it('loads the demo at the data-added step, through the taught door', async () => {
-    // The tour teaches the upload area FIRST (the Data step's advance button is
-    // anchored beside the dropzone), and only then adds the demo — so nothing
-    // is prepopulated before the user has seen where data comes from.
-    expect(await runAll(FIRST_STEP)).toEqual([]);
+  it('opens Iris immediately, then loads the survey only when requested', async () => {
+    expect(await runAll(DEMO_ENTRY.id)).toEqual([{ method: 'loadDemoData', args: ['iris'] }]);
+    expect(DEMO_ENTRY.choices).toEqual([{ label: 'Begin demo walkthrough', next: FIRST_STEP }]);
+    expect((await runAll(FIRST_STEP)).map(call => call.method)).toEqual(['setPlot']);
     expect(await runAll('data')).toEqual([]);
-    expect(await runAll('data-added')).toContainEqual({ method: 'loadDemoData', args: ['private'] });
+    expect(walkthroughStep('data-added')?.id).toBe('variables');
+    expect((await runWholeTour()).filter(call => call.method === 'loadDemoData').map(call => call.args)).toEqual([['iris'], ['survey', 'development']]);
+    expect(walkthroughStep('survey')!.choices[0].next).toBe('split');
+    expect(walkthroughStep('split')!.choices[0].next).toBe('efa-setup');
+    expect(walkthroughStep('efa-setup')!.highlight).toBe('efa-settings');
+    expect((await runAll('efa-setup')).map(call => call.method)).toEqual(['configureDemoSurvey']);
+    expect(walkthroughStep('efa-setup')!.choices[0].next).toBe('efa');
+    expect((await runAll('efa')).map(call => call.method)).toEqual(['fitDemoSurvey']);
+    expect((await runAll('scores')).map(call => call.method)).toEqual(['scoreDemoSurvey', 'plotDemoScores']);
     const dataStep = walkthroughStep('data')!;
     expect(stepAnchorsChoice(dataStep)).toBe(true);
     expect(dataStep.highlight).toBe('upload-dropzone');
-    expect(dataStep.choices[0].next).toBe('data-added');
+    expect(dataStep.choices[0].next).toBe('variables');
+    expect(WALKTHROUGH.filter(step => step.highlight === 'datasets-list').map(step => step.id)).toEqual(['survey']);
   });
 
   it('every sidebar-pointing step anchors its advance button; panel steps do not', () => {
     // "Any time we are showing a part of the menu bar, the next button sits by
     // the pointer" — derived from the highlight, so new steps inherit it.
     const anchored = WALKTHROUGH.filter(stepAnchorsChoice).map(s => s.id);
-    expect(anchored).toEqual(['data', 'data-added', 'variables', 'pca', 'cluster', 'compare', 'export']);
+    expect(anchored).toEqual(['data', 'variables', 'pca', 'cluster', 'survey', 'split', 'efa-setup', 'scores', 'export']);
     // welcome has no highlight and done ends the tour — both keep their
     // buttons in the panel.
     expect(stepAnchorsChoice(walkthroughStep('welcome')!)).toBe(false);
@@ -143,35 +157,27 @@ describe('walkthrough step actions', () => {
     const earlier = WALKTHROUGH.slice(0, walkthroughIndex('cluster'));
     for (const step of earlier) {
       const { bridge, calls: c } = recordingBridge();
-      for (const action of step.run ?? []) await action(bridge);
-      expect(c.some(x => (x.args[0] as { shape_by?: string } | undefined)?.shape_by),
+      for (const [, action] of step.run ?? []) await action(bridge);
+      expect(c.some(x => (x.args[0] as { shape_by?: string } | undefined)?.shape_by === 'Species'),
         `${step.id} sets the shape channel too early`).toBeFalsy();
     }
   });
 
-  it('leaves the plot rotating for the comparison, and stops it at the end', async () => {
-    expect(await runAll('compare')).toContainEqual(
-      { method: 'controlView', args: [{ rotation: 'start' }] });
-    expect(await runAll('done')).toContainEqual(
-      { method: 'controlView', args: [{ rotation: 'stop' }] });
+  it('moves from the Iris species breakdown directly to survey import', async () => {
+    const cluster = walkthroughStep('cluster')!;
+    expect(cluster.highlight).toBe('cluster-breakdown');
+    expect(cluster.choices).toEqual([{ label: 'Load the synthetic survey', next: 'survey' }]);
+    expect(await runAll('survey')).toEqual([{ method: 'loadDemoData', args: ['survey', 'development'] }]);
   });
 
-  it('moves the panel out of the way before it pins a second pane', async () => {
-    // Pinning while the panel is docked right splits the leftover strip into
-    // two unreadable slivers, so the dock move has to come first.
-    const calls = await runAll('compare');
-    const docked = calls.findIndex(c => c.method === 'setAssistantDock');
-    expect(calls[docked]?.args).toEqual(['bottom']);
-    expect(docked).toBeLessThan(calls.findIndex(c => c.method === 'pinView'));
+  it('teaches docking without changing the chosen layout', async () => {
+    expect((await runWholeTour()).map(call => call.method)).not.toContain('setAssistantDock');
   });
 
-  it('returns the live view to the flower measurements after pinning the 2D one', async () => {
-    const calls = await runAll('compare');
-    const pinnedAt = calls.findIndex(c => c.method === 'pinView');
-    const last = calls.filter(c => c.method === 'setPlot').at(-1)!;
-    expect(pinnedAt).toBeGreaterThan(0);
-    expect(calls.indexOf(last)).toBeGreaterThan(pinnedAt);
-    expect(last.args[0]).toMatchObject({ view_mode: '3D', x: 'PetalLengthCm' });
+  it('keeps a single live plot throughout the tour', async () => {
+    const methods = (await runWholeTour()).map(call => call.method);
+    expect(methods).not.toContain('pinView');
+    expect(methods).not.toContain('controlView');
   });
 
   it('never starts a download anywhere in the tour', async () => {

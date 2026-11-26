@@ -1,0 +1,136 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T08:34:12.917Z",
+  "dimensions": {
+    "items": 500,
+    "respondents": 20000,
+    "holdoutRespondents": 6000,
+    "nFactors": 5
+  },
+  "seed": 8801,
+  "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+  "timingsMs": {
+    "fit": 18969.19999998808,
+    "promax": 1629,
+    "varimax": 1804.5999999642372,
+    "scores": 1769.9000000357628,
+    "holdout": 17087.299999952316
+  },
+  "stages": [
+    {
+      "jobId": "c907927c-b60d-441c-838d-9139119956be",
+      "stage": "Preparing",
+      "milliseconds": 1287.8999999761581
+    },
+    {
+      "jobId": "c907927c-b60d-441c-838d-9139119956be",
+      "stage": "Correlations",
+      "milliseconds": 1718.6000000238419
+    },
+    {
+      "jobId": "408b5030-2a51-46e7-83e8-66ba6e35a9a3",
+      "stage": "Preparing",
+      "milliseconds": 1206.8999999761581
+    },
+    {
+      "jobId": "408b5030-2a51-46e7-83e8-66ba6e35a9a3",
+      "stage": "Correlations",
+      "milliseconds": 9641.600000023842
+    },
+    {
+      "jobId": "408b5030-2a51-46e7-83e8-66ba6e35a9a3",
+      "stage": "MINRES",
+      "milliseconds": 7508.099999964237
+    },
+    {
+      "jobId": "408b5030-2a51-46e7-83e8-66ba6e35a9a3",
+      "stage": "Rotation",
+      "milliseconds": 609
+    },
+    {
+      "jobId": "408b5030-2a51-46e7-83e8-66ba6e35a9a3",
+      "stage": "Completed",
+      "milliseconds": 12.600000023841858
+    },
+    {
+      "jobId": "6208b43f-4805-42a0-9cd8-acad173c0183",
+      "stage": "Preparing",
+      "milliseconds": 1155.5
+    },
+    {
+      "jobId": "6208b43f-4805-42a0-9cd8-acad173c0183",
+      "stage": "Rotation",
+      "milliseconds": 471.5
+    },
+    {
+      "jobId": "6208b43f-4805-42a0-9cd8-acad173c0183",
+      "stage": "Completed",
+      "milliseconds": 0.699999988079071
+    },
+    {
+      "jobId": "e7deb8c9-fef4-48a8-81e4-2373fdf307b9",
+      "stage": "Preparing",
+      "milliseconds": 1331.199999988079
+    },
+    {
+      "jobId": "e7deb8c9-fef4-48a8-81e4-2373fdf307b9",
+      "stage": "Rotation",
+      "milliseconds": 472.7000000476837
+    },
+    {
+      "jobId": "e7deb8c9-fef4-48a8-81e4-2373fdf307b9",
+      "stage": "Completed",
+      "milliseconds": 0.3999999761581421
+    },
+    {
+      "jobId": "bbbd4dcc-5646-4f82-b666-329e4f0d0e26",
+      "stage": "Preparing",
+      "milliseconds": 1769.6000000238419
+    },
+    {
+      "jobId": "bbbd4dcc-5646-4f82-b666-329e4f0d0e26",
+      "stage": "Completed",
+      "milliseconds": 0.5999999642372131
+    },
+    {
+      "jobId": "da2f415b-9b6d-45e8-a8bd-4738f9dad93c",
+      "stage": "Preparing",
+      "milliseconds": 858
+    },
+    {
+      "jobId": "da2f415b-9b6d-45e8-a8bd-4738f9dad93c",
+      "stage": "Correlations",
+      "milliseconds": 7337.199999988079
+    },
+    {
+      "jobId": "da2f415b-9b6d-45e8-a8bd-4738f9dad93c",
+      "stage": "MINRES",
+      "milliseconds": 8247.300000011921
+    },
+    {
+      "jobId": "da2f415b-9b6d-45e8-a8bd-4738f9dad93c",
+      "stage": "Rotation",
+      "milliseconds": 644.1000000238419
+    }
+  ],
+  "hardwareConcurrency": 8,
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "heartbeats": 411,
+  "convergence": {
+    "converged": true,
+    "iterations": 8,
+    "objective": 2.7655124152833572,
+    "gradient": 1.2566030786725853e-9,
+    "maxIterations": 2000
+  },
+  "cancelMs": 0.3999999761581421,
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 1347108864,
+    "method": "1-second samples of summed RSS for this isolated browser process tree; shared pages may be counted more than once"
+  }
+}

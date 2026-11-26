@@ -1,0 +1,7 @@
+{
+  "recordedAt": "2026-11-01T00:41:20.743Z",
+  "backend": "gpu-resident",
+  "stage": "{\"stage\":\"Rotated standard errors\",\"completed\":2490,\"total\":2490}",
+  "peakBrowserRssBytes": 1047265280,
+  "completedFits": 0
+}

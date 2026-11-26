@@ -1,0 +1,150 @@
+{
+  "recordedAt": "2026-11-04T02:53:07.546Z",
+  "status": "passed",
+  "provenance": {
+    "independentReferencesPassed": true,
+    "samePipeline": true,
+    "sameScalaSource": true,
+    "sameNativeBytecode": true,
+    "sameProtocol": true,
+    "sameNativeOptions": true,
+    "sameThreadRequest": true,
+    "sameRotationWorker": true,
+    "sameRotationPool": true,
+    "sameRotationExecution": true
+  },
+  "comparisons": [
+    {
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+      "sameMembership": true,
+      "errors": {
+        "rawStatistic": 0,
+        "trace": 0,
+        "traceSquared": 3.4924596548080444e-10,
+        "scalingFactor": 8.881784197001252e-16,
+        "shift": 1.4551915228366852e-11,
+        "statistic": 0,
+        "pValue": 0
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 0,
+            "structureSE": 0,
+            "phiSE": 0,
+            "communalitySE": 0,
+            "uniquenessSE": 0
+          },
+          "scores": {
+            "maxAbsolute": 0,
+            "maxStandardized": 0,
+            "sameCompleteMask": true,
+            "completeRows": 6000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 0,
+            "structureSE": 0,
+            "phiSE": 0,
+            "communalitySE": 0,
+            "uniquenessSE": 0
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 0,
+            "structureSE": 0,
+            "phiSE": 0,
+            "communalitySE": 0,
+            "uniquenessSE": 0
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+      "sha256": "2c221546793ea87a31e90a1644d3de190d855c1c75655c588a440b757106bfb8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-large-holdout-v3.json",
+      "sha256": "38f3ae764c3964b2230af698e380dceab5550998bd5abdf9ae3352d33e738902"
+    },
+    {
+      "path": "scripts/efa-reference/compute/throughput-scala-r-v3.json",
+      "sha256": "e2157ef01d9859120c226e54d88bfb2830b886b0186a17944ccf023bf3480afb"
+    }
+  ],
+  "scope": "Exact saved inputs; unchanged full-output tolerances. Candidate source qualified against five independent R fixtures. No cross-device guarantee or automatic production promotion."
+}

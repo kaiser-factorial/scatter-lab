@@ -1,0 +1,11 @@
+enable_experimental;
+import "GaussianContracts.cry" as G;
+let main : TopLevel [Theorem] = do {
+  sufficient <- prove_print z3 {{ G::sufficientStatistics }};
+  meanGradient <- prove_print z3 {{ G::meanGradient }};
+  determinant <- prove_print z3 {{ G::determinantLemma }};
+  inverse <- prove_print z3 {{ G::woodburyInverse }};
+  conditional <- prove_print z3 {{ G::conditionalMean }};
+  summarize_verification;
+  return [sufficient,meanGradient,determinant,inverse,conditional];
+};

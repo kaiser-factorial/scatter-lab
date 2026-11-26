@@ -1,0 +1,147 @@
+{
+  "startedAt": "2026-11-04T01:50:06.927Z",
+  "status": "qualified",
+  "stages": [
+    {
+      "name": "Default-browser GPU: large",
+      "args": [
+        "scripts/efa-reference/compute/check-pipeline.mjs",
+        "http://localhost:3000/efa-qualification/compute/index.html?pipeline=1&backend=gpu-portable-reduced&block=128&budgetMiB=1536&fixture=large&probeCancellation=1",
+        "scripts/efa-reference/compute/throughput-browser-large-v3.json",
+        "--worker-archive=scripts/efa-reference/compute/archives/7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8.js.gz",
+        "--rotation-worker-archive=scripts/efa-reference/compute/archives/b719d4a92bd0b370d4398256506cc0cf333aeff8c6325b3d2cb41da1492c7248.js.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T01:50:06.975Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:21:19.118Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-blocked-optimized-v2.json",
+        "scripts/efa-reference/compute/throughput-browser-large-v3.json",
+        "scripts/efa-reference/compute/throughput-browser-r-v3c.json",
+        "scripts/efa-reference/compute/throughput-browser-large-comparison-v3.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:21:19.124Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:21:19.506Z"
+    },
+    {
+      "name": "Default-browser GPU: large-holdout",
+      "args": [
+        "scripts/efa-reference/compute/check-pipeline.mjs",
+        "http://localhost:3000/efa-qualification/compute/index.html?pipeline=1&backend=gpu-portable-reduced&block=128&budgetMiB=1536&fixture=large-holdout&probeCancellation=1",
+        "scripts/efa-reference/compute/throughput-browser-large-holdout-v3.json",
+        "--worker-archive=scripts/efa-reference/compute/archives/7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8.js.gz",
+        "--rotation-worker-archive=scripts/efa-reference/compute/archives/b719d4a92bd0b370d4398256506cc0cf333aeff8c6325b3d2cb41da1492c7248.js.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:21:19.506Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:28:29.165Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+        "scripts/efa-reference/compute/throughput-browser-large-holdout-v3.json",
+        "scripts/efa-reference/compute/throughput-browser-r-v3c.json",
+        "scripts/efa-reference/compute/throughput-browser-large-holdout-comparison-v3.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:28:29.167Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:28:29.507Z"
+    },
+    {
+      "name": "Native blocked layout: large",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/throughput-scala-large-v3",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/throughput-scala-large-v3.json",
+        "--block=256",
+        "--budget-mib=1536",
+        "--source=scripts/efa-reference/compute/TraceServerPanel.scala",
+        "--class=TraceServerPanel",
+        "--threads=4",
+        "--fixture=large",
+        "--pipeline-archive=scripts/efa-reference/compute/archives/7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8.mjs.gz",
+        "--rotation-worker-archive=scripts/efa-reference/compute/archives/76e86ada3dd453fc2b2b2bc5dd9f39ff602a05780ca97cdb9fdc66466a15a1e3.mjs.gz",
+        "--rotation-pool-archive=scripts/efa-reference/compute/archives/91ee26830639dbf490a6a0e8d9d2567ae1e9312f14e0bcb56d65c58f68675d96.mjs.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:28:29.509Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:45:49.474Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-blocked-optimized-v2.json",
+        "scripts/efa-reference/compute/throughput-scala-large-v3.json",
+        "scripts/efa-reference/compute/throughput-scala-r-v3.json",
+        "scripts/efa-reference/compute/throughput-scala-large-comparison-v3.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:45:49.479Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:45:49.991Z"
+    },
+    {
+      "name": "Native blocked layout: large-holdout",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/throughput-scala-large-holdout-v3",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/throughput-scala-large-holdout-v3.json",
+        "--block=256",
+        "--budget-mib=1536",
+        "--source=scripts/efa-reference/compute/TraceServerPanel.scala",
+        "--class=TraceServerPanel",
+        "--threads=4",
+        "--fixture=large-holdout",
+        "--pipeline-archive=scripts/efa-reference/compute/archives/7f7c32ad1be669ef260833ea0e5366eaf471666450b51453b1fa037dd73973f8.mjs.gz",
+        "--rotation-worker-archive=scripts/efa-reference/compute/archives/76e86ada3dd453fc2b2b2bc5dd9f39ff602a05780ca97cdb9fdc66466a15a1e3.mjs.gz",
+        "--rotation-pool-archive=scripts/efa-reference/compute/archives/91ee26830639dbf490a6a0e8d9d2567ae1e9312f14e0bcb56d65c58f68675d96.mjs.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:45:49.992Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:53:07.222Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+        "scripts/efa-reference/compute/throughput-scala-large-holdout-v3.json",
+        "scripts/efa-reference/compute/throughput-scala-r-v3.json",
+        "scripts/efa-reference/compute/throughput-scala-large-holdout-comparison-v3.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-04T02:53:07.229Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-04T02:53:07.558Z"
+    }
+  ],
+  "selected": {
+    "projectionTileRows": 32,
+    "nativeSource": "TraceServerPanel.scala",
+    "requestedBlasThreads": 4,
+    "nativeBlockRows": 256,
+    "gpuDotChunk": 1024,
+    "rotationWorkers": 4
+  },
+  "selectionScope": "Measured candidates on this M1; close native rankings are not a cross-device claim",
+  "originalJavaScriptFullSizeBaseline": "skipped-by-user",
+  "completedAt": "2026-11-04T02:53:07.558Z"
+}

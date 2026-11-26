@@ -1,0 +1,15 @@
+{
+  "progress": {
+    "stage": "A × probes",
+    "completed": 4096,
+    "total": 5000
+  },
+  "lastEstimate": {
+    "fixture": "synthetic",
+    "seed": 61002,
+    "probes": 32,
+    "elapsedMs": 190.59999990463257,
+    "relativeTraceSquaredError": -0.006112270850453734
+  },
+  "completedFixtures": 3
+}

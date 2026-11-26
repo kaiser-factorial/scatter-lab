@@ -1,0 +1,66 @@
+module GaussianContracts where
+
+// Exact-rational model identities. These are not Float64 optimizer theorems.
+type R = Rational
+type V = [2]R
+type Rows = [3]V
+
+quad : [3]R -> V -> R
+quad a d = a@0*d@0*d@0 + 2*a@1*d@0*d@1 + a@2*d@1*d@1
+
+subtract : V -> V -> V
+subtract x y = [x@0-y@0,x@1-y@1]
+
+average : Rows -> V
+average xs = [(xs@0@0+xs@1@0+xs@2@0)/.3, (xs@0@1+xs@1@1+xs@2@1)/.3]
+
+rowwise : [3]R -> V -> Rows -> R
+rowwise a mu xs = sum [quad a (subtract x mu) | x <- xs]
+
+grouped : [3]R -> V -> Rows -> R
+grouped a mu xs = within + 3*quad a (subtract mean mu)
+  where
+    mean = average xs
+    within = sum [quad a (subtract x mean) | x <- xs]
+
+property sufficientStatistics a mu xs = rowwise a mu xs == grouped a mu xs
+
+// Finite-increment identity: the coefficient of t is the exact mean gradient.
+property meanGradient a mu xs (t : R) =
+  rowwise a [mu@0+t,mu@1] xs - rowwise a mu xs
+   == t*(-2)*(a@0*sum0 + a@1*sum1) + 3*a@0*t*t
+  where
+    sum0 = sum [x@0-mu@0 | x <- xs]
+    sum1 = sum [x@1-mu@1 | x <- xs]
+
+// Rank-one covariance D + l*l' for two observed variables.
+woodburyInputs : R -> R -> V -> Bool
+woodburyInputs d0 d1 l = (d0 != 0) && (d1 != 0) && (h != 0)
+  where h = 1+l@0*l@0/.d0+l@1*l@1/.d1
+
+property determinantLemma (d0 : R) (d1 : R) (l : V) =
+  ((d0 != 0) && (d1 != 0)) ==>
+   ((d0+l@0*l@0)*(d1+l@1*l@1)-(l@0*l@1)*(l@0*l@1)
+    == d0*d1*(1+l@0*l@0/.d0+l@1*l@1/.d1))
+
+property woodburyInverse (d0 : R) (d1 : R) (l : V) =
+  woodburyInputs d0 d1 l ==>
+   ([s11/.det,-s01/.det,s00/.det] ==
+    [1/.d0-l@0*l@0/.(d0*d0*h),-l@0*l@1/.(d0*d1*h),1/.d1-l@1*l@1/.(d1*d1*h)])
+  where
+    s00=d0+l@0*l@0
+    s01=l@0*l@1
+    s11=d1+l@1*l@1
+    det=s00*s11-s01*s01
+    h=1+l@0*l@0/.d0+l@1*l@1/.d1
+
+// Completing one missing variable from two observed variables, using the
+// analytic 2x2 inverse. The identity checks the linear-system form exactly.
+property conditionalMean (a : R) (b : R) (c : R) (cov : V) (residual : V) =
+  (a*c-b*b != 0) ==>
+   (cov@0*(c*residual@0-b*residual@1)/.(a*c-b*b)
+    +cov@1*(a*residual@1-b*residual@0)/.(a*c-b*b)
+    == ((cov@0*c-cov@1*b)*residual@0+(cov@1*a-cov@0*b)*residual@1)/.(a*c-b*b))
+
+// Required false control: corrupting the centered quadratic by one is invalid.
+property wrongSufficientStatistics a mu xs = rowwise a mu xs == grouped a mu xs + 1

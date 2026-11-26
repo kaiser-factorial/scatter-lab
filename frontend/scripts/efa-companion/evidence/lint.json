@@ -1,0 +1,10 @@
+{
+  "recordedAt": "2026-11-04T05:46:22.978242+00:00",
+  "status": "passed",
+  "scope": "Per-file, rule and severity counts versus pre-integration baseline",
+  "baselineSha256": "a4a087b736caa3b9902460134ad455ea8d4e94b9fe250ecd4aeff2302ab33a46",
+  "currentSha256": "51bba6eaf5243b586ffeecd88362ae274b6ce281c75eafdbc0611621482570b4",
+  "errors": 117,
+  "warnings": 6,
+  "increased": []
+}

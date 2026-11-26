@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { DataTable } from '../table';
-import { selectExportColumns, serializeTable, dataExportFilename, isDerivedColumn } from '../export';
+import { selectExportColumns, serializeTable, dataExportFilename } from '../export';
 import { CSV_BOM } from '../csv';
 
 const t: DataTable = {
@@ -14,9 +14,8 @@ const t: DataTable = {
 describe('selectExportColumns', () => {
   it('drops PC, composite and Cluster columns when derived columns are excluded', () => {
     expect(selectExportColumns(t, true)).toEqual(t.columns);
-    expect(selectExportColumns(t, false)).toEqual(['id', 'note']);
-    expect(isDerivedColumn('PC2_openness')).toBe(true);
-    expect(isDerivedColumn('PCA_notes')).toBe(false);
+    expect(selectExportColumns(t, false, ['PC1', 'COMP_open', 'Cluster'])).toEqual(['id', 'note']);
+    expect(selectExportColumns(t, false)).toEqual(t.columns);
   });
 });
 

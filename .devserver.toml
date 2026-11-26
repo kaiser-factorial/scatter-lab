@@ -1,0 +1,7 @@
+default = "frontend"
+
+[targets.frontend]
+dir = "frontend"
+cmd = "pnpm run dev"
+port = 3000
+health_path = "/"

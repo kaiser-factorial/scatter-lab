@@ -2,6 +2,8 @@
 // with embedded tables can exceed that easily). Same four operations the old
 // backend REST endpoints exposed, plus file export/import for sharing.
 
+import { validateEfaState } from './efa/persistence';
+import { validateDatasetPartition, validatePartitionGroups, type DatasetPartition } from './datasetSplit';
 export type WorkspaceMeta = { name: string; saved_at: string; bytes: number };
 
 const DB_NAME = 'scatter-lab';
@@ -114,7 +116,7 @@ export const exportWorkspaceFile = (name: string, payload: any) => {
 };
 
 /** The payload shape this build knows how to apply. */
-export const WORKSPACE_VERSION = 1;
+export const WORKSPACE_VERSION = 2;
 
 // `unknown` rather than `any` throughout: this is the one place in the app that
 // handles a value nobody typed, so the narrowing has to be real.
@@ -168,6 +170,7 @@ export const validateWorkspace = (parsed: unknown): void => {
   }
   // The failure that actually white-screened the app: a dataset naming a table
   // that is not in the file.
+  const partitions: DatasetPartition[] = [];
   (Array.isArray(parsed.datasets) ? parsed.datasets : []).forEach((d: unknown, i: number) => {
     if (!isRecord(d)) throw new Error(`Workspace file is damaged: dataset #${i + 1} is not an object.`);
     const where = typeof d.name === 'string' && d.name ? `"${d.name}"` : `#${i + 1}`;
@@ -176,7 +179,27 @@ export const validateWorkspace = (parsed: unknown): void => {
       throw new Error(`Workspace file is damaged: dataset ${where} refers to a table ("${String(d.table)}") that the file does not contain.`);
     }
     if (!isTable(t)) throw new Error(`Workspace file is damaged: dataset ${where} has no usable table.`);
+    const columns = (t as { columns: string[] }).columns;
+    if (d.originalColumns !== undefined && (!Array.isArray(d.originalColumns)
+        || new Set(d.originalColumns).size !== d.originalColumns.length
+        || d.originalColumns.some(column => typeof column !== 'string' || !columns.includes(column))))
+      throw new Error(`Workspace file is damaged: dataset ${where} has invalid original column names.`);
+    if (d.clusterColumn !== undefined && (typeof d.clusterColumn !== 'string' || !columns.includes(d.clusterColumn)
+        || (Array.isArray(d.originalColumns) && d.originalColumns.includes(d.clusterColumn))))
+      throw new Error(`Workspace file is damaged: dataset ${where} has an invalid fitted cluster column.`);
+    try {
+      validateDatasetPartition(d.samplePartition, (t as { nRows: number }).nRows);
+      if (d.samplePartition != null) partitions.push(d.samplePartition as DatasetPartition);
+    } catch (error) {
+      throw new Error(`Workspace file is damaged: dataset ${where}. ${error instanceof Error ? error.message : String(error)}`);
+    }
+    validateEfaState(d.efa, (t as { nRows: number }).nRows);
   });
+  try {
+    validatePartitionGroups(partitions);
+  } catch (error) {
+    throw new Error(`Workspace file is damaged: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   if (parsed.pinnedViews != null && !Array.isArray(parsed.pinnedViews)) {
     throw new Error('Workspace file is damaged: its "pinnedViews" section is not a list.');
@@ -209,14 +232,19 @@ const ENTRY_KINDS = new Set(['user', 'assistant', 'tool', 'error']);
  * sanitizes rather than throws: a workspace whose data is intact should not be
  * refused because its chat section is damaged — the chat is auxiliary.
  */
-export const sanitizeConversation = (v: unknown): Conversation | null => {
+export const sanitizeConversation = (v: unknown, hadOpenDataset = false): Conversation | null => {
   if (!isRecord(v)) return null;
   const entries = (Array.isArray(v.entries) ? v.entries : [])
     .filter((e: unknown): e is ConversationEntry =>
       isRecord(e) && typeof e.text === 'string' && typeof e.kind === 'string' && ENTRY_KINDS.has(e.kind));
   const history = (Array.isArray(v.history) ? v.history : []).filter(isRecord);
   if (entries.length === 0 && history.length === 0) return null;
-  return { entries, history };
+  // Keep the visible transcript. A retired row tool may have run even if its dataset was later removed.
+  const hasRowCall = history.some(message => Array.isArray(message.tool_calls) && message.tool_calls.some(
+    (call: unknown) => isRecord(call) && isRecord(call.function) &&
+      ['sample_rows', 'get_rows_where', 'list_categories'].includes(String(call.function.name)),
+  ));
+  return { entries, history: hadOpenDataset || hasRowCall ? [] : history };
 };
 
 export const importWorkspaceFile = async (file: File): Promise<{ name: string; payload: unknown }> => {

@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "datasets": ["normal-complete", "normal-mcar", "normal-mar", "heavy-mcar", "skew-mar", "holzinger-complete", "holzinger-mcar", "holzinger-mar", "bfi25-original", "ordinal-mcar"],
+  "modelsPerDataset": {
+    "ml": 4,
+    "minres": 4,
+    "pca": 10
+  },
+  "largestSynthetic": "Not executed; reserved until accuracy qualification."
+}

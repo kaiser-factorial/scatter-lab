@@ -1,21 +1,4 @@
-// The two data-access modes and what each one permits.
-//
-// Single source of truth on purpose, like disclosures.ts: the tool registry,
-// the column profiles, the system prompt, and the UI badges all derive from
-// the SAME policy object, so the prompt can never promise a guarantee the
-// tools don't enforce (or vice versa).
-//
-// Every dataset carries a mode, chosen by the user at upload time:
-//
-//   'private' — the default. The assistant sees column metadata and aggregate
-//               summaries only; rare category values and identifier columns
-//               are withheld; no tool can read a row.
-//   'open'    — the user has declared the dataset public/non-sensitive. Row
-//               sampling and full category listings become available.
-//
-// Downstream code never asks "is this open?" — it asks for a capability
-// (`policy.rowAccess`, `policy.fullCategories`), so what each mode means is
-// decided here and only here.
+// Capability profiles for statistical helpers. The app always uses ASSISTANT_POLICY.
 
 export type DataMode = 'private' | 'open';
 
@@ -33,6 +16,8 @@ export const policyFor = (mode: DataMode): DataPolicy =>
   mode === 'open'
     ? { mode, rowAccess: true, fullCategories: true, identifiersVisible: true }
     : { mode, rowAccess: false, fullCategories: false, identifiersVisible: false };
+
+export const ASSISTANT_POLICY = Object.freeze(policyFor('private'));
 
 /**
  * The effective policy when several datasets are in play: the MINIMUM.

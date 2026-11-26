@@ -1,0 +1,162 @@
+{
+  "recordedAt": "2026-11-06T13:32:31.423611+00:00",
+  "scope": "Pre-extraction numerical source snapshot; includes existing uncommitted changes, not a git revision.",
+  "files": {
+    "frontend/src/lib/table.ts": {
+      "sha256": "4827a149bd218011c3bb036388e52da5ef81c1a27876b17ff65dfe46ce9a30aa",
+      "destination": "packages/statistics/src/internal/table.ts"
+    },
+    "frontend/src/lib/measurement.ts": {
+      "sha256": "646513b3cc9a9d3d0b035c71e16ced3ce1c9e94c04b713d1fde1946035838f70",
+      "destination": "packages/statistics/src/internal/measurement.ts"
+    },
+    "frontend/src/lib/random.ts": {
+      "sha256": "d9b8b9d36f935199002103ab96d5f596bbb6f5b707b4424420133ba2077bc4f9",
+      "destination": "packages/statistics/src/internal/random.ts"
+    },
+    "frontend/src/lib/convergence.ts": {
+      "sha256": "9490e7d50175a9dfab436e3fa7e2b505b73da97de8c47c1a0ee09d015ec90889",
+      "destination": "packages/statistics/src/internal/convergence.ts"
+    },
+    "frontend/src/lib/pca.ts": {
+      "sha256": "199cd85e7eaa5ba121bd3ec8a993976c3a286df474e6650d534b9c7585c9b563",
+      "destination": "packages/statistics/src/internal/pca.ts"
+    },
+    "frontend/src/lib/stats.ts": {
+      "sha256": "73561e067bf424116749a64245860d93a80540ad9a06358446979acdc378c481",
+      "destination": "packages/statistics/src/internal/stats.ts"
+    },
+    "frontend/src/lib/statTests.ts": {
+      "sha256": "870b8c5eec8973e2d934ddcccdab1fc4a16fb0680ba04e999768140f77b8a228",
+      "destination": "packages/statistics/src/internal/statTests.ts"
+    },
+    "frontend/src/lib/cluster.ts": {
+      "sha256": "62caad558eee999de9c69dffa6fb20eff03064ca97b047e3475ead8cc651055a",
+      "destination": "packages/statistics/src/internal/cluster.ts"
+    },
+    "frontend/src/lib/pca-imputation-core.ts": {
+      "sha256": "16c39b1f516fb936fbec445da901a34e77d00f62869b4935d43373054aea2924",
+      "destination": "packages/statistics/src/internal/pca-imputation-core.ts"
+    },
+    "frontend/src/lib/decomposition-advice.ts": {
+      "sha256": "be947c5cec8dc3fa785adfa6c6f6e721d8161e1d63e5cfabfe1f6a6f930914fc",
+      "destination": "packages/statistics/src/internal/decomposition-advice.ts"
+    },
+    "frontend/src/lib/efa/compare.ts": {
+      "sha256": "082cf9bdc5d01da940e21f18b14ef63ff5fddf4a7ed8458455594f0bbe250e2c",
+      "destination": "packages/statistics/src/internal/efa/compare.ts"
+    },
+    "frontend/src/lib/efa/correlation-method.ts": {
+      "sha256": "09d35efdfd2a8d59cff6eae6dbb8ab11235025ab335c6f030b8ac18005685457",
+      "destination": "packages/statistics/src/internal/efa/correlation-method.ts"
+    },
+    "frontend/src/lib/efa/correlation.ts": {
+      "sha256": "26dcea35a05a18ee8f92eff1a88cec069e4f266dc489ed641eef892b1db34749",
+      "destination": "packages/statistics/src/internal/efa/correlation.ts"
+    },
+    "frontend/src/lib/efa/dwls.ts": {
+      "sha256": "960dac0dddc140b222abf323c7494586916f9b784cb6c483644ab24ad158ef37",
+      "destination": "packages/statistics/src/internal/efa/dwls.ts"
+    },
+    "frontend/src/lib/efa/extraction.ts": {
+      "sha256": "3f41195de95cf8781985ac8449a68385e4b50b22a25bb61eefed6d0280cd1df2",
+      "destination": "packages/statistics/src/internal/efa/extraction.ts"
+    },
+    "frontend/src/lib/efa/fingerprint.ts": {
+      "sha256": "a331215b74d36b0a706a159251313f0f8fea88692ef555025c4768d3245de54a",
+      "destination": "packages/statistics/src/internal/efa/fingerprint.ts"
+    },
+    "frontend/src/lib/efa/fit-cache.ts": {
+      "sha256": "5ae0084e4c1406704e72f101e816b3d77fb492cae58808cd12e36438520b7928",
+      "destination": "packages/statistics/src/internal/efa/fit-cache.ts"
+    },
+    "frontend/src/lib/efa/fit.ts": {
+      "sha256": "31c00030570cdd61e2152ec53fe679b8423a298f98d8b254733431be95c2ae89",
+      "destination": "packages/statistics/src/internal/efa/fit.ts"
+    },
+    "frontend/src/lib/efa/imputation-analysis.ts": {
+      "sha256": "0595495568d85c954014d740086253e1a50318addbb23513a4c4230421013463",
+      "destination": "packages/statistics/src/internal/efa/imputation-analysis.ts"
+    },
+    "frontend/src/lib/efa/math.ts": {
+      "sha256": "a1d66b7069257658579f084d27ae8f5147cbb24625b6d5f2d08f298bd61d7d18",
+      "destination": "packages/statistics/src/internal/efa/math.ts"
+    },
+    "frontend/src/lib/efa/maximum-likelihood.ts": {
+      "sha256": "2dd74472fbebca943f301b999e2696975b41239d0f722d8aecbdb81c9b7a296a",
+      "destination": "packages/statistics/src/internal/efa/maximum-likelihood.ts"
+    },
+    "frontend/src/lib/efa/mice.ts": {
+      "sha256": "12562a773db1fbe6599573c31a97fcfeace075315717046237b808fc904f8691",
+      "destination": "packages/statistics/src/internal/efa/mice.ts"
+    },
+    "frontend/src/lib/efa/numeric-imputation.ts": {
+      "sha256": "d2ce5d9e6b5650123c023c028d592bada82391e9e8626037f21b07b2cc5edfb2",
+      "destination": "packages/statistics/src/internal/efa/numeric-imputation.ts"
+    },
+    "frontend/src/lib/efa/optimize.ts": {
+      "sha256": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+      "destination": "packages/statistics/src/internal/efa/optimize.ts"
+    },
+    "frontend/src/lib/efa/ordinal-imputation.ts": {
+      "sha256": "93257ce8f7af45c316b0d3884d625e8d581b8623929945545c682b2beedadc13",
+      "destination": "packages/statistics/src/internal/efa/ordinal-imputation.ts"
+    },
+    "frontend/src/lib/efa/ordinal-regression.ts": {
+      "sha256": "598ab395649a8619c34502a78b3e19c42f7d2c1575ee8c7ed0e8958a8d406ad8",
+      "destination": "packages/statistics/src/internal/efa/ordinal-regression.ts"
+    },
+    "frontend/src/lib/efa/parallel.ts": {
+      "sha256": "27ef5e920524e7f171b9605fed46b21a3533e354687a4e531909282e194a6b45",
+      "destination": "packages/statistics/src/internal/efa/parallel.ts"
+    },
+    "frontend/src/lib/efa/prepare.ts": {
+      "sha256": "5ee83a35fac7139436b0f0a846e3eeb011f062ddfe842e8f33e93e0f5cc7e14f",
+      "destination": "packages/statistics/src/internal/efa/prepare.ts"
+    },
+    "frontend/src/lib/efa/prepared-sample.ts": {
+      "sha256": "fb3402fa11e819e4d4241b33c93af79293af23a7a556462f3d3adb9e329895fa",
+      "destination": "packages/statistics/src/internal/efa/prepared-sample.ts"
+    },
+    "frontend/src/lib/efa/rotation.ts": {
+      "sha256": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+      "destination": "packages/statistics/src/internal/efa/rotation.ts"
+    },
+    "frontend/src/lib/efa/stability.ts": {
+      "sha256": "f337bb9bcd548309934dcf6d13c72bacce659cc70d7e1b2e184b57d5f98bb270",
+      "destination": "packages/statistics/src/internal/efa/stability.ts"
+    },
+    "frontend/src/lib/efa/trace-estimation.ts": {
+      "sha256": "d928cc155c53ad5cf42d29da660a58a3ff21f2786b941e64ef27b0cf9b28cdc5",
+      "destination": "packages/statistics/src/internal/efa/trace-estimation.ts"
+    },
+    "frontend/src/lib/efa/trace-kernel.ts": {
+      "sha256": "a7d589ebe02159f23a4a768a7017ee11bc403884b0cc48c1ef896b9b8703cb58",
+      "destination": "packages/statistics/src/internal/efa/trace-kernel.ts"
+    },
+    "frontend/src/lib/efa/types.ts": {
+      "sha256": "54087e580943e91ed7e761e43eb5eeefc877e6f4e19aafb90fd277aed1208aa3",
+      "destination": "packages/statistics/src/internal/efa/types.ts"
+    },
+    "frontend/src/lib/efa/weighted-inference.ts": {
+      "sha256": "52161d05194c6cccaabbd87573c78ac66bdc39618a67597364f53e57406cdf0c",
+      "destination": "packages/statistics/src/internal/efa/weighted-inference.ts"
+    },
+    "frontend/src/lib/efa/weighted-linalg.ts": {
+      "sha256": "87a1e36aad146717eab5d1470e1b4cffbb2fe1c1cd40ff72760798893109ebae",
+      "destination": "packages/statistics/src/internal/efa/weighted-linalg.ts"
+    },
+    "frontend/src/lib/efa/weighted-moments.ts": {
+      "sha256": "04dec18d4dc685e001006733fe2998cb1b4f5dba356e1812d34f97c8dd02a64c",
+      "destination": "packages/statistics/src/internal/efa/weighted-moments.ts"
+    },
+    "frontend/src/lib/efa/weighted-rotation.ts": {
+      "sha256": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+      "destination": "packages/statistics/src/internal/efa/weighted-rotation.ts"
+    },
+    "frontend/src/lib/efa/backends/types.ts": {
+      "sha256": "8b416f53e05548b98712ff7adbe3077dc8a5e4d33774678af3cf0ba20a5d8574",
+      "destination": "packages/statistics/src/internal/efa/backends/types.ts"
+    }
+  }
+}

@@ -3,7 +3,7 @@ import type { DataTable } from './table';
 import { isIdentifierColumn, valueIsTooRare } from './defaults';
 import {
   MAX_BAR_CATEGORIES, MAX_BINS, MAX_GROUP_CARDINALITY, MIN_BINS,
-  MIN_GROUP_N, MIN_GROUP_N_KS, MARK_KINDS, TEST_KINDS,
+  MIN_GROUP_N, MARK_KINDS, TEST_KINDS, ENABLED_TEST_KINDS, KS_DISABLED_REASON,
   type AnalysisColumn, type AnalysisPlan, type AnalysisProfile,
   type ChartPlan, type TestPlan, type ValidationFailure,
 } from './analysisPlan';
@@ -170,7 +170,15 @@ const validateTest = (plan: TestPlan, p: AnalysisProfile): ValidationFailure[] =
   const out: ValidationFailure[] = [];
   if (!TEST_KINDS.includes(plan.test)) {
     return [fail('bad_plan_shape', `"${String(plan.test)}" is not a known test.`,
-      'Set `test` to one of the available tests.', [...TEST_KINDS])];
+      'Set `test` to one of the available tests.', [...ENABLED_TEST_KINDS])];
+  }
+  if (plan.test === 'ks') {
+    return [fail('test_unavailable', KS_DISABLED_REASON,
+      'Use plot_chart with mark="ecdf" for a descriptive comparison. Do not substitute a different test without confirming the research question.')];
+  }
+  if (!Object.hasOwn(plan, 'design') || plan.design !== 'independent') {
+    return [fail('test_unavailable', 'This test requires independent observations; independence has not been confirmed.',
+      'Ask the user about the sampling design. Only submit design="independent" if they confirm independent observations for this analysis. Do not run this test for paired or clustered observations.')];
   }
   // chi_square relates two categoricals; every other test needs numeric-by-group.
   out.push(...checkColumn(p, plan.column, 'column', plan.test === 'chi_square' ? 'categorical' : 'numeric'));
@@ -178,7 +186,7 @@ const validateTest = (plan: TestPlan, p: AnalysisProfile): ValidationFailure[] =
   if (out.length) return out;
 
   const groupCol = findColumn(p, plan.groupBy)!;
-  const twoGroup = plan.test === 't' || plan.test === 'mann_whitney' || plan.test === 'ks';
+  const twoGroup = plan.test === 't' || plan.test === 'mann_whitney';
   if (twoGroup) {
     const visible = availableGroups(groupCol);
     if (plan.groups && plan.groups.length !== 2) {
@@ -199,7 +207,7 @@ const validateTest = (plan: TestPlan, p: AnalysisProfile): ValidationFailure[] =
     out.push(fail('bad_plan_shape', 'chi_square uses every available level of both columns.',
       'Remove `groups` from the plan.'));
   }
-  const minN = plan.test === 'ks' ? MIN_GROUP_N_KS : plan.test === 'chi_square' ? 0 : MIN_GROUP_N;
+  const minN = plan.test === 'chi_square' ? 0 : MIN_GROUP_N;
   out.push(...validateGroups(p, groupCol, plan.test === 'chi_square' ? undefined : plan.groups, minN));
   return out;
 };

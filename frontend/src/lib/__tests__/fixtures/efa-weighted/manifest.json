@@ -1,0 +1,24 @@
+{
+  "recordedAt": "2026-10-31T10:06:41.487Z",
+  "fixtureHashes": {
+    "complete.input.json": "e1c98cfa69c39951bd3c0075004e7fffeb7dc0d2cd946c699578774066281b11",
+    "complete.reference.json": "c5c090b41a39d52b6425d3064f9d6def51100d553836f11ea18bad65f727b10f",
+    "heavy-tail.input.json": "23f6952411b44c232f78d4a22e7bdb5074d4579c8f51b01ea1ecfae7711242c6",
+    "heavy-tail.reference.json": "5c1d8a81f15f48ec7acf3c1a05e7f66442561e9568a8c75f6481bd79d12a95c4",
+    "normal.input.json": "aeff080ab26900b020b4b3c60cf096f2040383bad6672ae0a07123ca37338b6f",
+    "normal.reference.json": "dffcb0218097fbef8e4d7e593e3e3a665df9ced962993cee0d9a98ac103486c8",
+    "pairwise.input.json": "4b1cc17d78801b405fac98631f884aec87da73f124d03bf808009c4297e509c6",
+    "pairwise.reference.json": "546d006b059ab79aabdacf36727a54864b492e7d6f82f0b405e93e8f86b1e2c5",
+    "runtime.json": "f917bf94589c75721e6ebefb763e26b5a04281ae13a20580e6e6354d8f0278bb",
+    "skew.input.json": "0853dbbc6b99a3d1bc108e3c0f7796d04f5165213a45dc402a446439eb6ff0eb",
+    "skew.reference.json": "525f198ce1036fd6dae6cdd3c03c238d0fce0efbb24c973309ed5b687940a69d"
+  },
+  "sourceHashes": {
+    "generate-weighted.R": "a0bba8c86ca889496bd60adb0156476c2d8c8eeccec652dc0e0d296c974ad4fe",
+    "Dockerfile.weighted": "3e9d212dc4652240137e58b3b930e376b78e772459c780f3aeaecce7b56c4e21",
+    "install-weighted.R": "17882ddc00d106d50634f6a177a203265e71020445920da442af880c53f22091",
+    "weighted-package-pins.json": "78ec4424d38f9c22968f0cc658a519b1968c0a2dceab075173485e1e8df229d5"
+  },
+  "qualificationScope": "Independent pinned R pair-margin moments, DWLS, robust scaled/shifted tests, lavaan bordered SEs with explicit std.ov=FALSE, and full numDeriv rotation delta maps. Original default std.ov=TRUE SEs retained separately. No private data.",
+  "runtimeImage": "scatter-lab-efa-weighted:4.5.1"
+}

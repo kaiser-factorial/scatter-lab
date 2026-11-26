@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "error": "EfaError: oblimin did not converge in 4 deterministic starts.",
+  "cancelMs": 0.8999999761581421,
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 810139648,
+    "method": "1-second samples of summed RSS for this isolated browser process tree; shared pages may be counted more than once"
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "startedAt": "2026-11-01T04:12:50.588Z",
+  "status": "qualified",
+  "stages": [
+    {
+      "name": "Default-browser GPU: five R references",
+      "args": [
+        "scripts/efa-reference/compute/check-pipeline.mjs",
+        "http://localhost:3000/efa-qualification/compute/index.html?pipeline=1&backend=gpu-portable-reduced&block=128&budgetMiB=1536",
+        "scripts/efa-reference/compute/browser-portable-final-qualified-v2.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:12:50.681Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:12:58.867Z"
+    },
+    {
+      "name": "Native blocked layout: five R references",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/scala-blocked-final-qualified-v2",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/scala-blocked-final-qualified-v2.json",
+        "--block=128",
+        "--budget-mib=1536",
+        "--source=scripts/efa-reference/compute/TraceServerBlocked.scala",
+        "--class=TraceServerBlocked",
+        "--threads=4"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:12:58.869Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:13:07.663Z"
+    },
+    {
+      "name": "Default-browser GPU: large",
+      "args": [
+        "scripts/efa-reference/compute/check-pipeline.mjs",
+        "http://localhost:3000/efa-qualification/compute/index.html?pipeline=1&backend=gpu-portable-reduced&block=128&budgetMiB=1536&fixture=large&probeCancellation=1",
+        "scripts/efa-reference/compute/browser-large-portable-optimized-v2.json",
+        "--worker-archive=scripts/efa-reference/compute/archives/b700b5ff2e9dc2ed63c7cde2aac4216bdeedd718893e26c21da8a2c2072d6bc4.js.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:13:07.670Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:53:02.740Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-resident.json",
+        "scripts/efa-reference/compute/browser-large-portable-optimized-v2.json",
+        "scripts/efa-reference/compute/browser-portable-final-qualified-v2.json",
+        "scripts/efa-reference/compute/portable-large-optimized-comparison-v2.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:53:02.769Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:53:03.339Z"
+    },
+    {
+      "name": "Native blocked layout: large",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/scala-large-blocked-optimized-v2",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/scala-large-blocked-optimized-v2.json",
+        "--block=128",
+        "--budget-mib=1536",
+        "--source=scripts/efa-reference/compute/TraceServerBlocked.scala",
+        "--class=TraceServerBlocked",
+        "--threads=4",
+        "--fixture=large",
+        "--pipeline-archive=scripts/efa-reference/compute/archives/b700b5ff2e9dc2ed63c7cde2aac4216bdeedd718893e26c21da8a2c2072d6bc4.mjs.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:53:03.342Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:27:54.356Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-resident.json",
+        "scripts/efa-reference/compute/scala-large-blocked-optimized-v2.json",
+        "scripts/efa-reference/compute/scala-blocked-final-qualified-v2.json",
+        "scripts/efa-reference/compute/native-large-optimized-comparison-v2.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T05:27:54.368Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:27:54.742Z"
+    },
+    {
+      "name": "Default-browser GPU: large-holdout",
+      "args": [
+        "scripts/efa-reference/compute/check-pipeline.mjs",
+        "http://localhost:3000/efa-qualification/compute/index.html?pipeline=1&backend=gpu-portable-reduced&block=128&budgetMiB=1536&fixture=large-holdout&probeCancellation=1",
+        "scripts/efa-reference/compute/browser-large-holdout-portable-optimized-v2.json",
+        "--worker-archive=scripts/efa-reference/compute/archives/b700b5ff2e9dc2ed63c7cde2aac4216bdeedd718893e26c21da8a2c2072d6bc4.js.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T05:27:54.742Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:42:11.886Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-holdout-resident.json",
+        "scripts/efa-reference/compute/browser-large-holdout-portable-optimized-v2.json",
+        "scripts/efa-reference/compute/browser-portable-final-qualified-v2.json",
+        "scripts/efa-reference/compute/portable-large-holdout-optimized-comparison-v2.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T05:42:11.895Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:42:12.270Z"
+    },
+    {
+      "name": "Native blocked layout: large-holdout",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+        "--block=128",
+        "--budget-mib=1536",
+        "--source=scripts/efa-reference/compute/TraceServerBlocked.scala",
+        "--class=TraceServerBlocked",
+        "--threads=4",
+        "--fixture=large-holdout",
+        "--pipeline-archive=scripts/efa-reference/compute/archives/b700b5ff2e9dc2ed63c7cde2aac4216bdeedd718893e26c21da8a2c2072d6bc4.mjs.gz"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T05:42:12.272Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:00.165Z"
+    },
+    {
+      "name": "Full-output comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-holdout-resident.json",
+        "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+        "scripts/efa-reference/compute/scala-blocked-final-qualified-v2.json",
+        "scripts/efa-reference/compute/native-large-holdout-optimized-comparison-v2.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T05:57:00.176Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:00.529Z"
+    }
+  ],
+  "selected": {
+    "projectionTileRows": 32,
+    "nativeSource": "TraceServerBlocked.scala",
+    "requestedBlasThreads": 4
+  },
+  "selectionScope": "Measured candidates on this M1; close native rankings are not a cross-device claim",
+  "originalJavaScriptFullSizeBaseline": "skipped-by-user",
+  "completedAt": "2026-11-01T05:57:00.529Z"
+}

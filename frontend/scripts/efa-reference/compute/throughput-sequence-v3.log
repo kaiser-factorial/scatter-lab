@@ -1,0 +1,168 @@
+{"recordedAt":"2026-11-04T01:50:40.714Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Ordinal uncertainty\",\"completed\":25153,\"total\":124750}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:51:10.713Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Ordinal uncertainty\",\"completed\":121633,\"total\":124750}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:51:40.715Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust case projections\",\"completed\":10048,\"total\":20000}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:52:10.716Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust parameter covariance\",\"completed\":992,\"total\":20000}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:52:40.715Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust parameter covariance\",\"completed\":5088,\"total\":20000}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:53:10.719Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust parameter covariance\",\"completed\":8960,\"total\":20000}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:53:40.719Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust parameter covariance\",\"completed\":13056,\"total\":20000}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:54:10.718Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust parameter covariance\",\"completed\":17184,\"total\":20000}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:54:40.720Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Covariance matrix products\",\"completed\":0,\"total\":2}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:55:10.720Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Covariance matrix products\",\"completed\":1,\"total\":2}","peakBrowserRssBytes":860618752,"completedFits":0}
+{"recordedAt":"2026-11-04T01:55:40.720Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":222,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:56:10.721Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":480,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:56:40.722Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":744,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:57:10.723Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":1003,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:57:40.723Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":1266,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:58:10.723Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":1529,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:58:40.724Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":1795,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:59:10.724Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":2064,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T01:59:40.726Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":2332,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:00:10.726Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":2600,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:00:40.727Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":2869,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:01:10.727Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":3135,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:01:40.728Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":3397,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:02:10.730Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":3662,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:02:40.731Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":3924,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:03:10.731Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":4195,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:03:40.732Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":4468,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:04:10.734Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":4740,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:04:40.735Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":5012,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:05:10.737Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":5284,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:05:40.738Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":5556,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:06:10.738Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":5827,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:06:40.740Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":6098,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:07:10.742Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":6369,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:07:40.742Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":6641,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:08:10.743Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":6912,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:08:40.743Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":7185,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:09:10.744Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":7458,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:09:40.746Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":7730,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:10:10.748Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":8002,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:10:40.750Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":8275,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:11:10.750Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":8548,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:11:40.810Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":8820,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:12:10.810Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":9093,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:12:40.811Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":9364,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:13:10.813Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":9637,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:13:40.815Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":9909,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:14:10.817Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":10179,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:14:40.819Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":10451,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:15:10.820Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":10724,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:15:40.822Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":10995,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:16:10.823Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":11265,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:16:40.826Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":11529,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:17:10.827Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":11790,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:17:40.828Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":12052,\"total\":12403}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:18:10.831Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":8,\"total\":2490}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:18:40.833Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":688,\"total\":2490}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:19:10.835Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":1392,\"total\":2490}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:19:40.838Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":2096,\"total\":2490}","peakBrowserRssBytes":875233280,"completedFits":0}
+{"recordedAt":"2026-11-04T02:20:10.840Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"promax: Rotated standard errors\",\"completed\":1224,\"total\":2490}","peakBrowserRssBytes":1198669824,"completedFits":0}
+{"recordedAt":"2026-11-04T02:20:40.843Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"varimax: Rotated standard errors\",\"completed\":912,\"total\":2490}","peakBrowserRssBytes":1200144384,"completedFits":0}
+{"recordedAt":"2026-11-04T02:21:10.845Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"varimax: Rotated covariance propagation\",\"completed\":2497,\"total\":5525}","peakBrowserRssBytes":1262305280,"completedFits":0}
+{"status":"completed-unqualified","results":[{"backend":"gpu-portable-reduced","fixture":"large","passed":null,"totalMs":1863894}]}
+{"status":"passed","provenance":{"independentReferencesPassed":true,"sameWorker":true,"noDeveloperFlags":true,"sameRotationWorker":true,"sameRotationExecution":true,"sameTraceSettings":true},"comparisons":[{"fixture":"large","errors":{"rawStatistic":9.800714906305075e-9,"trace":5.093170329928398e-11,"traceSquared":4.94765117764473e-10,"scalingFactor":1.7763568394002505e-15,"shift":1.1641532182693481e-10,"statistic":8.833012543618679e-9,"pValue":6.341260849751507e-12},"passed":true}]}
+{"recordedAt":"2026-11-04T02:21:51.416Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust case projections\",\"completed\":736,\"total\":6000}","peakBrowserRssBytes":1361952768,"completedFits":0}
+{"recordedAt":"2026-11-04T02:22:21.420Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Robust parameter covariance\",\"completed\":2688,\"total\":6000}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:22:51.421Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Covariance matrix products\",\"completed\":0,\"total\":2}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:23:21.425Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":34,\"total\":1128}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:23:51.426Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":293,\"total\":1128}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:24:21.426Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":554,\"total\":1128}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:24:51.427Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":812,\"total\":1128}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:25:21.426Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"Exact robust trace blocks\",\"completed\":1067,\"total\":1128}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:25:51.428Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":488,\"total\":2490}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:26:21.430Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":1160,\"total\":2490}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:26:51.432Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated standard errors\",\"completed\":1864,\"total\":2490}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:27:21.432Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"oblimin: Rotated covariance propagation\",\"completed\":3776,\"total\":5525}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:27:51.435Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"varimax: Rotated standard errors\",\"completed\":624,\"total\":2490}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"recordedAt":"2026-11-04T02:28:21.437Z","backend":"gpu-portable-reduced","stage":"{\"stage\":\"varimax: Rotated covariance propagation\",\"completed\":2337,\"total\":5525}","peakBrowserRssBytes":1376944128,"completedFits":0}
+{"status":"completed-unqualified","results":[{"backend":"gpu-portable-reduced","fixture":"large-holdout","passed":null,"totalMs":424203.89999997616}]}
+{"status":"passed","provenance":{"independentReferencesPassed":true,"sameWorker":true,"noDeveloperFlags":true,"sameRotationWorker":true,"sameRotationExecution":true,"sameTraceSettings":true},"comparisons":[{"fixture":"large-holdout","errors":{"rawStatistic":4.916364559903741e-8,"trace":1.1641532182693481e-10,"traceSquared":3.958120942115784e-9,"scalingFactor":8.43769498715119e-15,"shift":1.7462298274040222e-10,"statistic":2.546585164964199e-8,"pValue":1.439337538045038e-11},"passed":true}]}
+{"recordedAt":"2026-11-04T02:29:01.829Z","backend":"scala-resident","stage":"Ordinal uncertainty","completed":31841,"total":124750}
+{"recordedAt":"2026-11-04T02:29:31.833Z","backend":"scala-resident","stage":"Ordinal uncertainty","completed":124673,"total":124750}
+{"recordedAt":"2026-11-04T02:30:01.895Z","backend":"scala-resident","stage":"Robust case projections","completed":12288,"total":20000}
+{"recordedAt":"2026-11-04T02:30:32.026Z","backend":"scala-resident","stage":"Robust parameter covariance","completed":2080,"total":20000}
+{"recordedAt":"2026-11-04T02:31:02.084Z","backend":"scala-resident","stage":"Robust parameter covariance","completed":6496,"total":20000}
+{"recordedAt":"2026-11-04T02:31:32.100Z","backend":"scala-resident","stage":"Robust parameter covariance","completed":10848,"total":20000}
+{"recordedAt":"2026-11-04T02:32:02.274Z","backend":"scala-resident","stage":"Robust parameter covariance","completed":15104,"total":20000}
+{"recordedAt":"2026-11-04T02:32:32.306Z","backend":"scala-resident","stage":"Robust parameter covariance","completed":19456,"total":20000}
+{"recordedAt":"2026-11-04T02:33:09.218Z","backend":"scala-resident","stage":"Covariance matrix products","completed":2,"total":2}
+{"recordedAt":"2026-11-04T02:33:09.233Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":0,"total":3160}
+{"recordedAt":"2026-11-04T02:33:39.293Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":165,"total":3160}
+{"recordedAt":"2026-11-04T02:33:39.871Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":167,"total":3160}
+{"recordedAt":"2026-11-04T02:34:09.453Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":340,"total":3160}
+{"recordedAt":"2026-11-04T02:34:09.954Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":343,"total":3160}
+{"recordedAt":"2026-11-04T02:34:39.527Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":521,"total":3160}
+{"recordedAt":"2026-11-04T02:34:39.834Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":523,"total":3160}
+{"recordedAt":"2026-11-04T02:35:09.696Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":704,"total":3160}
+{"recordedAt":"2026-11-04T02:35:09.849Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":705,"total":3160}
+{"recordedAt":"2026-11-04T02:35:39.733Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":900,"total":3160}
+{"recordedAt":"2026-11-04T02:35:39.889Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":901,"total":3160}
+{"recordedAt":"2026-11-04T02:36:09.804Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1095,"total":3160}
+{"recordedAt":"2026-11-04T02:36:09.956Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1096,"total":3160}
+{"recordedAt":"2026-11-04T02:36:39.880Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1296,"total":3160}
+{"recordedAt":"2026-11-04T02:36:39.880Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1296,"total":3160}
+{"recordedAt":"2026-11-04T02:37:09.859Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1493,"total":3160}
+{"recordedAt":"2026-11-04T02:37:10.007Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1494,"total":3160}
+{"recordedAt":"2026-11-04T02:37:39.861Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1690,"total":3160}
+{"recordedAt":"2026-11-04T02:37:40.013Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1691,"total":3160}
+{"recordedAt":"2026-11-04T02:38:09.855Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1886,"total":3160}
+{"recordedAt":"2026-11-04T02:38:10.158Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":1888,"total":3160}
+{"recordedAt":"2026-11-04T02:38:39.851Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2088,"total":3160}
+{"recordedAt":"2026-11-04T02:38:40.298Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2091,"total":3160}
+{"recordedAt":"2026-11-04T02:39:09.989Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2274,"total":3160}
+{"recordedAt":"2026-11-04T02:39:10.358Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2276,"total":3160}
+{"recordedAt":"2026-11-04T02:39:39.986Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2470,"total":3160}
+{"recordedAt":"2026-11-04T02:39:40.442Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2473,"total":3160}
+{"recordedAt":"2026-11-04T02:40:09.845Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2661,"total":3160}
+{"recordedAt":"2026-11-04T02:40:10.595Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2665,"total":3160}
+{"recordedAt":"2026-11-04T02:40:39.931Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2861,"total":3160}
+{"recordedAt":"2026-11-04T02:40:40.685Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":2866,"total":3160}
+{"recordedAt":"2026-11-04T02:41:09.934Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":3056,"total":3160}
+{"recordedAt":"2026-11-04T02:41:10.781Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":3061,"total":3160}
+{"recordedAt":"2026-11-04T02:41:40.927Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":232,"total":2490}
+{"recordedAt":"2026-11-04T02:41:40.930Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":248,"total":2490}
+{"recordedAt":"2026-11-04T02:42:09.035Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":680,"total":2490}
+{"recordedAt":"2026-11-04T02:42:11.127Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":688,"total":2490}
+{"recordedAt":"2026-11-04T02:42:40.539Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1120,"total":2490}
+{"recordedAt":"2026-11-04T02:42:42.141Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1128,"total":2490}
+{"recordedAt":"2026-11-04T02:43:12.833Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1576,"total":2490}
+{"recordedAt":"2026-11-04T02:43:12.837Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1584,"total":2490}
+{"recordedAt":"2026-11-04T02:43:43.630Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":2016,"total":2490}
+{"recordedAt":"2026-11-04T02:43:43.633Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":2032,"total":2490}
+{"recordedAt":"2026-11-04T02:44:13.581Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":2474,"total":2490}
+{"recordedAt":"2026-11-04T02:44:14.646Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":2482,"total":2490}
+{"recordedAt":"2026-11-04T02:44:43.210Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":0,"total":2490}
+{"recordedAt":"2026-11-04T02:44:44.956Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":24,"total":2490}
+{"recordedAt":"2026-11-04T02:45:14.388Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":1368,"total":2490}
+{"recordedAt":"2026-11-04T02:45:15.129Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":1384,"total":2490}
+{"recordedAt":"2026-11-04T02:45:45.162Z","backend":"scala-resident","stage":"varimax: Rotated covariance propagation","completed":4449,"total":5525}
+{"recordedAt":"2026-11-04T02:45:46.827Z","backend":"scala-resident","stage":"varimax: Rotated covariance propagation","completed":5525,"total":5525}
+{"status":"completed-unqualified","fits":[{"backend":"scala-resident","fixture":"large","totalMs":1033060.8135,"passed":null}]}
+{"status":"passed","provenance":{"independentReferencesPassed":true,"samePipeline":true,"sameScalaSource":true,"sameNativeBytecode":true,"sameProtocol":true,"sameNativeOptions":true,"sameThreadRequest":true,"sameRotationWorker":true,"sameRotationPool":true,"sameRotationExecution":true},"comparisons":[{"fixture":"large","errors":{"rawStatistic":0,"trace":0,"traceSquared":2.671731635928154e-8,"scalingFactor":9.792167077193881e-14,"shift":3.943569026887417e-9,"statistic":1.4551915228366852e-11,"pValue":1.2101430968414206e-14},"passed":true}]}
+{"recordedAt":"2026-11-04T02:46:23.252Z","backend":"scala-resident","stage":"Information factorization","completed":1,"total":1}
+{"recordedAt":"2026-11-04T02:46:53.374Z","backend":"scala-resident","stage":"Robust parameter covariance","completed":2592,"total":6000}
+{"recordedAt":"2026-11-04T02:47:34.444Z","backend":"scala-resident","stage":"Covariance matrix products","completed":1,"total":2}
+{"recordedAt":"2026-11-04T02:47:49.980Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":0,"total":300}
+{"recordedAt":"2026-11-04T02:48:04.572Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":90,"total":300}
+{"recordedAt":"2026-11-04T02:48:20.061Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":193,"total":300}
+{"recordedAt":"2026-11-04T02:48:34.578Z","backend":"scala-resident","stage":"Exact robust trace blocks","completed":293,"total":300}
+{"recordedAt":"2026-11-04T02:48:49.401Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":176,"total":2490}
+{"recordedAt":"2026-11-04T02:49:05.699Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":384,"total":2490}
+{"recordedAt":"2026-11-04T02:49:21.618Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":608,"total":2490}
+{"recordedAt":"2026-11-04T02:49:36.597Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":816,"total":2490}
+{"recordedAt":"2026-11-04T02:49:52.971Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1056,"total":2490}
+{"recordedAt":"2026-11-04T02:50:06.660Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1256,"total":2490}
+{"recordedAt":"2026-11-04T02:50:23.195Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1504,"total":2490}
+{"recordedAt":"2026-11-04T02:50:36.915Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1696,"total":2490}
+{"recordedAt":"2026-11-04T02:50:53.762Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":1944,"total":2490}
+{"recordedAt":"2026-11-04T02:51:07.722Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":2136,"total":2490}
+{"recordedAt":"2026-11-04T02:51:23.030Z","backend":"scala-resident","stage":"oblimin: Rotated standard errors","completed":2368,"total":2490}
+{"recordedAt":"2026-11-04T02:51:37.755Z","backend":"scala-resident","stage":"oblimin: Rotated covariance propagation","completed":4960,"total":5525}
+{"recordedAt":"2026-11-04T02:52:00.665Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":0,"total":2490}
+{"recordedAt":"2026-11-04T02:52:08.455Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":288,"total":2490}
+{"recordedAt":"2026-11-04T02:52:31.294Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":1272,"total":2490}
+{"recordedAt":"2026-11-04T02:52:38.730Z","backend":"scala-resident","stage":"varimax: Rotated standard errors","completed":1584,"total":2490}
+{"recordedAt":"2026-11-04T02:53:06.348Z","backend":"scala-resident","stage":"varimax: Rotated covariance propagation","completed":5525,"total":5525}
+{"status":"completed-unqualified","fits":[{"backend":"scala-resident","fixture":"large-holdout","totalMs":431181.955042,"passed":null}]}
+{"status":"passed","provenance":{"independentReferencesPassed":true,"samePipeline":true,"sameScalaSource":true,"sameNativeBytecode":true,"sameProtocol":true,"sameNativeOptions":true,"sameThreadRequest":true,"sameRotationWorker":true,"sameRotationPool":true,"sameRotationExecution":true},"comparisons":[{"fixture":"large-holdout","errors":{"rawStatistic":0,"trace":0,"traceSquared":3.4924596548080444e-10,"scalingFactor":8.881784197001252e-16,"shift":1.4551915228366852e-11,"statistic":0,"pValue":0},"passed":true}]}

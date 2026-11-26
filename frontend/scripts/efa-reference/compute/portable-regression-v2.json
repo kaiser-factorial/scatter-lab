@@ -1,0 +1,184 @@
+{
+  "status": "passed",
+  "startedAt": "2026-11-01T04:30:18.370Z",
+  "checks": [
+    {
+      "name": "units",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--reporter=json",
+        "--outputFile=/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-unit-verification-v2.json"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-units-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:03.816Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:11.704Z",
+      "logSha256": "98655faa880bd7114c57713fcd6317726a2e42e5ee6e6322cae2f201584f6c03"
+    },
+    {
+      "name": "typescript",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-typescript-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:11.714Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:16.835Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "eslint",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "node_modules/eslint/bin/eslint.js",
+        ".",
+        "--format",
+        "json",
+        "--output-file",
+        "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-eslint-v2.json"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-eslint-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:16.838Z",
+      "exitCode": 1,
+      "endedAt": "2026-11-01T05:57:27.290Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy-build-source",
+      "command": "rsync",
+      "args": [
+        "-a",
+        "--exclude=node_modules",
+        "--exclude=.next",
+        "--exclude=public/efa-qualification",
+        "--exclude=.env*",
+        "--exclude=*.tsbuildinfo",
+        "./",
+        "/tmp/scatter-portable-build-xwKuMn/"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-copy-build-source-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:27.307Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:28.345Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy-build-dependencies",
+      "command": "cp",
+      "args": [
+        "-cR",
+        "node_modules",
+        "/tmp/scatter-portable-build-xwKuMn/node_modules"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-copy-build-dependencies-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:28.347Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:37.882Z",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "production-build",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/scatter-portable-build-xwKuMn",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-production-build-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:37.887Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:52.670Z",
+      "logSha256": "f72aeb670279b0dc6cb079fe1635f998ed69623909a86a161cad61ec8313ebcc"
+    },
+    {
+      "name": "dev-readiness",
+      "command": "/Users/corinakaiser/.local/bin/dev",
+      "args": [
+        "start",
+        "frontend",
+        "--detach",
+        "--json",
+        "--yes"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-dev-readiness-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:52.671Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:57:53.778Z",
+      "logSha256": "c22ebf489cc8496055ba30d012584657204a38281fdd43c661acedebd9a7c52b"
+    },
+    {
+      "name": "weighted-ui",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "scripts/efa-reference/check-weighted-ui.mjs",
+        "http://localhost:3000",
+        "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-ui-v2"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-weighted-ui-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:57:53.779Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:58:07.166Z",
+      "logSha256": "a2643782ee3379221730aa8c690b749b83a4b3c52ddd096ad51a7d7146addb8d"
+    },
+    {
+      "name": "inspector-ui",
+      "command": "/Users/corinakaiser/.hermes/node/bin/node",
+      "args": [
+        "scripts/efa-reference/check-inspector-ui.mjs",
+        "http://localhost:3000",
+        "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-ui-v2"
+      ],
+      "cwd": "/Users/corinakaiser/Projects/pca-workbench/frontend",
+      "log": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/portable-inspector-ui-v2.log",
+      "status": "passed",
+      "startedAt": "2026-11-01T05:58:07.167Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T05:58:14.152Z",
+      "logSha256": "3f54da2821b5333ff0d59efbdc609d373bf3b554a8678277a06e033c9bc74124"
+    }
+  ],
+  "units": {
+    "passed": 630,
+    "failed": 0,
+    "skipped": 4,
+    "reportSha256": "f2f2280a6f83ef438a0d51f41bcf4ed8c283860ccc75d2f0acea359db123bb96"
+  },
+  "lint": {
+    "baselineSha256": "97d57c4e89edd3808dd202ca0a681330b7e0065a4aa700e6f934fbd0bf34bf5b",
+    "currentSha256": "2a7a06d5cfcc13fd35febf21e207531aa168797a6376c0a837176eeed9903016",
+    "errors": 117,
+    "warnings": 6,
+    "increased": [],
+    "status": "passed"
+  },
+  "buildDirectory": "/tmp/scatter-portable-build-xwKuMn",
+  "buildExclusions": [
+    "node_modules (copied separately)",
+    ".next",
+    "public/efa-qualification",
+    ".env*",
+    "*.tsbuildinfo"
+  ],
+  "completedAt": "2026-11-01T05:58:14.154Z"
+}

@@ -1,36 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scatter Lab frontend
 
-## Getting Started
+The Next.js application is part of the repository's pnpm workspace. Use Node 24
+and the root manifest's pnpm 12.18.0 pin. From the repository root:
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```sh
+pnpm install --frozen-lockfile
+pnpm run build:stats
+dev start frontend --detach --json --yes
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the ready URL printed by `dev`. The launcher checks readiness and reuses a
+healthy server. Changes to `src/app/page.tsx` reload in the browser; the development
+script also watches and rebuilds the shared statistics package.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Use `pnpm --dir frontend run build` from the root for a production build. Its
+prebuild prepares the statistics package, assistant reference snapshot and
+Plotly bundle. Do not install this directory as a separate project; its local
+`workspace:*` dependencies and the shared root lockfile require the repository
+workspace.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See the [main README](../README.md) for app behavior,
+[dependency maintenance](../docs/DEPENDENCIES.md) for the shared store and
+`node_modules` layout, [CI](../docs/CI.md) for verification commands, and
+[deployment](../docs/DEPLOYMENT.md) for Vercel configuration.

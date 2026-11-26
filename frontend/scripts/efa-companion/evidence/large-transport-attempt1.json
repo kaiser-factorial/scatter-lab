@@ -1,0 +1,14 @@
+{
+  "recordedAt": "2026-11-04T05:38:10.117334+00:00",
+  "status": "failed",
+  "webgpu": {
+    "status": "passed",
+    "elapsedMs": 5359.700000047684
+  },
+  "scala": {
+    "status": "timed-out",
+    "timeoutMs": 300000,
+    "scope": "one whole-source browser HTTP upload attempt; no full-fit result",
+    "cause": "Not established. Replaced whole-source request bodies with bounded chunks to remove repeated large browser copies."
+  }
+}

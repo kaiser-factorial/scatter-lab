@@ -1,0 +1,148 @@
+{
+  "recordedAt": "2026-11-01T05:42:12.254Z",
+  "status": "passed",
+  "provenance": {
+    "independentReferencesPassed": true,
+    "sameWorker": true,
+    "noDeveloperFlags": true
+  },
+  "comparisons": [
+    {
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+      "sameMembership": true,
+      "errors": {
+        "rawStatistic": 4.916364559903741e-8,
+        "trace": 6.548361852765083e-11,
+        "traceSquared": 5.820766091346741e-11,
+        "scalingFactor": 2.220446049250313e-16,
+        "shift": 2.9103830456733704e-11,
+        "statistic": 2.542219590395689e-8,
+        "pValue": 1.4367507183976613e-11
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            2,
+            3,
+            1,
+            4,
+            0
+          ],
+          "signs": [
+            1,
+            -1,
+            -1,
+            1,
+            -1
+          ],
+          "errors": {
+            "pattern": 2.5519952817631975e-10,
+            "structure": 1.9947589413593647e-10,
+            "phi": 3.1862407157134953e-10,
+            "communalities": 1.484756761982453e-12,
+            "reproduced": 1.484756761982453e-12,
+            "patternSE": 5.852990529395252e-8,
+            "structureSE": 1.7348068313480236e-8,
+            "phiSE": 2.9214232977192722e-8,
+            "communalitySE": 2.624636619152909e-15,
+            "uniquenessSE": 2.624636619152909e-15
+          },
+          "scores": {
+            "maxAbsolute": 1.374723335167971e-9,
+            "maxStandardized": 1.4460244668335065e-9,
+            "sameCompleteMask": true,
+            "completeRows": 6000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 1.3014034294656085e-12,
+            "structure": 1.1500800312091997e-12,
+            "phi": 6.428191312579656e-14,
+            "communalities": 1.4848677842849156e-12,
+            "reproduced": 1.4848677842849156e-12,
+            "patternSE": 7.43537176273179e-14,
+            "structureSE": 7.297114301696439e-14,
+            "phiSE": 1.361656539498433e-13,
+            "communalitySE": 2.624636619152909e-15,
+            "uniquenessSE": 2.624636619152909e-15
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            2,
+            1,
+            3,
+            4,
+            0
+          ],
+          "signs": [
+            1,
+            1,
+            -1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 4.345502152558467e-9,
+            "structure": 4.345502152558467e-9,
+            "phi": 0,
+            "communalities": 1.485589429250922e-12,
+            "reproduced": 1.485589429250922e-12,
+            "patternSE": 6.152996056621451e-7,
+            "structureSE": 6.152996056621451e-7,
+            "phiSE": 0,
+            "communalitySE": 2.624636619152909e-15,
+            "uniquenessSE": 2.624636619152909e-15
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/scala-holdout-resident.json",
+      "sha256": "671241111498e1a638caca985cf7feea1677f94980560aac8871c9d7da4ed6b8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-large-holdout-portable-optimized-v2.json",
+      "sha256": "b2836bcbdb3a7aba2228e4a90a789bcf75e45012c8b8377e9af4255f4b9d7adf"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-portable-final-qualified-v2.json",
+      "sha256": "eefb3170b09c2c79e7cd29fe9c685f0bb520f31a7f8df20b8fb037da467d36af"
+    }
+  ],
+  "runtimeFlagObservation": {
+    "candidate": [],
+    "qualification": [],
+    "missingMeaning": "Earlier harness records launch configuration only; null is not an observed runtime command line"
+  },
+  "scope": "Exact saved inputs; unchanged full-output tolerances. Candidate source qualified against five independent R fixtures. No cross-device guarantee or automatic production promotion."
+}

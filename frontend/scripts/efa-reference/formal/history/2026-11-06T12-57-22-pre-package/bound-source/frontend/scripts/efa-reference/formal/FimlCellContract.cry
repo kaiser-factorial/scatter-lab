@@ -1,0 +1,7 @@
+module FimlCellContract where
+
+// Source-derived branch. The calculated fallback is an opaque payload.
+cellWrite : Bit -> [64] -> [64] -> [64]
+cellWrite present original calculated = if present then original else calculated
+property preservesObserved present original calculated = present ==> (cellWrite present original calculated == original)
+property fillsMissing present original calculated = (~present) ==> (cellWrite present original calculated == calculated)

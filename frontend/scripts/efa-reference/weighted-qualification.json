@@ -1,0 +1,54 @@
+{
+  "recordedAt": "2026-10-31T10:07:18.577810+00:00",
+  "status": "isolated-numerical-engine-qualified",
+  "productIntegration": "pending",
+  "overallGoal": "active",
+  "referenceFixtureManifest": "../../src/lib/__tests__/fixtures/efa-weighted/manifest.json",
+  "parity": {
+    "passed": 25,
+    "failed": 0,
+    "fixtures": [
+      "normal",
+      "heavy-tail",
+      "skew",
+      "pairwise",
+      "complete"
+    ],
+    "alignment": "Signs and permutation only",
+    "rotationSettings": "std.ov=FALSE; unnormalized oblimin delta 0; weighted varimax normalized eps1e-14; promax power4 using normalized varimax eps1e-14; original lavaan default standardization outputs retained"
+  },
+  "regression": {
+    "passed": 577,
+    "skipped": 4,
+    "failed": 0,
+    "qualification": "Routine full suite; three already-qualified expensive large-null tests and one optional benchmark skipped. TypeScript and targeted numerical lint passed."
+  },
+  "benchmarks": {
+    "dwls500x20000": "weighted-browser-benchmark.json",
+    "wlSmv20x1000MomentSpace": "weighted-robust-browser-benchmark.json",
+    "wlSmv20x1000CaseSpace": "weighted-case-browser-benchmark.json",
+    "largeInferenceAllocationAndCancellationOnly": "weighted-large-cancellation.json"
+  },
+  "sourceSha256": {
+    "src/lib/efa/weighted-moments.ts": "c7ad567d394971dd5d0d3fa83c0a978b01611affb1eb879aaf9b09a1cabe6612",
+    "src/lib/efa/dwls.ts": "75c25d27852dbcadc80d1eb0e0a838d100aa785276ab4700d571bcd5569760a1",
+    "src/lib/efa/weighted-inference.ts": "9d3262ce54e968790186272f5a3f8d866e795e663c36ec4c738655f1586dc91f",
+    "src/lib/efa/weighted-rotation.ts": "f8937e05fb8fdeaf5d2e1eec957105ae22919ba67058c01e7184cffa19796e4e",
+    "src/lib/efa/rotation.ts": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+    "src/lib/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+    "src/lib/__tests__/efa-weighted.test.ts": "bf7caee563e5121ce6d5950ea35a059f5c3c76541254a5b4b68b82f4900a4c3b"
+  },
+  "limits": [
+    "Full 500x20000 exact WLSMV completion has not been measured; current estimate is about 25.6 trillion multiply-adds.",
+    "Native and reference fixtures are synthetic; no private participant data or paid assistant calls.",
+    "Moment and case-space calculations agree to 1e-10 on the same input.",
+    "500-item benchmark reports are native execution qualification, not independent full-size R covariance estimation.",
+    "No UI, service, persistence or assistant weighted integration is claimed at this checkpoint."
+  ],
+  "remaining": [
+    "Weighted worker/service/state/persistence and UI integration",
+    "Weighted batch/scoring/exports regression",
+    "Expanded assistant item-review/candidate/refit collaboration and offline privacy replays",
+    "Final build, lint regression, browser checks, and delivery commit"
+  ]
+}

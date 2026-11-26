@@ -1,0 +1,343 @@
+{
+  "status": "passed",
+  "startedAtUtc": "2026-11-06T12:57:22.862259+00:00",
+  "claim": "Five exact-rational bounded Gaussian algebra identities and four source-derived numeric/FIML cell update identities.",
+  "notClaimed": [
+    "Global optimizer convergence",
+    "Full TypeScript/R or lavaan equivalence",
+    "IEEE-754 likelihood arithmetic equality",
+    "Verified ECMAScript compiler or source translator",
+    "General-dimensional matrix theorem",
+    "Imputation uncertainty or statistical validity"
+  ],
+  "timeoutSecondsPerProof": 60,
+  "fimlSourceContract": {
+    "generated": "module FimlCellContract where\n\n// Source-derived branch. The calculated fallback is an opaque payload.\ncellWrite : Bit -> [64] -> [64] -> [64]\ncellWrite present original calculated = if present then original else calculated\nproperty preservesObserved present original calculated = present ==> (cellWrite present original calculated == original)\nproperty fillsMissing present original calculated = (~present) ==> (cellWrite present original calculated == calculated)\n",
+    "source": {
+      "file": "/Users/corinakaiser/Projects/pca-workbench/frontend/src/lib/efa/maximum-likelihood.ts",
+      "sha256": "2dd74472fbebca943f301b999e2696975b41239d0f722d8aecbdb81c9b7a296a",
+      "function": "createConditionalProjector",
+      "sourceLine": 335,
+      "operator": "??"
+    },
+    "scope": "The final mapped cell branch preserves any present observed payload, including zero. The calculated fallback is unconstrained; no Gaussian calculation or full function equivalence is proved.",
+    "trusted": [
+      "TypeScript AST recognizer and lowering",
+      "Inputs are finite Numbers or null",
+      "Nullish coalescing returns its left operand when nonnull",
+      "Ordinary standard Array.map and no asynchronous mutation"
+    ]
+  },
+  "sourceContract": {
+    "generated": "module NumericCellContract where\n\n// Source-derived conditional cell update; Number payloads are uninterpreted bits.\ncellWrite : [8] -> [64] -> [64] -> [64]\ncellWrite mask original replacement = if mask == 0 then replacement else original\n\nproperty preservesObserved mask original replacement = (mask != 0) ==> (cellWrite mask original replacement == original)\nproperty fillsMissing mask original replacement = (mask == 0) ==> (cellWrite mask original replacement == replacement)\n",
+    "source": {
+      "file": "/Users/corinakaiser/Projects/pca-workbench/frontend/src/lib/efa/numeric-imputation.ts",
+      "sha256": "d2ce5d9e6b5650123c023c028d592bada82391e9e8626037f21b07b2cc5edfb2",
+      "function": "completeNumericSample",
+      "writeOnMissing": true,
+      "index": "j*n+i",
+      "sourceLine": 26
+    },
+    "trusted": [
+      "TypeScript AST recognizer and lowering",
+      "Uint8Array truthiness equals nonzero",
+      "Float64 payload copy preserves values",
+      "Standard unmodified slice and ordinary arrays"
+    ],
+    "scope": "The single guarded numeric-cell write preserves an observed payload and replaces a missing payload. No theorem about replacement calculation, array-loop execution, optimizer, compiler, or R equivalence."
+  },
+  "boundHashes": {
+    "frontend/scripts/efa-reference/formal/GaussianContracts.cry": "d875e55b09173610665e636d76a98f541b7bc93ba869793ef46ad3673d23458d",
+    "frontend/scripts/efa-reference/formal/NumericCellContract.cry": "55c0f5e9c3def7fd1e9d6b7822ccfb6ce218592f1789690c609dd996c0ed34c9",
+    "frontend/scripts/efa-reference/formal/gaussian.saw": "e60527daa46cac86e843857a52b94500fe065343fe864bf913cb1029023e7227",
+    "frontend/scripts/efa-reference/formal/cell.saw": "63292147bb568a689ef4914dd730086a6acf88c56ecd7268ec638902f8d1f7de",
+    "frontend/scripts/efa-reference/formal/negative-gaussian.saw": "1d5ba5cb425a8ba3d1ba186318668281eedb2600cf6008a3161a7ddf18190b1a",
+    "frontend/scripts/efa-reference/formal/source-contract.mjs": "c4dd8e1fd61342452b5a4ad3247a795aa4633aa518263855995a4d10ba44476f",
+    "frontend/scripts/efa-reference/formal/source-fiml.mjs": "49056fd5147f81c62f8fd2b4b56b9cc6d0d22a12948eb21964f558dedcbc42cd",
+    "frontend/scripts/efa-reference/formal/FimlCellContract.cry": "7b2771bf77573927eec3ca9f1ff1fd1046f7aa0667840845ef2e18251e21fa59",
+    "frontend/scripts/efa-reference/formal/fiml-cell.saw": "9bf4d5ec929f0cf4f7098c2591e2848dcc9ebaf7e6ebc7e6abdf1481d10c3348",
+    "frontend/scripts/efa-reference/formal/run.py": "eae21e22098cd30d5025deb3de9b9290eca003ebd732e05679f9902d13b4b2c8",
+    "frontend/scripts/efa-reference/formal/verify.py": "ae18a3624384f21f8c21305d3d6bd337a02bd254e2485e3231e2ebf5bbb73901",
+    "frontend/src/lib/efa/numeric-imputation.ts": "d2ce5d9e6b5650123c023c028d592bada82391e9e8626037f21b07b2cc5edfb2",
+    "frontend/src/lib/efa/maximum-likelihood.ts": "2dd74472fbebca943f301b999e2696975b41239d0f722d8aecbdb81c9b7a296a"
+  },
+  "implementationContextHashes": {
+    "frontend/src/lib/efa/maximum-likelihood.ts": "2dd74472fbebca943f301b999e2696975b41239d0f722d8aecbdb81c9b7a296a",
+    "frontend/src/lib/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+    "frontend/src/lib/efa/fit.ts": "31c00030570cdd61e2152ec53fe679b8423a298f98d8b254733431be95c2ae89",
+    "frontend/src/lib/efa/types.ts": "54087e580943e91ed7e761e43eb5eeefc877e6f4e19aafb90fd277aed1208aa3"
+  },
+  "contextHashMeaning": "Binds the surrounding implementation inspected with this receipt; these files are not proved by the handwritten Gaussian identities.",
+  "tools": {
+    "sawPath": "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+    "sawSha256": "7ce6062dc8ac6a068025eed7416b55c89a1c2fec380edf9391ffa07b82e8aa21",
+    "sawVersion": "1.6 (68eed5f release-1.6)",
+    "z3Path": "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/z3",
+    "z3Sha256": "3b4e74953a5ecd7e782c6faa3b3f6a2ac4ba743d05fc1b94784144c81c55becd",
+    "z3Version": "Z3 version 4.8.14 - 64 bit - build hashcode df8f9d7dcb8b9f9b3de1072017b7c2b7f63f0af8"
+  },
+  "gaussian": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/gaussian.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw"
+    ],
+    "returncode": 0,
+    "timedOut": false,
+    "seconds": 3.733,
+    "summary": [
+      {
+        "dependencies": [],
+        "elapsedtime": 0.551193,
+        "id": 1,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw:4:3-4:61",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      },
+      {
+        "dependencies": [],
+        "elapsedtime": 0.04919,
+        "id": 2,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw:5:3-5:55",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      },
+      {
+        "dependencies": [],
+        "elapsedtime": 0.50712,
+        "id": 3,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw:6:3-6:58",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      },
+      {
+        "dependencies": [],
+        "elapsedtime": 0.374445,
+        "id": 4,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw:7:3-7:53",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      },
+      {
+        "dependencies": [],
+        "elapsedtime": 0.525819,
+        "id": 5,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw:8:3-8:57",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      }
+    ],
+    "log": "frontend/scripts/efa-reference/formal/evidence/gaussian.log",
+    "logSha256": "a262b81fef54ac9c6e43a7f6055f2e1c7bf7ee46c7214ac10b454a30eab16b56",
+    "summaryFile": "frontend/scripts/efa-reference/formal/evidence/gaussian.summary.json",
+    "summarySha256": "c5ea71ecc4b5fbc1b2f13693a8d6f3666f1199a16ef6722d937427c0089f15d4",
+    "expectedTheorems": 5,
+    "accepted": true
+  },
+  "cell": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/cell.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/cell.saw"
+    ],
+    "returncode": 0,
+    "timedOut": false,
+    "seconds": 0.84,
+    "summary": [
+      {
+        "dependencies": [],
+        "elapsedtime": 0.016121,
+        "id": 1,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/cell.saw:4:3-4:56",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      },
+      {
+        "dependencies": [],
+        "elapsedtime": 0.017279,
+        "id": 2,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/cell.saw:5:3-5:50",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      }
+    ],
+    "log": "frontend/scripts/efa-reference/formal/evidence/cell.log",
+    "logSha256": "61d364d080b134d1a8d063f1a8584b41f5e687ace32ef076f1b794edf849f015",
+    "summaryFile": "frontend/scripts/efa-reference/formal/evidence/cell.summary.json",
+    "summarySha256": "8aa89e115538fe10966d48c33a76844d54c0c721796f59de7c166e14682d86af",
+    "expectedTheorems": 2,
+    "accepted": true
+  },
+  "fimlCell": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/fiml-cell.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/fiml-cell.saw"
+    ],
+    "returncode": 0,
+    "timedOut": false,
+    "seconds": 0.811,
+    "summary": [
+      {
+        "dependencies": [],
+        "elapsedtime": 0.056408,
+        "id": 1,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/fiml-cell.saw:4:3-4:56",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      },
+      {
+        "dependencies": [],
+        "elapsedtime": 0.017702,
+        "id": 2,
+        "loc": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/fiml-cell.saw:5:3-5:50",
+        "provers": [
+          "SBV->Z3"
+        ],
+        "reason": "prove_print",
+        "status": "verified",
+        "type": "property"
+      }
+    ],
+    "log": "frontend/scripts/efa-reference/formal/evidence/fiml-cell.log",
+    "logSha256": "2967771f456ac1d3029705c6508c54fefb4b1ab1bdbd25b07da99c47c32008f5",
+    "summaryFile": "frontend/scripts/efa-reference/formal/evidence/fiml-cell.summary.json",
+    "summarySha256": "e3a4f16975ef8497f8a4470eacbb624d59c2a29f2230f79e56be6940545fd963",
+    "expectedTheorems": 2,
+    "accepted": true
+  },
+  "negativeGaussian": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-gaussian.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/negative-gaussian.saw"
+    ],
+    "returncode": 2,
+    "timedOut": false,
+    "seconds": 1.122,
+    "summary": [],
+    "log": "frontend/scripts/efa-reference/formal/evidence/negative-gaussian.log",
+    "logSha256": "ff866f13e2d6741ce4d01367a49c3a001936aa1b72f0f18941fa9a2e6ec541ab",
+    "summaryFile": null,
+    "summarySha256": null,
+    "counterexampleObserved": true
+  },
+  "negativeCell": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-cell.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-cell/cell.saw"
+    ],
+    "returncode": 2,
+    "timedOut": false,
+    "seconds": 1.249,
+    "summary": [],
+    "log": "frontend/scripts/efa-reference/formal/evidence/negative-cell.log",
+    "logSha256": "417f10297bbd24eaafa8473cb57eff6f4b6d9652c1918d8b8e40dbaa3d0daa4f",
+    "summaryFile": null,
+    "summarySha256": null,
+    "counterexampleObserved": true
+  },
+  "negativeFimlCell": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell/fiml-cell.saw"
+    ],
+    "returncode": 2,
+    "timedOut": false,
+    "seconds": 2.312,
+    "summary": [],
+    "log": "frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell.log",
+    "logSha256": "f2a62151ac8f545caaa4b23fa784a9f3eeeda7ae96ffcd3a419e8ca21b9341b7",
+    "summaryFile": null,
+    "summarySha256": null,
+    "counterexampleObserved": true
+  },
+  "negativeArtifactHashes": {
+    "frontend/scripts/efa-reference/formal/evidence/negative-cell/NumericCellContract.cry": "ea90fd708ad9c585e2c37dfb3eea8d6922a377b5b23ffe2b8e5abd9793d96ba0",
+    "frontend/scripts/efa-reference/formal/evidence/negative-cell/cell.saw": "63292147bb568a689ef4914dd730086a6acf88c56ecd7268ec638902f8d1f7de",
+    "frontend/scripts/efa-reference/formal/evidence/negative-cell/numeric-imputation.ts.txt": "b4c88ea2dc143acfa91c4f4de92b2784706f8d493199a4dfc043180783b82008",
+    "frontend/scripts/efa-reference/formal/evidence/negative-cell/source-contract.json": "e46534f4a2fe80c4e0c2dd15cd26f54dd653884c43382ff767cd7a0e983672b5",
+    "frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell/FimlCellContract.cry": "3fa8ee0e62c1d04319f736b39b7e8ac00114d65d672c59f8d8ae32e0c4924abd",
+    "frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell/fiml-cell.saw": "9bf4d5ec929f0cf4f7098c2591e2848dcc9ebaf7e6ebc7e6abdf1481d10c3348",
+    "frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell/fiml-source-contract.json": "964845db68df9b8f9e1e9eea7bbe21c5f5152c9c2c235acf3d3e1cd8d6c6a2a8",
+    "frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell/maximum-likelihood.ts.txt": "1621eec0e5dcdf12c195e081e7d1194923803dd1dd80062fd4a15b60447954f5"
+  },
+  "floatCapabilityProbe": {
+    "command": [
+      "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64-with-solvers/bin/saw",
+      "--no-color",
+      "--summary",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/float-probe.summary.json",
+      "--summary-format=json",
+      "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/float-probe.saw"
+    ],
+    "returncode": 2,
+    "timedOut": false,
+    "seconds": 1.349,
+    "summary": [],
+    "log": "frontend/scripts/efa-reference/formal/evidence/float-probe.log",
+    "logSha256": "8eab8cf925a1653274c090ef67a923fd8d6d71e3c1ae9693c24720c4e29de429",
+    "summaryFile": null,
+    "summarySha256": null,
+    "librarySha256": "3e5b4b5b8f5d56d2295227d252a947e232f3b9a47149e883e68da2019760a2dd",
+    "libraryPath": "/Users/corinakaiser/Projects/crypto/hash-visualizer/validation/tools/saw-1.6-macos-15-ARM64/lib/Float.cry",
+    "scriptSha256": "83c047ae2abae401ebc94d22b20e9a6cb51d45d38df5a26c2e90628c41ab91bb",
+    "scriptPath": "frontend/scripts/efa-reference/formal/evidence/float-probe.saw",
+    "classification": "unsupported-native-symbolic-Float-probe"
+  },
+  "sourceAndModelsUnchanged": true,
+  "contextUnchanged": true,
+  "completedAtUtc": "2026-11-06T12:57:37.533163+00:00"
+}

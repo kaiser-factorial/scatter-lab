@@ -1,0 +1,11 @@
+{
+  "recordedAt": "2026-10-31T07:02:20.446Z",
+  "stage": {
+    "id": "cc45203b-19c5-44cb-b20f-b5af8be7691e",
+    "status": "running",
+    "stage": "Parallel analysis · 2 failed",
+    "completed": 2,
+    "total": 100
+  },
+  "heartbeat": "6901"
+}

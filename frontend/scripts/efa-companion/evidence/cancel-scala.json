@@ -1,0 +1,379 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-04T05:44:20.164Z",
+  "cancellationMs": 531.8415420000001,
+  "report": {
+    "schema": "scatter-compute/1",
+    "jobId": "030d225b-7635-4b18-b3c5-d862e96296a4",
+    "startedAt": "2026-11-04T05:44:18.289Z",
+    "elapsedMs": 1288.1999999284744,
+    "status": "cancelled",
+    "publication": "discarded",
+    "backend": "scala",
+    "precision": "float64 / native BLAS",
+    "context": {
+      "operation": "fit",
+      "items": 8,
+      "eligibleRows": 12000,
+      "factors": 2,
+      "extraction": "wlsmv",
+      "rotation": "oblimin",
+      "missing": "pairwise",
+      "partition": "all",
+      "fittingRows": 12000,
+      "inputSha256": "87408c7ab072af231961c4454a446242b8dd780199338f59fbd319c132da49ab"
+    },
+    "workersCreated": 1,
+    "activeWorkers": 0,
+    "requests": {
+      "prepare": {
+        "count": 1,
+        "roundTripMs": 87.60000002384186,
+        "workerMs": 8.599999904632568,
+        "postMessageMs": 1.2999999523162842
+      },
+      "pairs": {
+        "count": 1,
+        "roundTripMs": 26,
+        "workerMs": 7.399999976158142,
+        "postMessageMs": 0
+      }
+    },
+    "workerStages": {
+      "prepare": 8.599999904632568,
+      "Correlations": 7.399999976158142
+    },
+    "transport": {
+      "sentTypedBufferBytes": 0,
+      "receivedTypedBufferBytes": 288000,
+      "description": "Cumulative typed-array payload bytes copied or transferred by messages; excludes ordinary arrays/objects. Not resident or peak memory. Round-trip time includes queuing and communication; postMessage time is measured on the sender."
+    },
+    "stages": [
+      {
+        "stage": "Preparing",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 88
+      },
+      {
+        "stage": "Correlations",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 26.300000071525574
+      },
+      {
+        "stage": "Starting local Scala companion",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 462.10000002384186
+      },
+      {
+        "stage": "Backend numerical self-check",
+        "completed": 5,
+        "total": 5,
+        "durationMs": 64.89999997615814
+      },
+      {
+        "stage": "Ordinal uncertainty",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 0
+      },
+      {
+        "stage": "DWLS",
+        "completed": 21,
+        "total": 2000,
+        "durationMs": 0.2999999523162842
+      },
+      {
+        "stage": "Rotation",
+        "completed": 0,
+        "total": 1,
+        "durationMs": 0
+      },
+      {
+        "stage": "Weighted information matrix",
+        "completed": 28,
+        "total": 28,
+        "durationMs": 0
+      },
+      {
+        "stage": "Information factorization",
+        "completed": 1,
+        "total": 1,
+        "durationMs": 0.30000007152557373
+      },
+      {
+        "stage": "Robust case projections",
+        "completed": 12000,
+        "total": 12000,
+        "durationMs": 35.59999990463257
+      },
+      {
+        "stage": "Robust parameter covariance",
+        "completed": 12000,
+        "total": 12000,
+        "durationMs": 8.800000071525574
+      },
+      {
+        "stage": "Covariance inverse transform",
+        "completed": 15,
+        "total": 15,
+        "durationMs": 0
+      },
+      {
+        "stage": "Covariance matrix products",
+        "completed": 2,
+        "total": 2,
+        "durationMs": 0
+      },
+      {
+        "stage": "Exact robust trace blocks",
+        "completed": 0,
+        "total": 1128,
+        "durationMs": 0.19999992847442627
+      },
+      {
+        "stage": "Scala resident source upload",
+        "completed": 1635752,
+        "total": 1635752,
+        "durationMs": 148
+      },
+      {
+        "stage": "Exact robust trace blocks",
+        "completed": 44,
+        "total": 1128,
+        "durationMs": 453.60000002384186
+      }
+    ],
+    "events": [
+      {
+        "sequence": 1,
+        "elapsedMs": 0,
+        "kind": "job",
+        "action": "started"
+      },
+      {
+        "sequence": 2,
+        "elapsedMs": 0.09999990463256836,
+        "kind": "stage",
+        "action": "Preparing"
+      },
+      {
+        "sequence": 3,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "worker",
+        "action": "created",
+        "worker": 1
+      },
+      {
+        "sequence": 4,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "cache",
+        "action": "correlations miss"
+      },
+      {
+        "sequence": 5,
+        "elapsedMs": 0.3999999761581421,
+        "kind": "request",
+        "action": "prepare started",
+        "worker": 1,
+        "request": 1
+      },
+      {
+        "sequence": 6,
+        "elapsedMs": 1.6999999284744263,
+        "kind": "publication",
+        "action": "pending"
+      },
+      {
+        "sequence": 7,
+        "elapsedMs": 88.09999990463257,
+        "kind": "request",
+        "action": "prepare completed",
+        "worker": 1,
+        "request": 1,
+        "durationMs": 87.60000002384186,
+        "workerMs": 8.599999904632568
+      },
+      {
+        "sequence": 8,
+        "elapsedMs": 88.19999992847443,
+        "kind": "stage",
+        "action": "Correlations"
+      },
+      {
+        "sequence": 9,
+        "elapsedMs": 88.19999992847443,
+        "kind": "request",
+        "action": "pairs started",
+        "worker": 1,
+        "request": 2,
+        "count": 28
+      },
+      {
+        "sequence": 10,
+        "elapsedMs": 114.29999995231628,
+        "kind": "request",
+        "action": "pairs completed",
+        "worker": 1,
+        "request": 2,
+        "durationMs": 26,
+        "workerMs": 7.399999976158142
+      },
+      {
+        "sequence": 11,
+        "elapsedMs": 114.39999997615814,
+        "kind": "stage",
+        "action": "Starting local Scala companion"
+      },
+      {
+        "sequence": 12,
+        "elapsedMs": 514.5,
+        "kind": "request",
+        "action": "fit started",
+        "worker": 1,
+        "request": 3
+      },
+      {
+        "sequence": 13,
+        "elapsedMs": 576.5,
+        "kind": "stage",
+        "action": "Backend numerical self-check"
+      },
+      {
+        "sequence": 14,
+        "elapsedMs": 641.3999999761581,
+        "kind": "stage",
+        "action": "Ordinal uncertainty"
+      },
+      {
+        "sequence": 15,
+        "elapsedMs": 641.3999999761581,
+        "kind": "stage",
+        "action": "DWLS"
+      },
+      {
+        "sequence": 16,
+        "elapsedMs": 641.6999999284744,
+        "kind": "stage",
+        "action": "Rotation"
+      },
+      {
+        "sequence": 17,
+        "elapsedMs": 641.6999999284744,
+        "kind": "stage",
+        "action": "Weighted information matrix"
+      },
+      {
+        "sequence": 18,
+        "elapsedMs": 641.6999999284744,
+        "kind": "stage",
+        "action": "Information factorization"
+      },
+      {
+        "sequence": 19,
+        "elapsedMs": 642,
+        "kind": "stage",
+        "action": "Robust case projections"
+      },
+      {
+        "sequence": 20,
+        "elapsedMs": 677.5999999046326,
+        "kind": "stage",
+        "action": "Robust parameter covariance"
+      },
+      {
+        "sequence": 21,
+        "elapsedMs": 686.3999999761581,
+        "kind": "stage",
+        "action": "Covariance inverse transform"
+      },
+      {
+        "sequence": 22,
+        "elapsedMs": 686.3999999761581,
+        "kind": "stage",
+        "action": "Covariance matrix products"
+      },
+      {
+        "sequence": 23,
+        "elapsedMs": 686.3999999761581,
+        "kind": "stage",
+        "action": "Exact robust trace blocks"
+      },
+      {
+        "sequence": 24,
+        "elapsedMs": 686.5999999046326,
+        "kind": "stage",
+        "action": "Scala resident source upload"
+      },
+      {
+        "sequence": 25,
+        "elapsedMs": 834.5999999046326,
+        "kind": "stage",
+        "action": "Exact robust trace blocks"
+      },
+      {
+        "sequence": 26,
+        "elapsedMs": 1287.7999999523163,
+        "kind": "job",
+        "action": "Cancellation: requested"
+      },
+      {
+        "sequence": 27,
+        "elapsedMs": 1288.1999999284744,
+        "kind": "worker",
+        "action": "terminated",
+        "worker": 1
+      },
+      {
+        "sequence": 28,
+        "elapsedMs": 1288.1999999284744,
+        "kind": "job",
+        "action": "cancelled"
+      },
+      {
+        "sequence": 29,
+        "elapsedMs": 1606.0999999046326,
+        "kind": "job",
+        "action": "Cancellation: native-exited"
+      },
+      {
+        "sequence": 30,
+        "elapsedMs": 1606.2999999523163,
+        "kind": "publication",
+        "action": "discarded"
+      }
+    ],
+    "droppedEvents": 0,
+    "droppedStages": 0,
+    "execution": {
+      "backend": "scala",
+      "blockSize": 256,
+      "budgetBytes": 1610612736,
+      "state": "running",
+      "precision": "float64 / native BLAS",
+      "kernelVersion": "ordinal-trace/1",
+      "kernelSha256": "21136cac2832c38efd222afa1da3d4828427590785dca5d270f00543c5554ed9",
+      "runtime": "dev.ludovic.netlib.blas.JNIBLAS; Java 25.0.3+9-LTS; requested BLAS threads 4",
+      "timings": {
+        "packMs": 10.099999785423279,
+        "roundTripMs": 204.20000052452087,
+        "nativeMs": 16.191581,
+        "materializeMs": 6.322583000000002,
+        "blasMs": 9.858165000000001,
+        "calls": 6,
+        "sentBytes": 1899688
+      },
+      "selfCheck": {
+        "version": "ordinal-trace/1",
+        "passed": true,
+        "checks": 98750,
+        "tolerance": 1e-10,
+        "maxScaledError": 5.101474798152594e-14,
+        "elapsedMs": 98.39999997615814
+      }
+    },
+    "cancellation": "native-exited"
+  }
+}

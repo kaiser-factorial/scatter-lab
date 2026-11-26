@@ -1,0 +1,107 @@
+{
+  "recordedAt": "2026-11-05T03:28:17.087943+00:00",
+  "branch": "codex/efa-mice-stability-wls",
+  "head": "525a50d3b930ecc024f960ccc75616face29a882",
+  "commitStatus": "Local uncommitted working tree; earlier integration changes also present",
+  "sourceSha256": {
+    "src/lib/efa/mice.ts": "12562a773db1fbe6599573c31a97fcfeace075315717046237b808fc904f8691",
+    "src/lib/efa/state.ts": "c0ed73f820bd15396cbe81b61c2b86627bde8f292ca293b970fda899f2f7e956",
+    "src/lib/efa/compare.ts": "082cf9bdc5d01da940e21f18b14ef63ff5fddf4a7ed8458455594f0bbe250e2c",
+    "src/lib/efa/prepare.ts": "0fc77bb80bcb676e66db94cb7ccef88adc28d8f11f16c66c0985e88f8f358015",
+    "src/lib/efa/ordinal-regression.ts": "598ab395649a8619c34502a78b3e19c42f7d2c1575ee8c7ed0e8958a8d406ad8",
+    "src/lib/efa/correlation.ts": "5db36d809d801dd795e72293d6697a6a7c2c17b7adc8ad2dff15a5708522d798",
+    "src/lib/efa/rotation.ts": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+    "src/lib/efa/prepared-sample.ts": "fb3402fa11e819e4d4241b33c93af79293af23a7a556462f3d3adb9e329895fa",
+    "src/lib/efa/parallel.ts": "a26dfe429efce69dfa2b53e56ee2460b387c214d4161a70377c66f73e53f0952",
+    "src/lib/efa/math.ts": "a1d66b7069257658579f084d27ae8f5147cbb24625b6d5f2d08f298bd61d7d18",
+    "src/lib/efa/weighted-linalg.ts": "87a1e36aad146717eab5d1470e1b4cffbb2fe1c1cd40ff72760798893109ebae",
+    "src/lib/efa/weighted-moments.ts": "c7ad567d394971dd5d0d3fa83c0a978b01611affb1eb879aaf9b09a1cabe6612",
+    "src/lib/efa/dwls.ts": "960dac0dddc140b222abf323c7494586916f9b784cb6c483644ab24ad158ef37",
+    "src/lib/efa/extraction.ts": "3f41195de95cf8781985ac8449a68385e4b50b22a25bb61eefed6d0280cd1df2",
+    "src/lib/efa/weighted-inference.ts": "fa3f7e36d737859d1bcb530581bc51e92a021992199783426a991f5c8052fe4b",
+    "src/lib/efa/inspection.ts": "3505cc3ee9adca12e7e0fa512133d739121898010707af26b16e5ad49e8f8bdc",
+    "src/lib/efa/types.ts": "2180f4a4eab4918b8e98b5d7356f6b9b4cb4fdb3fb47beb83a8a20dcd563e0b0",
+    "src/lib/efa/telemetry.ts": "85982bed031c75511b39bf95e6813b72916b07a5f257d1d79163165dd8dffe41",
+    "src/lib/efa/trace-estimation.ts": "9570edc66da4d844075029bcf920bfb374ef0c69f5b08d04ad42d08b2d4547f0",
+    "src/lib/efa/tools.ts": "aca4a3888d6765ade19da9f4695ec6103bc4bca4c3dda7797a9a2ecf7618a8c1",
+    "src/lib/efa/imputation-analysis.ts": "194f55f2c0803da38068cdfd41e96d38a0bad09a154bb5ccc8b3b75f49aa215a",
+    "src/lib/efa/fingerprint.ts": "affb3faf3f6a4c6e114555991286dd15ae8e3d1fa524341d52b9947eeb667d77",
+    "src/lib/efa/efa.worker.ts": "819183e1c2c6c65e7acbba07cbc12b44725b6a02d3e27706e9b18dadcfda3f7d",
+    "src/lib/efa/persistence.ts": "1f5e523863cb85ca07ce50ed3f79bb9600237edfdba24b54d1ad33337fc78ae2",
+    "src/lib/efa/fit.ts": "1a3d34397344c145452b20cff42acdf1e22ad82f518d589080411b4f14516cec",
+    "src/lib/efa/controller.ts": "662c39f8791a20615576377a51fb81a79a563e73a10752388fff3ec2f4248d8f",
+    "src/lib/efa/fit-cache.ts": "5ae0084e4c1406704e72f101e816b3d77fb492cae58808cd12e36438520b7928",
+    "src/lib/efa/service.ts": "731bd80b4c240b1b0aabf903bc2b4d428ae95d31e57e9fc7269709e9bef32a5d",
+    "src/lib/efa/stability.ts": "0eb28d5db13e164b1be19623c579f520eccebd2eb7e78eaf5c3300f80237d844",
+    "src/lib/efa/trace-kernel.ts": "a7d589ebe02159f23a4a768a7017ee11bc403884b0cc48c1ef896b9b8703cb58",
+    "src/lib/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+    "src/lib/efa/weighted-rotation.ts": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+    "src/lib/efa/backends/self-check.ts": "41e216e33faa51875b6aaa61f60a29f7a7336587ec6a94a65f2672ce99df74e1",
+    "src/lib/efa/backends/portable-shader.mjs": "2655d0a1eddb5dd4f15c8a19b65e653cde7969ec27f828009eff2818a10e35d0",
+    "src/lib/efa/backends/reduce-shader.mjs": "93db510fb1df1848952378c41fcb316828c887f059a9794f7ef285a122f61133",
+    "src/lib/efa/backends/native-protocol.ts": "1083a54e17d9b74f6b776022d6a269c0b51a8a83c80df7a73b66495f3fa00d7c",
+    "src/lib/efa/backends/split-shader.mjs": "e63f06eeb52e619086da336c07297d70d8a58d3303c1b6718d20a92c938f3e39",
+    "src/lib/efa/backends/panel-shader.mjs": "c26f6ce42debcd6ebd7913c3088f045689e8c5187fbd783e9589db4e7c51f79a",
+    "src/lib/efa/backends/webgpu-kernel.d.mts": "4735a9e6592c3969981a417e77932170e74166a7d82e32072c741d24cce27e9b",
+    "src/lib/efa/backends/runtime.ts": "cb8926c681beeb5e004b3da5dea3efcb38e5014aeb011f2c88cdf155dc79446e",
+    "src/lib/efa/backends/types.ts": "488f822e63dcafeb4510f80018568158900bf6fafe77d3d6954e2dd90ebf6d39",
+    "src/lib/efa/backends/webgpu-kernel.mjs": "0b8a09af6691ff4fdb062d5ad6b2ad8a8fb2042d12c352dfa02929445467b9b3",
+    "src/lib/efa/backends/companion.ts": "18fdd825df66af18cfd84de56a1e8747d9c30fc65f2159a210167af85ec07769",
+    "src/lib/__tests__/efa-trace-estimation.test.ts": "1a01136de96bc6cc6873df81666fae48eff2b06dc59e630b5f4972b24f73ddee",
+    "scripts/efa-reference/compute/trace-operator.mjs": "c3acb2974e464c27b0671a8c300dde42062c0ad19fc626e2534195915a011b29",
+    "scripts/efa-reference/compute/trace-estimation.worker.mjs": "8411b073cb40c084a89f2f815a4a9ede10882fbaf4463bc6b4f097a9d0b834fa",
+    "scripts/efa-reference/compute/check-trace-estimation.mjs": "1b8564bc270f46b73d80d4fd433674af926f8a27a557fdea5262482b90e2f86a",
+    "scripts/efa-reference/compute/check-block-cancellation.mjs": "0c4ab2c07602c7c0b33c3b63463edcd71b4f0b9b0074bddc6888e3ae09eb2f75",
+    "../docs/EFA-TRACE-ESTIMATION.md": "3738e4212fb2aa4a1086f1e7a4cab5778b168ca1a0ff0fedb75feba6c3829599"
+  },
+  "checks": {
+    "unitAndReplay": {
+      "passed": 676,
+      "skipped": 4,
+      "filesPassed": 55,
+      "filesSkipped": 2,
+      "command": "npm test -- --maxWorkers=2"
+    },
+    "typescript": {
+      "passed": true,
+      "command": "npx tsc --noEmit"
+    },
+    "productionBuild": {
+      "passed": true,
+      "directory": "/var/folders/85/7f4sb4p97r35n0xbn_gw1pmw0000gn/T/scatter-efa-trace-build-v5-bd2f2rku",
+      "note": "Fresh source/config/public/dependency copy; older incomplete temporary dependency tree was replaced"
+    },
+    "lintRegression": {
+      "passed": true,
+      "errors": 117,
+      "warnings": 6,
+      "newGroups": []
+    },
+    "productionBrowserFits": 45,
+    "crossBackendComparisons": 30,
+    "operatorNumericalChecks": 7,
+    "largestScaledOperatorError": 9.803892518286124e-13,
+    "triangleReferenceRanges": 10,
+    "largestScaledTriangleError": 6.114968455688894e-14,
+    "inspectorCancellationMs": 205.4094580000001,
+    "cancelledPublication": "discarded"
+  },
+  "artifacts": [
+    "trace-estimation-large-v5.json",
+    "trace-estimation-pilot-release-v5.json",
+    "triangle-resident-final-v5.json",
+    "trace-workflow-final-v5.json",
+    "trace-ui-v5/cancel-webgpu.json"
+  ],
+  "verifiedWorkerArchives": [
+    "scripts/efa-reference/compute/archives/da192164c4d882cdc4c3aa79a5117d31370ae7c622fb75195794e2757404ea30.js.gz",
+    "scripts/efa-reference/compute/archives/8a20780310df53726534afebcaebf2df2b997a0338130e80b361ccbb16d60198.js.gz",
+    "scripts/efa-reference/compute/archives/b387cb6a6b15070cd987a6e3d8f634ae8169de934764db29947492cbbcbb367d.js.gz"
+  ],
+  "limitations": [
+    "Large exact timing and trace reference are retained historical results, not a paired full rerun",
+    "Stochastic accuracy measured on synthetic fixtures with fixed seeds and budgets; no universal accuracy guarantee",
+    "Target operator axes checked separately against Float64; full-sized operator outputs are not each compared with a Float64 oracle",
+    "Approximation remains harness-only; production EFA remains exact"
+  ]
+}

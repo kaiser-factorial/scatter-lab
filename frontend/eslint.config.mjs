@@ -16,6 +16,12 @@ const eslintConfig = defineConfig([
     // self-contained HTML export. Linting 1.7MB of minified third-party code
     // reported ~4,450 problems and buried the ~135 real ones.
     "public/vendor/**",
+    // Verbatim upstream Plotly factory artifacts; provenance hashes and
+    // behavioral tests cover these copies. Lint the app and adapter tests.
+    "vendor/react-plotly-factory/*.mjs",
+    "vendor/react-plotly-factory/*.d.mts",
+    // Generated only for the isolated browser qualification harness.
+    "public/efa-qualification/**",
   ]),
 ]);
 

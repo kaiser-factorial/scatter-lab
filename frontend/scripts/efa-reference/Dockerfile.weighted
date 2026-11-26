@@ -1,0 +1,5 @@
+# Development/CI only; none of these packages ship in the browser application.
+FROM scatter-lab-efa-extensions:4.5.1
+COPY weighted-package-pins.json install-weighted.R /opt/efa/
+RUN Rscript /opt/efa/install-weighted.R
+ENTRYPOINT ["Rscript"]

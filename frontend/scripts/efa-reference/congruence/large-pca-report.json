@@ -1,0 +1,34 @@
+{
+  "recordedAt": "2026-11-06T12:16:49.677Z",
+  "status": "passed",
+  "method": "pca",
+  "runtime": "v26.8.1",
+  "dimensions": {
+    "respondents": 20000,
+    "items": 500,
+    "factors": 5
+  },
+  "dataSeed": 8801,
+  "timingsMs": {
+    "generation": 1652.4574169999999,
+    "PCA complete standardized": 34748.497417000006
+  },
+  "qualification": "Single isolated Node CPU run; runtime and execution qualification only. Not browser responsiveness, R speed comparison, or full-size cross-implementation accuracy proof.",
+  "stage": "PCA complete standardized",
+  "peakRssKiB": 440752,
+  "result": {
+    "rowsUsed": 20000,
+    "components": 5,
+    "eigenvalues": [
+      69.95091961847821,
+      31.87496218709304,
+      31.477909705350438,
+      31.141398120836175,
+      30.990472528044155,
+      0.8216214026899156,
+      0.8171525445457257,
+      0.8146154672148305
+    ],
+    "firstFiveVarianceFraction": 0.39087132431956695
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-06T01:09:22.063779+00:00",
+  "git": {
+    "branch": "codex/efa-mice-stability-wls",
+    "head": "2029568a9ff08bd52905180be97a2f7560b231c5",
+    "scope": "Runtime guidance, new benchmark and documentation are subsequent uncommitted changes; no push performed."
+  },
+  "validation": {
+    "unitTests": {
+      "passed": 691,
+      "skipped": 4,
+      "exitCode": 0
+    },
+    "typescript": {
+      "exitCode": 0
+    },
+    "productionBuild": {
+      "exitCode": 0,
+      "isolatedPath": "/var/folders/85/7f4sb4p97r35n0xbn_gw1pmw0000gn/T/scatter-runtime-build-v7-r6uuso_o",
+      "identicalApplicationSourceFiles": 202
+    },
+    "lintRegression": {
+      "status": "passed",
+      "errors": 117,
+      "warnings": 6,
+      "newFileRuleSeverityCounts": [],
+      "baseline": "scripts/efa-reference/compute/throughput-eslint-v3b.json",
+      "cleanLintBaseline": false
+    },
+    "runtimeUi": {
+      "status": "passed",
+      "recordedAt": "2026-11-06T01:03:15.850Z",
+      "browser": "156.0.8078.81",
+      "checks": [
+        "exact CPU default",
+        "each runtime info button",
+        "exact and estimated GPU explanations differ",
+        "probe and memory help",
+        "Escape focus return",
+        "preview-based advice",
+        "stale preview hides advice",
+        "estimated preview label",
+        "CPU and Scala availability restored with exact",
+        "both themes",
+        "390px tooltip bounds"
+      ],
+      "errors": []
+    },
+    "operatorStress": {
+      "status": "passed",
+      "path": "scripts/efa-reference/compute/trace-error-shapes-v7.json",
+      "scope": "Synthetic PSD operators H with trace(H squared) normalized except an explicit scale control; not data-derived EFA fits, not timing evidence.",
+      "scaleDelta": 1.4779844015322396e-15
+    },
+    "pairedFullFit": {
+      "status": "passed",
+      "options": {
+        "n": 20000,
+        "p": 500,
+        "probes": 128,
+        "seed": 61001
+      },
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "comparison": {
+        "parity": {
+          "correlation": 0,
+          "scores": 0,
+          "rotations": [
+            {
+              "rotation": "oblimin",
+              "loadings": 0,
+              "phi": 0,
+              "communalities": 0,
+              "standardErrors": {
+                "pattern": 0,
+                "structure": 0,
+                "phi": 0,
+                "communalities": 0
+              },
+              "trace": 0
+            },
+            {
+              "rotation": "promax",
+              "loadings": 0,
+              "phi": 0,
+              "communalities": 0,
+              "standardErrors": {
+                "pattern": 0,
+                "structure": 0,
+                "phi": 0,
+                "communalities": 0
+              },
+              "trace": 0
+            },
+            {
+              "rotation": "varimax",
+              "loadings": 0,
+              "phi": 0,
+              "communalities": 0,
+              "standardErrors": {
+                "pattern": 0,
+                "structure": 0,
+                "phi": 0,
+                "communalities": 0
+              },
+              "trace": 0
+            }
+          ]
+        },
+        "tolerance": 1e-10,
+        "totalSpeedup": 3.067435719560663,
+        "firstFitSpeedup": 3.460008019568322,
+        "traceSquaredRelativeError": 0.0005036889274192258,
+        "correctionDelta": {
+          "traceSquared": 76.66625727407518,
+          "scalingFactor": 0.00028096774418151504,
+          "shift": 11.33912069775397,
+          "statistic": -0.011332383670378476,
+          "pValue": 9.101510979325766e-06
+        },
+        "exactTraceInEstimatedInterval": true
+      },
+      "qualification": "One sequential pair on one machine; fresh browser and service for each arm. Other user applications may remain active; not a controlled idle-machine repetition study."
+    },
+    "gitDiffCheck": {
+      "exitCode": 0
+    }
+  },
+  "provenance": {
+    "losslessArchive": {
+      "path": "scripts/efa-reference/compute/paired-full-large-v7.json.gz",
+      "sha256": "6358fcfefe6baf83067137bb0c57f80fcb1c48b5fa322c70ffa97d128d971d03",
+      "uncompressedSha256": "38bf5e3f0aa356812abbd3c87d9aff706b62c03f635c5aa011c182a25bb12f5c",
+      "bytes": 20381802,
+      "uncompressedBytes": 82666251
+    },
+    "byteIdenticalDecompressionVerified": true,
+    "sourceArchives": [
+      {
+        "name": "efa.worker",
+        "sha256": "984cc284807934738bf035560f0196549c3abbf9eb4c924e134717a154a0d357",
+        "archive": "scripts/efa-reference/compute/archives/984cc284807934738bf035560f0196549c3abbf9eb4c924e134717a154a0d357.js.gz"
+      },
+      {
+        "name": "client",
+        "sha256": "72eb4bcb03f23f52a4bce61706ab81aa055a985a2bc1bdce2d945e8a46d1c952",
+        "archive": "scripts/efa-reference/compute/archives/72eb4bcb03f23f52a4bce61706ab81aa055a985a2bc1bdce2d945e8a46d1c952.js.gz"
+      }
+    ],
+    "plotComparisonMatchesSummary": true
+  },
+  "retainedAttemptFailures": [
+    "Initial pilot specified five factors for eight items and was rejected as underidentified; corrected pilot passed.",
+    "First runtime UI attempt used an ambiguous locator; exact-name locator passed.",
+    "Initial new operator-script TypeScript annotations and one lint warning were fixed before final qualification."
+  ],
+  "limits": [
+    "One sequential pair, exact then estimated, with other interactive applications permitted; not a repeated order-balanced idle-machine study.",
+    "Heartbeat max gaps were 1.45 seconds exact and 1.54 seconds estimated, including fixture creation and result handling; no zero-stall or stage-attribution claim.",
+    "Summed Chrome RSS can double-count shared pages and excludes a full GPU-memory accounting.",
+    "New operator stress cases characterize estimator weaknesses, not their prevalence in survey data."
+  ],
+  "dashboard": {
+    "url": "http://localhost:3001",
+    "snapshot": "2029568",
+    "lastHttpStatus": 200,
+    "storage": "Separate origin from port 3000"
+  },
+  "logs": {
+    "tests.log": {
+      "sha256": "9e5849074712161ed993cc85c75e1ecd01953cbdd22980a359f7d5f24e5eb60e",
+      "bytes": 320
+    },
+    "build.log": {
+      "sha256": "f8661ce37bf8a1331f933cabce5f794f2eac42e3d469f9eb7a79fbec025701ba",
+      "bytes": 942
+    },
+    "typescript.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "eslint.json": {
+      "sha256": "d65e88f87a39d7de3a14eeba35c2ccd54f7e7eac3124f3a46db200ece8a5f4c7",
+      "bytes": 700170
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "recordedAt": "2026-11-01T05:27:54.732Z",
+  "status": "passed",
+  "provenance": {
+    "independentReferencesPassed": true,
+    "samePipeline": true,
+    "sameScalaSource": true,
+    "sameNativeBytecode": true,
+    "sameProtocol": true,
+    "sameNativeOptions": true,
+    "sameThreadRequest": true
+  },
+  "comparisons": [
+    {
+      "fixture": "large",
+      "dimensions": {
+        "rows": 20000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+      "errors": {
+        "rawStatistic": 0,
+        "trace": 0,
+        "traceSquared": 8.731149137020111e-11,
+        "scalingFactor": 2.220446049250313e-16,
+        "shift": 1.4551915228366852e-11,
+        "statistic": 1.4551915228366852e-11,
+        "pValue": 1.2101430968414206e-14
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 6.678685382510707e-17,
+            "structureSE": 4.9439619065339e-17,
+            "phiSE": 7.806255641895632e-18,
+            "communalitySE": 1.734723475976807e-18,
+            "uniquenessSE": 1.734723475976807e-18
+          },
+          "scores": {
+            "maxAbsolute": 0,
+            "maxStandardized": 0,
+            "sameCompleteMask": true,
+            "completeRows": 20000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 5.2909066017292616e-17,
+            "structureSE": 6.071532165918825e-17,
+            "phiSE": 1.0408340855860843e-17,
+            "communalitySE": 1.734723475976807e-18,
+            "uniquenessSE": 1.734723475976807e-18
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 5.117434254131581e-17,
+            "structureSE": 5.117434254131581e-17,
+            "phiSE": 0,
+            "communalitySE": 1.734723475976807e-18,
+            "uniquenessSE": 1.734723475976807e-18
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/scala-large-resident.json",
+      "sha256": "4255cf5d616a73092925831a60b0533da03e379ba839ab72d190e0fd75fdea34"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-large-blocked-optimized-v2.json",
+      "sha256": "8f3398f25eab716d3d82660be4ecf3ee378440b6165d55ff6944c38e5e3ce70e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-blocked-final-qualified-v2.json",
+      "sha256": "c9611048003387c04f20db47d78ad5e03e1b78fec120f6ee0aa8031535f98d80"
+    }
+  ],
+  "scope": "Exact saved inputs; unchanged full-output tolerances. Candidate source qualified against five independent R fixtures. No cross-device guarantee or automatic production promotion."
+}

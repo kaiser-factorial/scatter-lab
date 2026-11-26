@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateWorkspace, sanitizeConversation, WORKSPACE_VERSION } from '../workspaces';
+import { importWorkspaceFile, validateWorkspace, sanitizeConversation, WORKSPACE_VERSION } from '../workspaces';
 
 // The old check was `!parsed.version` and nothing else, so a damaged file
 // reached applyWorkspace, rehydrated a dangling table reference to undefined,
@@ -17,6 +17,17 @@ const good = () => ({
 describe('validateWorkspace (finding C11)', () => {
   it('accepts a workspace this build wrote', () => {
     expect(() => validateWorkspace(good())).not.toThrow();
+  });
+
+  it('imports historical test results without adding a design or recalculating them', async () => {
+    const result = {
+      test: 't', statLabel: 't', statistic: 2.25, df: 12, p: 0.044,
+      groups: [{ group: 'A', n: 7 }, { group: 'B', n: 7 }],
+      effect: { label: "Cohen's d", value: 1.2 }, caveats: [],
+    };
+    const saved = { version: 1, analysisViews: [{ kind: 'analysis', id: 1, label: 'Saved comparison', test: result }] };
+    const file = new File([JSON.stringify(saved)], 'legacy.scatterlab.json');
+    expect((await importWorkspaceFile(file)).payload).toStrictEqual(saved);
   });
 
   it('accepts the minimum: a version and nothing else', () => {
@@ -80,6 +91,12 @@ describe('validateWorkspace (finding C11)', () => {
 // The conversation section is auxiliary: a workspace whose data is intact must
 // never be refused because its chat is damaged. So sanitize, don't throw.
 describe('sanitizeConversation', () => {
+  it('preserves the transcript locally and discards prior context that could contain raw rows', () => {
+    const entries = [{ kind: 'assistant', text: 'Earlier conversation' }];
+    const history = [{ role: 'assistant', tool_calls: [{ function: { name: 'sample_rows' } }] }, { role: 'tool', content: 'row sample' }];
+    expect(sanitizeConversation({ entries, history })).toEqual({ entries, history: [] });
+    expect(sanitizeConversation({ entries, history: [{ role: 'user' }] }, true)).toEqual({ entries, history: [] });
+  });
   const entry = (kind: string, text = 'hi') => ({ kind, text });
 
   it('passes a well-formed conversation through', () => {

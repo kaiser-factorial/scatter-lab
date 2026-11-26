@@ -1,0 +1,147 @@
+{
+  "recordedAt": "2026-11-01T05:57:00.513Z",
+  "status": "passed",
+  "provenance": {
+    "independentReferencesPassed": true,
+    "samePipeline": true,
+    "sameScalaSource": true,
+    "sameNativeBytecode": true,
+    "sameProtocol": true,
+    "sameNativeOptions": true,
+    "sameThreadRequest": true
+  },
+  "comparisons": [
+    {
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+      "sameMembership": true,
+      "errors": {
+        "rawStatistic": 0,
+        "trace": 0,
+        "traceSquared": 0,
+        "scalingFactor": 0,
+        "shift": 0,
+        "statistic": 0,
+        "pValue": 0
+      },
+      "rotations": {
+        "oblimin": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 1.0581813203458523e-16,
+            "structureSE": 9.540979117872439e-17,
+            "phiSE": 2.0816681711721685e-17,
+            "communalitySE": 3.469446951953614e-18,
+            "uniquenessSE": 3.469446951953614e-18
+          },
+          "scores": {
+            "maxAbsolute": 0,
+            "maxStandardized": 0,
+            "sameCompleteMask": true,
+            "completeRows": 6000,
+            "passed": true
+          },
+          "passed": true
+        },
+        "promax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 1.0755285551056204e-16,
+            "structureSE": 8.153200337090993e-17,
+            "phiSE": 2.6020852139652106e-17,
+            "communalitySE": 3.469446951953614e-18,
+            "uniquenessSE": 3.469446951953614e-18
+          },
+          "passed": true
+        },
+        "varimax": {
+          "mapping": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "signs": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "errors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0,
+            "reproduced": 0,
+            "patternSE": 1.0928757898653885e-16,
+            "structureSE": 1.0928757898653885e-16,
+            "phiSE": 0,
+            "communalitySE": 3.469446951953614e-18,
+            "uniquenessSE": 3.469446951953614e-18
+          },
+          "passed": true
+        }
+      },
+      "passed": true,
+      "scope": "Robust test, sign/permutation-aligned rotations, reproduced correlations, communalities, all reported SEs, complete-response scores and masks. The surrounding pipeline remains TypeScript."
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/scala-holdout-resident.json",
+      "sha256": "671241111498e1a638caca985cf7feea1677f94980560aac8871c9d7da4ed6b8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+      "sha256": "2c221546793ea87a31e90a1644d3de190d855c1c75655c588a440b757106bfb8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-blocked-final-qualified-v2.json",
+      "sha256": "c9611048003387c04f20db47d78ad5e03e1b78fec120f6ee0aa8031535f98d80"
+    }
+  ],
+  "scope": "Exact saved inputs; unchanged full-output tolerances. Candidate source qualified against five independent R fixtures. No cross-device guarantee or automatic production promotion."
+}

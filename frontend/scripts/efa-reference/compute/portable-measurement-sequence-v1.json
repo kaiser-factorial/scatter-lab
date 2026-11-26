@@ -1,0 +1,81 @@
+{
+  "startedAt": "2026-11-01T03:33:20.658Z",
+  "status": "measurements-complete",
+  "stages": [
+    {
+      "name": "Observe immutable no-flags GPU full fit",
+      "status": "completed",
+      "startedAt": "2026-11-01T03:33:20.665Z",
+      "endedAt": "2026-11-01T04:10:22.707Z"
+    },
+    {
+      "name": "Full no-flags numerical comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-candidate.mjs",
+        "scripts/efa-reference/compute/scala-large-resident.json",
+        "scripts/efa-reference/compute/browser-large-gpu-portable-v1.json",
+        "scripts/efa-reference/compute/browser-portable-qualified-v1.json",
+        "scripts/efa-reference/compute/portable-full-comparison-v1.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:10:22.710Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:10:23.511Z"
+    },
+    {
+      "name": "Pair-major native blocks: 1 requested threads",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-pair-major-1-v1",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-pair-major-1-v1.json",
+        "--source=scripts/efa-reference/compute/TraceServerTiled.scala",
+        "--class=TraceServerTiled",
+        "--threads=1",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:10:23.512Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:10:38.517Z"
+    },
+    {
+      "name": "Pair-major native blocks: 4 requested threads",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-pair-major-4-v1",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-pair-major-4-v1.json",
+        "--source=scripts/efa-reference/compute/TraceServerTiled.scala",
+        "--class=TraceServerTiled",
+        "--threads=4",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:10:38.518Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:10:56.677Z"
+    },
+    {
+      "name": "Targeted TypeScript linear-algebra comparison",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/linalg-optimization-v1",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "--expose-gc",
+        "scripts/efa-reference/compute/benchmark-linalg.mjs",
+        "scripts/efa-reference/compute/linalg-optimization-v1.json"
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-01T04:10:56.680Z",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T04:11:25.175Z"
+    }
+  ],
+  "originalJavaScriptFullSizeBaseline": "skipped-by-user",
+  "completedAt": "2026-11-01T04:11:25.177Z"
+}

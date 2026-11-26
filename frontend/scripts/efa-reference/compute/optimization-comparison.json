@@ -1,0 +1,840 @@
+{
+  "recordedAt": "2026-11-01T02:28:31.144Z",
+  "status": "measured",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "memoryBytes": 8589934592
+  },
+  "inputSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+  "limitations": [
+    "These are resident case-block workloads, not optimized full-size fits.",
+    "Native measurements execute the ten ranges in order, repeating the sequence five times; GPU measurements repeat each range five times before moving to the next. Cache/ordering differences prevent treating their aggregate times as an end-to-end speed ratio.",
+    "Native thread counts are environment requests; actual BLAS thread counts were not observed.",
+    "Strict-math GPU measurements require an explicitly enabled nonstandard developer feature.",
+    "Phase medians need not sum to the median total."
+  ],
+  "nativeBaseline": {
+    "filename": "native-resident-reference.json",
+    "firstIterationMs": 4372.146291000001,
+    "subsequentMedianMs": 2903.653271,
+    "requestedBlasThreads": 1
+  },
+  "nativeVariants": [
+    {
+      "filename": "native-reuse-direct-1.json",
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "metadata": {
+        "ready": true,
+        "backend": "dev.ludovic.netlib.blas.JNIBLAS",
+        "java": "21.0.11",
+        "nativeLibPath": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "replyHeaderDoubles": 3,
+        "reuseBuffers": true,
+        "rowCodeCache": false,
+        "cancellationProbe": true
+      },
+      "sourceSha256": "37796b445cfb5c788b47f0c00e56714a4ce5ec50de686b40328a098c53f01f24",
+      "requestedBlasThreads": 1,
+      "rowCodeCache": false,
+      "firstIterationMs": 4838.645415999999,
+      "subsequentMedianMs": 2774.6777914999993,
+      "subsequentRangeMs": [
+        2762.423417000002,
+        3396.7055
+      ],
+      "ratioToBaselineWarmMedian": 0.9555816526759124,
+      "materializeSubsequentMedianMs": 2398.5866255,
+      "blasSubsequentMedianMs": 379.618833,
+      "sourceInitMs": 1768.3364999999994,
+      "compileMs": 2319.1194170000003,
+      "startupMs": 1568.1703749999997,
+      "maxScaledError": 2.0868003075570515e-14,
+      "memory": {
+        "recordedAt": "2026-11-01T02:15:10.296Z",
+        "rootPid": 73721,
+        "rssBytes": 0,
+        "peakRssBytes": 654999552,
+        "samples": 28,
+        "samplingErrors": 0,
+        "elapsedMs": 27223,
+        "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+        "exitCode": 0,
+        "signal": null
+      },
+      "cancellation": {
+        "acknowledgedMs": 222.69912499999919,
+        "passed": true,
+        "requestedSignal": "SIGTERM",
+        "terminal": {
+          "code": 143,
+          "signal": null
+        },
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "scope": "Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test."
+      }
+    },
+    {
+      "filename": "native-reuse-direct-2.json",
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "metadata": {
+        "ready": true,
+        "backend": "dev.ludovic.netlib.blas.JNIBLAS",
+        "java": "21.0.11",
+        "nativeLibPath": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "replyHeaderDoubles": 3,
+        "reuseBuffers": true,
+        "rowCodeCache": false,
+        "cancellationProbe": true
+      },
+      "sourceSha256": "37796b445cfb5c788b47f0c00e56714a4ce5ec50de686b40328a098c53f01f24",
+      "requestedBlasThreads": 2,
+      "rowCodeCache": false,
+      "firstIterationMs": 5958.1870420000005,
+      "subsequentMedianMs": 2801.9805420000002,
+      "subsequentRangeMs": [
+        2633.5441250000003,
+        3054.8890840000004
+      ],
+      "ratioToBaselineWarmMedian": 0.9649845489420352,
+      "materializeSubsequentMedianMs": 2452.0526045,
+      "blasSubsequentMedianMs": 319.3478555,
+      "sourceInitMs": 1595.4997910000002,
+      "compileMs": 2047.2398750000002,
+      "startupMs": 448.33116599999994,
+      "maxScaledError": 2.0868003075570515e-14,
+      "memory": {
+        "recordedAt": "2026-11-01T02:15:36.648Z",
+        "rootPid": 74148,
+        "rssBytes": 0,
+        "peakRssBytes": 757612544,
+        "samples": 27,
+        "samplingErrors": 0,
+        "elapsedMs": 26120,
+        "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+        "exitCode": 0,
+        "signal": null
+      },
+      "cancellation": {
+        "acknowledgedMs": 184.26820899999802,
+        "passed": true,
+        "requestedSignal": "SIGTERM",
+        "terminal": {
+          "code": 143,
+          "signal": null
+        },
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "scope": "Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test."
+      }
+    },
+    {
+      "filename": "native-reuse-direct-4.json",
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "metadata": {
+        "ready": true,
+        "backend": "dev.ludovic.netlib.blas.JNIBLAS",
+        "java": "21.0.11",
+        "nativeLibPath": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "replyHeaderDoubles": 3,
+        "reuseBuffers": true,
+        "rowCodeCache": false,
+        "cancellationProbe": true
+      },
+      "sourceSha256": "37796b445cfb5c788b47f0c00e56714a4ce5ec50de686b40328a098c53f01f24",
+      "requestedBlasThreads": 4,
+      "rowCodeCache": false,
+      "firstIterationMs": 4023.4786250000006,
+      "subsequentMedianMs": 2609.128645499999,
+      "subsequentRangeMs": [
+        2346.0486250000013,
+        3093.0456669999985
+      ],
+      "ratioToBaselineWarmMedian": 0.8985675636820891,
+      "materializeSubsequentMedianMs": 2261.9798535,
+      "blasSubsequentMedianMs": 322.4926885,
+      "sourceInitMs": 1574.4015829999998,
+      "compileMs": 2284.658334,
+      "startupMs": 575.3167080000003,
+      "maxScaledError": 2.0868003075570515e-14,
+      "memory": {
+        "recordedAt": "2026-11-01T02:16:01.258Z",
+        "rootPid": 74585,
+        "rssBytes": 0,
+        "peakRssBytes": 715014144,
+        "samples": 25,
+        "samplingErrors": 0,
+        "elapsedMs": 24438,
+        "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+        "exitCode": 0,
+        "signal": null
+      },
+      "cancellation": {
+        "acknowledgedMs": 336.0317920000016,
+        "passed": true,
+        "requestedSignal": "SIGTERM",
+        "terminal": {
+          "code": 143,
+          "signal": null
+        },
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "scope": "Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test."
+      }
+    },
+    {
+      "filename": "native-reuse-row-cache-1.json",
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "metadata": {
+        "ready": true,
+        "backend": "dev.ludovic.netlib.blas.JNIBLAS",
+        "java": "21.0.11",
+        "nativeLibPath": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "replyHeaderDoubles": 3,
+        "reuseBuffers": true,
+        "rowCodeCache": true,
+        "cancellationProbe": true
+      },
+      "sourceSha256": "37796b445cfb5c788b47f0c00e56714a4ce5ec50de686b40328a098c53f01f24",
+      "requestedBlasThreads": 1,
+      "rowCodeCache": true,
+      "firstIterationMs": 4851.401917000001,
+      "subsequentMedianMs": 3360.4726249999985,
+      "subsequentRangeMs": [
+        2497.3252909999974,
+        3925.493875
+      ],
+      "ratioToBaselineWarmMedian": 1.157325724308217,
+      "materializeSubsequentMedianMs": 2722.5812915,
+      "blasSubsequentMedianMs": 477.06075100000004,
+      "sourceInitMs": 1768.781833,
+      "compileMs": 2733.05775,
+      "startupMs": 662.554959,
+      "maxScaledError": 2.0868003075570515e-14,
+      "memory": {
+        "recordedAt": "2026-11-01T02:16:29.572Z",
+        "rootPid": 74965,
+        "rssBytes": 0,
+        "peakRssBytes": 635387904,
+        "samples": 28,
+        "samplingErrors": 0,
+        "elapsedMs": 28072,
+        "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+        "exitCode": 0,
+        "signal": null
+      },
+      "cancellation": {
+        "acknowledgedMs": 641.9223330000023,
+        "passed": true,
+        "requestedSignal": "SIGTERM",
+        "terminal": {
+          "code": 143,
+          "signal": null
+        },
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "scope": "Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test."
+      }
+    },
+    {
+      "filename": "native-reuse-row-cache-2.json",
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "metadata": {
+        "ready": true,
+        "backend": "dev.ludovic.netlib.blas.JNIBLAS",
+        "java": "21.0.11",
+        "nativeLibPath": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "replyHeaderDoubles": 3,
+        "reuseBuffers": true,
+        "rowCodeCache": true,
+        "cancellationProbe": true
+      },
+      "sourceSha256": "37796b445cfb5c788b47f0c00e56714a4ce5ec50de686b40328a098c53f01f24",
+      "requestedBlasThreads": 2,
+      "rowCodeCache": true,
+      "firstIterationMs": 4523.435124999999,
+      "subsequentMedianMs": 2609.694291499998,
+      "subsequentRangeMs": [
+        2401.3544170000023,
+        2701.161582999999
+      ],
+      "ratioToBaselineWarmMedian": 0.8987623686216625,
+      "materializeSubsequentMedianMs": 2290.0736035,
+      "blasSubsequentMedianMs": 301.864938,
+      "sourceInitMs": 2228.2619589999995,
+      "compileMs": 2234.432,
+      "startupMs": 490.1807910000007,
+      "maxScaledError": 2.0868003075570515e-14,
+      "memory": {
+        "recordedAt": "2026-11-01T02:16:54.543Z",
+        "rootPid": 75394,
+        "rssBytes": 0,
+        "peakRssBytes": 635502592,
+        "samples": 25,
+        "samplingErrors": 0,
+        "elapsedMs": 24756,
+        "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+        "exitCode": 0,
+        "signal": null
+      },
+      "cancellation": {
+        "acknowledgedMs": 330.5836249999993,
+        "passed": true,
+        "requestedSignal": "SIGTERM",
+        "terminal": {
+          "code": 143,
+          "signal": null
+        },
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "scope": "Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test."
+      }
+    },
+    {
+      "filename": "native-reuse-row-cache-4.json",
+      "hardware": {
+        "cpu": "Apple M1",
+        "architecture": "arm64",
+        "memoryBytes": 8589934592
+      },
+      "metadata": {
+        "ready": true,
+        "backend": "dev.ludovic.netlib.blas.JNIBLAS",
+        "java": "21.0.11",
+        "nativeLibPath": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "replyHeaderDoubles": 3,
+        "reuseBuffers": true,
+        "rowCodeCache": true,
+        "cancellationProbe": true
+      },
+      "sourceSha256": "37796b445cfb5c788b47f0c00e56714a4ce5ec50de686b40328a098c53f01f24",
+      "requestedBlasThreads": 4,
+      "rowCodeCache": true,
+      "firstIterationMs": 4264.860917000001,
+      "subsequentMedianMs": 2431.1209584999997,
+      "subsequentRangeMs": [
+        2274.3460840000007,
+        2981.7384170000005
+      ],
+      "ratioToBaselineWarmMedian": 0.837262831199793,
+      "materializeSubsequentMedianMs": 2107.3152915,
+      "blasSubsequentMedianMs": 297.2090415,
+      "sourceInitMs": 1877.2829579999998,
+      "compileMs": 2112.815334,
+      "startupMs": 357.0125420000004,
+      "maxScaledError": 2.0868003075570515e-14,
+      "memory": {
+        "recordedAt": "2026-11-01T02:17:17.733Z",
+        "rootPid": 75765,
+        "rssBytes": 0,
+        "peakRssBytes": 682786816,
+        "samples": 23,
+        "samplingErrors": 0,
+        "elapsedMs": 23019,
+        "method": "One-second summed process-tree RSS samples; shared pages may be counted more than once",
+        "exitCode": 0,
+        "signal": null
+      },
+      "cancellation": {
+        "acknowledgedMs": 177.59666700000162,
+        "passed": true,
+        "requestedSignal": "SIGTERM",
+        "terminal": {
+          "code": 143,
+          "signal": null
+        },
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "scope": "Actual owned JVM exit after acknowledging a repeated 128-row resident kernel workload. Excludes compilation, startup and input preparation; not an application companion UI cancellation test."
+      }
+    }
+  ],
+  "nativeSelection": {
+    "criterion": "Lowest subsequent median on ten representative case blocks, after all six configurations passed Float64 parity. This is a kernel selection, not a full-fit speed guarantee.",
+    "candidates": [
+      {
+        "filename": "native-reuse-row-cache-4.json",
+        "threads": 4,
+        "rowCache": true,
+        "subsequentMedianMs": 2431.1209584999997
+      },
+      {
+        "filename": "native-reuse-direct-4.json",
+        "threads": 4,
+        "rowCache": false,
+        "subsequentMedianMs": 2609.128645499999
+      },
+      {
+        "filename": "native-reuse-row-cache-2.json",
+        "threads": 2,
+        "rowCache": true,
+        "subsequentMedianMs": 2609.694291499998
+      },
+      {
+        "filename": "native-reuse-direct-1.json",
+        "threads": 1,
+        "rowCache": false,
+        "subsequentMedianMs": 2774.6777914999993
+      },
+      {
+        "filename": "native-reuse-direct-2.json",
+        "threads": 2,
+        "rowCache": false,
+        "subsequentMedianMs": 2801.9805420000002
+      },
+      {
+        "filename": "native-reuse-row-cache-1.json",
+        "threads": 1,
+        "rowCache": true,
+        "subsequentMedianMs": 3360.4726249999985
+      }
+    ],
+    "selected": {
+      "filename": "native-reuse-row-cache-4.json",
+      "threads": 4,
+      "rowCache": true,
+      "subsequentMedianMs": 2431.1209584999997
+    }
+  },
+  "gpuResident": {
+    "developerOnly": true,
+    "cases": [
+      {
+        "fixture": "resident-range-0",
+        "range": [
+          0,
+          0,
+          128,
+          128
+        ],
+        "firstIterationMs": 1581.6999999284744,
+        "subsequentMedianMs": 84.05000001192093,
+        "measurements": {
+          "packMs": 415.1999999284744,
+          "uploadSubmitMs": 212.70000004768372,
+          "dispatchReadbackMs": 1289.799999833107,
+          "readMapWaitMs": 1272.4999998807907,
+          "hostReductionMs": 12.400000095367432,
+          "gpuMs": 386.15153100000003,
+          "reductionGpuMs": 15.088308000000001,
+          "calls": 5,
+          "uploadedBytes": 445346240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 1
+        },
+        "errors": {
+          "maxAbs": 3.2862601528904634e-14,
+          "maxScaled": 1.5033112535104255e-14,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-1",
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "firstIterationMs": 83,
+        "subsequentMedianMs": 79.19999998807907,
+        "measurements": {
+          "packMs": 8.699999928474426,
+          "uploadSubmitMs": 0.20000004768371582,
+          "dispatchReadbackMs": 393.10000002384186,
+          "readMapWaitMs": 391.8000000715256,
+          "hostReductionMs": 0.6999999284744263,
+          "gpuMs": 386.11473400000006,
+          "reductionGpuMs": 14.487613,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 3.1502578323738817e-15,
+          "maxScaled": 3.1502578323738817e-15,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-2",
+        "range": [
+          128,
+          128,
+          128,
+          128
+        ],
+        "firstIterationMs": 79.20000004768372,
+        "subsequentMedianMs": 86.55000001192093,
+        "measurements": {
+          "packMs": 20.600000143051147,
+          "uploadSubmitMs": 1.100000023841858,
+          "dispatchReadbackMs": 402.799999833107,
+          "readMapWaitMs": 397.19999969005585,
+          "hostReductionMs": 2.400000214576721,
+          "gpuMs": 388.37774,
+          "reductionGpuMs": 19.055876000000005,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 3.019806626980426e-14,
+          "maxScaled": 1.3939503073954764e-14,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-3",
+        "range": [
+          128,
+          256,
+          128,
+          128
+        ],
+        "firstIterationMs": 101.40000009536743,
+        "subsequentMedianMs": 95.05000001192093,
+        "measurements": {
+          "packMs": 28.5,
+          "uploadSubmitMs": 1.9000000953674316,
+          "dispatchReadbackMs": 454.60000002384186,
+          "readMapWaitMs": 437.40000009536743,
+          "hostReductionMs": 1.3999998569488525,
+          "gpuMs": 427.67014200000017,
+          "reductionGpuMs": 19.482787000000002,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 3.219646771412954e-15,
+          "maxScaled": 3.219646771412954e-15,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-4",
+        "range": [
+          128,
+          384,
+          128,
+          128
+        ],
+        "firstIterationMs": 90.5,
+        "subsequentMedianMs": 85.30000001192093,
+        "measurements": {
+          "packMs": 22.00000011920929,
+          "uploadSubmitMs": 0.7000000476837158,
+          "dispatchReadbackMs": 410.5,
+          "readMapWaitMs": 405.89999985694885,
+          "hostReductionMs": 1.6000001430511475,
+          "gpuMs": 397.194064,
+          "reductionGpuMs": 15.466722999999988,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 2.831068712794149e-15,
+          "maxScaled": 2.831068712794149e-15,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-5",
+        "range": [
+          256,
+          0,
+          128,
+          128
+        ],
+        "firstIterationMs": 81.69999992847443,
+        "subsequentMedianMs": 81.10000002384186,
+        "measurements": {
+          "packMs": 8.800000071525574,
+          "uploadSubmitMs": 0.39999985694885254,
+          "dispatchReadbackMs": 397.8000000715256,
+          "readMapWaitMs": 395.90000009536743,
+          "hostReductionMs": 0.8000000715255737,
+          "gpuMs": 389.4563050000006,
+          "reductionGpuMs": 13.702165000000008,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 2.9559688030644793e-15,
+          "maxScaled": 2.9559688030644793e-15,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-6",
+        "range": [
+          19969,
+          19872,
+          31,
+          128
+        ],
+        "firstIterationMs": 24.200000047683716,
+        "subsequentMedianMs": 22.849999964237213,
+        "measurements": {
+          "packMs": 9.899999976158142,
+          "uploadSubmitMs": 1.1000001430511475,
+          "dispatchReadbackMs": 104.299999833107,
+          "readMapWaitMs": 102.79999995231628,
+          "hostReductionMs": 0.30000007152557373,
+          "gpuMs": 95.94515900000033,
+          "reductionGpuMs": 3.5830289999999962,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 317440,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 6.17284001691587e-14,
+          "maxScaled": 2.9461455834216796e-14,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-7",
+        "range": [
+          19969,
+          19969,
+          31,
+          31
+        ],
+        "firstIterationMs": 9.5,
+        "subsequentMedianMs": 8.550000011920929,
+        "measurements": {
+          "packMs": 11,
+          "uploadSubmitMs": 0.5000001192092896,
+          "dispatchReadbackMs": 32.199999928474426,
+          "readMapWaitMs": 29.49999988079071,
+          "hostReductionMs": 0.2999999523162842,
+          "gpuMs": 24.625416000000314,
+          "reductionGpuMs": 1.0121520000000004,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 76880,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 2.5757174171303632e-14,
+          "maxScaled": 1.1922560364312834e-14,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-8",
+        "range": [
+          128,
+          0,
+          128,
+          128
+        ],
+        "firstIterationMs": 84.60000002384186,
+        "subsequentMedianMs": 79.89999997615814,
+        "measurements": {
+          "packMs": 4.299999833106995,
+          "uploadSubmitMs": 0.3999999761581421,
+          "dispatchReadbackMs": 401.0000001192093,
+          "readMapWaitMs": 399.5,
+          "hostReductionMs": 0.6000001430511475,
+          "gpuMs": 393.8073639999998,
+          "reductionGpuMs": 15.537678999999997,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 3.1502578323738817e-15,
+          "maxScaled": 3.1502578323738817e-15,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      },
+      {
+        "fixture": "resident-range-9",
+        "range": [
+          0,
+          128,
+          128,
+          128
+        ],
+        "firstIterationMs": 79,
+        "subsequentMedianMs": 79.45000004768372,
+        "measurements": {
+          "packMs": 4.299999952316284,
+          "uploadSubmitMs": 0.6000000238418579,
+          "dispatchReadbackMs": 392.5000001192093,
+          "readMapWaitMs": 390.799999833107,
+          "hostReductionMs": 0.3999999761581421,
+          "gpuMs": 385.9604899999995,
+          "reductionGpuMs": 13.597920000000002,
+          "calls": 5,
+          "uploadedBytes": 240,
+          "readbackBytes": 1310720,
+          "sourceInitializations": 0
+        },
+        "errors": {
+          "maxAbs": 3.1502578323738817e-15,
+          "maxScaled": 3.1502578323738817e-15,
+          "failures": 0,
+          "tolerance": 1e-10,
+          "passed": true
+        }
+      }
+    ],
+    "memory": {
+      "peakBrowserProcessRssBytes": 1162838016,
+      "method": "One-second RSS samples summed over isolated Chrome processes; shared pages may be counted more than once",
+      "samples": 10,
+      "samplingErrors": 0
+    }
+  },
+  "precision": [
+    {
+      "filename": "gpu-precision-default.json",
+      "backend": "gpu-split",
+      "developerOnly": false,
+      "cases": 17,
+      "passedAtTolerance1eMinus10": 0,
+      "passedAtTolerance1eMinus5": 17,
+      "maximumScaledError": 0.000003993678321934091
+    },
+    {
+      "filename": "gpu-precision-default.json",
+      "backend": "gpu-compensated-split",
+      "developerOnly": false,
+      "cases": 17,
+      "passedAtTolerance1eMinus10": 0,
+      "passedAtTolerance1eMinus5": 17,
+      "maximumScaledError": 0.000003993678321934091
+    },
+    {
+      "filename": "gpu-precision-default.json",
+      "backend": "gpu-compensated-reduced",
+      "developerOnly": false,
+      "cases": 17,
+      "passedAtTolerance1eMinus10": 0,
+      "passedAtTolerance1eMinus5": 17,
+      "maximumScaledError": 0.000004571143712495118
+    },
+    {
+      "filename": "gpu-precision-strict.json",
+      "backend": "gpu-split",
+      "developerOnly": true,
+      "cases": 17,
+      "passedAtTolerance1eMinus10": 0,
+      "passedAtTolerance1eMinus5": 17,
+      "maximumScaledError": 0.000003993678439173642
+    },
+    {
+      "filename": "gpu-precision-strict.json",
+      "backend": "gpu-compensated-split",
+      "developerOnly": true,
+      "cases": 17,
+      "passedAtTolerance1eMinus10": 17,
+      "passedAtTolerance1eMinus5": 17,
+      "maximumScaledError": 1.8655146871715544e-12
+    },
+    {
+      "filename": "gpu-precision-strict.json",
+      "backend": "gpu-compensated-reduced",
+      "developerOnly": true,
+      "cases": 17,
+      "passedAtTolerance1eMinus10": 17,
+      "passedAtTolerance1eMinus5": 17,
+      "maximumScaledError": 1.8726201145291554e-12
+    }
+  ],
+  "sourceReports": {
+    "native-resident-reference.json": "9e032dfd7a0edbf15892e205157dbab4f8b4f1980919c3babcdbed29e40d7ff6",
+    "native-reuse-direct-1.json": "be328a010adc3818c18e86487bf89685b9e2b2aa792dc9eaedd88dd43b4b92ce",
+    "native-reuse-direct-1.memory.json": "b56a671a013891f874275cd89fb8790c5963e9673d0e7edb04b8773cd292c360",
+    "native-reuse-direct-2.json": "426562b579ad39568ac52939e6d1b5258f5fc500e1b66314c69e631efcfa1a76",
+    "native-reuse-direct-2.memory.json": "a3a2c8ee3e3658df8e3bdeafbcb5bb4fb2d2e4469888d0f366089390d4d5fc51",
+    "native-reuse-direct-4.json": "f1c978233490239c6a61458c02edc938d67e451f36be56239e2de8ceecd54740",
+    "native-reuse-direct-4.memory.json": "ee429f98f1e16d904ac8c24240d35182955fc3b59086ac12feae0bedbb183000",
+    "native-reuse-row-cache-1.json": "52facae5879e426f5aa03a318bfcc8a996a6f19e9bed4ad9ab6f3272892db935",
+    "native-reuse-row-cache-1.memory.json": "2515897f011e0630590fc509047b451814626def779fd7f36a6e185fc6bcef92",
+    "native-reuse-row-cache-2.json": "e13ef89fefb121d660c9f1ed4ac284fb67360b26dc4e4689538241dab5389d0c",
+    "native-reuse-row-cache-2.memory.json": "e938f7e7e85f6232123e8a719c35a4908d3d6156cbc7d6edca82cd11ad905c99",
+    "native-reuse-row-cache-4.json": "ac7f22d7d83c2d91ce95b7f9142ce7d19ea2f0ab11e2a6115c9ff31db95d064d",
+    "native-reuse-row-cache-4.memory.json": "887b6e1d950732138890007e59ebaff58f6a8d6540e0842858189e174caf1bc5",
+    "gpu-resident-strict-reduced.json": "66d512fa124e6ede3b1ecbd00396cc946c21bd4a2a751caa49929bb8a0496a10",
+    "gpu-precision-default.json": "4639eec963d2dbbfef7f1530835101f86f04c77027bfc5ded4da219cefd951ca",
+    "gpu-precision-strict.json": "05698389ee4b2865c102944603a4af27070928b4a44aea1e402f60ac4edad6f1",
+    "remaining-suite.json": "d6a5101a48e3988691a4a823c0ef775b384bbfdebe8fb68cb6d32687e6fd4ad2"
+  }
+}

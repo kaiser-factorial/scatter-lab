@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "R": "R version 4.5.1 (2025-06-13)",
+  "jsonlite": "2.0.0",
+  "rows": 147,
+  "columns": 9,
+  "sourceRowsExact": true,
+  "missingMaskExact": true,
+  "maximumPredictionDifference": 6.2172489379008766e-15,
+  "observedValuesMaximumSerializationDifference": 0,
+  "qualification": "R computes the same saved-model conditional means. CSV serialization may round numeric text; native operation preserves observed cells exactly. This is replay parity, not a second lavaan fit."
+}

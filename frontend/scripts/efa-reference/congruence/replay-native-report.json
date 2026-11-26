@@ -1,0 +1,24 @@
+{
+  "source": "HolzingerSwineford1939 x1:x9 with saved MAR mask, synthetic wholly missing row12, fixed fitting subset, reverse keys x1/x4",
+  "fittingRows": 147,
+  "resultRows": 147,
+  "observedCells": 1129,
+  "observedChanges": 0,
+  "completedCells": 185,
+  "uninformativeRows": [
+    12
+  ],
+  "reverseOffsets": [
+    9.1666667,
+    null,
+    null,
+    6.3333333,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "operationSha256": "b8793b40e41ae9c10fba231c29f6d6b22b59787622138438462cfe1f03384808",
+  "replayCodeSha256": "4c24f350845f3b23aae5c1fe75822e2d4e75cc3971baba967cba068f006a7010"
+}

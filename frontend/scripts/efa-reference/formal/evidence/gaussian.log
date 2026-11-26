@@ -1,0 +1,73 @@
+Loading file "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/gaussian.saw"
+Warning: [warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:48:19--48:21
+    `-s01 Cryptol::/. det` is now parsed as `-(s01 Cryptol::/. det)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:33--49:34
+    `-l Cryptol::@ 0` is now parsed as `-(l Cryptol::@ 0)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:35--49:36
+    `-(l Cryptol::@ 0) Cryptol::* l` is now parsed as
+    `-(l Cryptol::@ 0 Cryptol::* l)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:37--49:38
+    `-(l Cryptol::@ 0 Cryptol::* l) Cryptol::@ 1` is now parsed as
+    `-(l Cryptol::@ 0 Cryptol::* l Cryptol::@ 1)`
+[warning] at /Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/GaussianContracts.cry:49:39--49:41
+    `-(l Cryptol::@ 0 Cryptol::* l Cryptol::@ 1) Cryptol::/. (d0 Cryptol::* d1 Cryptol::* h)`
+    is now parsed as
+    `-(l Cryptol::@ 0 Cryptol::* l Cryptol::@ 1 Cryptol::/. (d0 Cryptol::* d1 Cryptol::* h))`
+
+
+# Theorems Proved or Assumed
+
+* Theorem:
+~~~~
+  let { _x`1 = TCNum 3;
+        _x`2 = seq (TCNum 2) Rational;
+      }
+   in (_x : seq _x`1 Rational)
+      -> (_x1 : _x`2)
+      -> (_x2 : seq _x`1 _x`2)
+      -> EqTrue (sufficientStatistics _x _x1 _x2)
+~~~~
+
+* Theorem:
+~~~~
+  let { _x`1 = TCNum 3;
+        _x`2 = seq (TCNum 2) Rational;
+      }
+   in (_x : seq _x`1 Rational)
+      -> (_x1 : _x`2)
+      -> (_x2 : seq _x`1 _x`2)
+      -> (_x3 : Rational)
+      -> EqTrue (meanGradient _x _x1 _x2 _x3)
+~~~~
+
+* Theorem:
+~~~~
+  (_x : Rational)
+  -> (_x1 : Rational)
+  -> (_x2 : seq (TCNum 2) Rational)
+  -> EqTrue (determinantLemma _x _x1 _x2)
+~~~~
+
+* Theorem:
+~~~~
+  (_x : Rational)
+  -> (_x1 : Rational)
+  -> (_x2 : seq (TCNum 2) Rational)
+  -> EqTrue (woodburyInverse _x _x1 _x2)
+~~~~
+
+* Theorem:
+~~~~
+  let { _x`1 = seq (TCNum 2) Rational;
+      }
+   in (_x : Rational)
+      -> (_x1 : Rational)
+      -> (_x2 : Rational)
+      -> (_x3 : _x`1)
+      -> (_x4 : _x`1)
+      -> EqTrue (conditionalMean _x _x1 _x2 _x3 _x4)
+~~~~
+
+# Solvers Used
+
+* SBV->Z3

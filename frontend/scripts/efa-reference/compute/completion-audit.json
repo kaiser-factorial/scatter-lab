@@ -1,0 +1,114 @@
+{
+  "recordedAt": "2026-11-01T02:45:20.727579+00:00",
+  "status": "completed-with-candidate-rejection",
+  "objective": "Inspector and instrumentation, WebGPU then Scala prototypes, full numerical/performance comparison and measured optimization experiments",
+  "acceptance": {
+    "architectureMap": "docs/EFA-COMPUTE-COMPARISON.md",
+    "inspector": {
+      "browserChecks": "passed",
+      "visualInspection": "Bauhaus, Terminal, 390px mobile screenshots inspected",
+      "boundedAggregateLogs": true
+    },
+    "fullSize": {
+      "items": 500,
+      "respondents": 20000,
+      "factors": 5,
+      "scope": "All three rotations, rotation-dependent SEs, robust statistic and actual score vectors",
+      "defaultWebGpu": "rejected: unchanged robust-statistic tolerances exceeded",
+      "developerStrictGpuAgainstNative": "passed",
+      "exactArchivedSourceQualification": "passed on five independent R fixtures"
+    },
+    "holdout": {
+      "items": 500,
+      "respondents": 6000,
+      "savedMembershipIdentical": true,
+      "independentRefitsCompared": "passed",
+      "scope": "Synthetic after full-data exploration; not validation or the requested product dataset lock"
+    },
+    "optimizations": "GPU reduction and strict-math precision; six native reuse/cache/thread configurations; retained slower and failed candidates",
+    "unitTests": {
+      "passed": 626,
+      "skipped": 4,
+      "failed": 0
+    },
+    "typescript": "tsc --noEmit --incremental false passed; production build also reran TypeScript",
+    "comparisonIntegrityChecks": 9,
+    "lint": "Regression gate passed: 117 existing errors, 6 existing warnings, no increased per-file/rule/severity findings",
+    "productionBuild": {
+      "status": "passed",
+      "directory": "/tmp/scatter-compute-build-final.t8zec6kn",
+      "excluded": [
+        "node_modules (copied separately)",
+        "public/efa-qualification",
+        ".env*",
+        ".next",
+        "*.tsbuildinfo"
+      ],
+      "startedAt": "2026-11-01T02:43:38.266977+00:00",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T02:43:53.776152+00:00",
+      "log": "production-build-final.log"
+    },
+    "originalJavaScriptFullSizeBaseline": "skipped at user request"
+  },
+  "limits": [
+    "One Apple M1 / 8 GiB host; no cross-system speed or precision qualification.",
+    "Strict GPU experiment requires Chrome developer-only strictMath. Default-browser GPU is not qualified.",
+    "Scala accelerates the local case-block kernel; the surrounding pipeline remains TypeScript. No production native companion or selector.",
+    "Native full-fit active elapsed subtracts a recorded suspension; it is not an uninterrupted timing.",
+    "Full fits are single runs. Kernel repetition order differs across runtimes; no aggregate kernel speed ratio is claimed.",
+    "Browser cancellation measures worker termination call, not retirement of queued GPU work. Native probes measure actual JVM exit.",
+    "Real separate development/holdout datasets and unlock-before-any-use remain pending outside this comparison goal.",
+    "No MICE expansion, distributed scheduler, participant-data fixtures, paid-provider validation, commit, push or PR in this work."
+  ],
+  "finalSourceQualification": {
+    "change": "Local JavaScript shader-factory identifier renamed for lint; no numerical expression changed",
+    "workerSha256": "5242aad1233b6298312ff40da9fa47e3220bbd02dbae94d4a6ab3c71ee63151f",
+    "fiveRFixturesPassed": true,
+    "fullFitRerun": false,
+    "fullFitArchivesPreserved": true
+  },
+  "artifacts": [
+    {
+      "path": "scripts/efa-reference/compute/comparison.json",
+      "sha256": "1689b1d8185c0033b4149dcfce9a9b5d3e6e856db915dfc1ff0f68b3891c07cf"
+    },
+    {
+      "path": "scripts/efa-reference/compute/optimization-comparison.json",
+      "sha256": "3008e27377a6b44cf8704589631c8b677a6ab907c91c045c515e3310336c52e8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/remaining-suite.json",
+      "sha256": "13635736a2beef61c0acd7498e48dcbe769e993e0ff123a7bf80dbeac24a7607"
+    },
+    {
+      "path": "scripts/efa-reference/compute/unit-verification-final.json",
+      "sha256": "7d82db7988e2295fdc0b3860acec978458501e5bd21e79b62571cd3197d1cea9"
+    },
+    {
+      "path": "scripts/efa-reference/compute/lint-regression-final.json",
+      "sha256": "c86b52114a82e8dc653e0d656f42c007cec4d4aab852d3b9ffb8a0d4118b357c"
+    },
+    {
+      "path": "scripts/efa-reference/compute/comparison-checks-verification.json",
+      "sha256": "7426e154b16c80e670946e2f1a093bdbc73924894fbd80c8b86f5cfe6d228553"
+    },
+    {
+      "path": "scripts/efa-reference/compute/production-build-final.json",
+      "sha256": "4b68bcb87fb09afeb85981f011026f3b42bf58907239ce540d66089d213c9c12"
+    },
+    {
+      "path": "scripts/efa-reference/compute/production-build-final.log",
+      "sha256": "4ea7df31563dac6357e893c601d78c67e859e527bd90232a79b3a4fb8c61a0b4"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-lint-clean-qualified.json",
+      "sha256": "cf1b54a6729f3638bc684bf502554856b6d669654cfb21792f136c875b4ae6f5"
+    },
+    {
+      "path": "scripts/efa-reference/compute/environment.json",
+      "sha256": "909d83ace90df9523b46c550c9fd03c3c841587f090eac806ec8375361181a75"
+    }
+  ],
+  "workingTree": "Local uncommitted changes on codex/efa-mice-stability-wls; preexisting disclosures.md untouched"
+}

@@ -1,4 +1,5 @@
 import type { DataPolicy } from './dataPolicy';
+import { MIN_AGGREGATE_COUNT } from './defaults';
 
 // The analysis-plan contract: every statistical test and chart request —
 // whether it comes from the assistant or from the Analyze panel — is ONE typed
@@ -14,12 +15,19 @@ import type { DataPolicy } from './dataPolicy';
 export const TEST_KINDS = ['t', 'mann_whitney', 'kruskal_wallis', 'ks', 'chi_square'] as const;
 export type TestKind = (typeof TEST_KINDS)[number];
 
+// Temporary application release gate. Keep the known kinds for old results and
+// numerical qualification, but do not offer or execute legacy KS inference.
+export const ENABLED_TEST_KINDS = TEST_KINDS.filter(test => test !== 'ks');
+export const STUDY_DESIGNS = ['independent', 'paired', 'clustered', 'unknown'] as const;
+export const KS_DISABLED_REASON = 'KS inference is temporarily unavailable pending validation of its p-value calibration. Descriptive ECDF charts remain available.';
+
 export const MARK_KINDS = ['ecdf', 'histogram', 'box', 'violin', 'qq', 'bar', 'line'] as const;
 export type MarkKind = (typeof MARK_KINDS)[number];
 
 export type TestPlan = {
   kind: 'test';
   test: TestKind;
+  design?: (typeof STUDY_DESIGNS)[number];
   /** Numeric outcome column — for chi_square, the SECOND categorical column. */
   column: string;
   /** Categorical column defining the groups. */
@@ -55,6 +63,7 @@ export type AnalysisPlan = TestPlan | ChartPlan;
 
 export type ValidationFailureCode =
   | 'bad_plan_shape'
+  | 'test_unavailable'
   | 'unknown_column'
   | 'wrong_column_type'
   | 'unknown_group_value'
@@ -134,6 +143,19 @@ export const MAX_BINS = 100;
 /** Per-group minimum for rank/ECDF tests to be computable at all. */
 export const MIN_GROUP_N = 2;
 export const MIN_GROUP_N_KS = 3;
+// Shared by runtime eligibility checks and assistant/help guidance. These are
+// conservative release policies, not general calibration guarantees.
+export const TEST_MIN_USABLE = { t: MIN_GROUP_N, mann_whitney: 8, kruskal_wallis: 5 } as const;
+export const CHI_SQUARE_MIN_EXPECTED = 5;
+export const TEST_RELEASE_REQUIREMENTS = [
+  `Welch's t: exactly two independent groups, at least ${TEST_MIN_USABLE.t} usable numeric observations per group, and positive within-group variance in at least one group; uses the Welch–Satterthwaite t approximation and reports a 95% mean-difference interval.`,
+  `Mann–Whitney U: exactly two independent groups, at least ${TEST_MIN_USABLE.mann_whitney} usable numeric observations per group, and not all observations equal; uses a tie-corrected normal approximation without continuity correction.`,
+  `Kruskal–Wallis: at least two independent groups, at least ${TEST_MIN_USABLE.kruskal_wallis} usable numeric observations per group, and not all observations equal; uses a tie-corrected asymptotic chi-square calculation.`,
+  `Pearson chi-square: two categorical variables with at least two observed levels each, positive row and column margins after excluding incomplete observations, and every expected cell count at least ${CHI_SQUARE_MIN_EXPECTED}; uses asymptotic chi-square without Yates correction. Sparse tables are rejected, not merely flagged.`,
+  `All counts use the actual analysis sample after missing/unusable values are excluded. Reporting additionally requires at least ${MIN_AGGREGATE_COUNT} usable observations per reported group or contingency margin. Nonfinite or degenerate results are rejected.`,
+] as const;
+export const TEST_RELEASE_SUMMARY = `The assistant offers four tests: Welch's t, Mann–Whitney U, Kruskal–Wallis and Pearson chi-square. ${KS_DISABLED_REASON} Paired and clustered inference is unsupported. Use run_test only when the user has confirmed independent observations for this analysis. If the design is unclear, ask the user instead of inferring it from the data or retrying with "independent". Do not substitute another hypothesis when a test is unavailable.`;
+export const TEST_RELEASE_GUIDANCE = `${TEST_RELEASE_SUMMARY} ${TEST_RELEASE_REQUIREMENTS.join(' ')} These are conservative release eligibility limits, not proof that assumptions hold or that inference is calibrated for every accepted dataset. Report the returned p-value method, effect size and interval where available; do not describe these approximations as exact tests.`;
 /**
  * Rejected-plan revisions the assistant may attempt per user turn before it
  * must stop and report the failures to the user instead of retrying.

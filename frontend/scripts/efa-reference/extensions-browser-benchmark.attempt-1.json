@@ -1,0 +1,13 @@
+{
+  "status": "failed",
+  "error": "Error: All five imputation fits must complete: [{\"imputation\":0,\"iteration\":3,\"item\":3,\"error\":\"Conditional regression did not converge after 500 iterations (gradient 1.0124039942022373e-8). No alternative model was substituted.\",\"stage\":\"imputation\"},{\"imputation\":1,\"iteration\":5,\"item\":1,\"error\":\"Conditional regression did not converge after 500 iterations (gradient 1.3390089471752983e-8). No alternative model was substituted.\",\"stage\":\"imputation\"},{\"imputation\":3,\"iteration\":8,\"item\":3,\"error\":\"Conditional regression did not converge after 500 iterations (gradient 1.1338586518293816e-8). No alternative model was substituted.\",\"stage\":\"imputation\"}]",
+  "timingsMs": {
+    "imputation": 848
+  },
+  "pageErrors": [],
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  }
+}

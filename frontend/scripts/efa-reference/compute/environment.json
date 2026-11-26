@@ -1,0 +1,27 @@
+{
+  "recordedAt": "2026-11-01T01:54:05.407Z",
+  "scope": "Local qualification environment; no device identifiers, hostnames, or network addresses recorded",
+  "operatingSystem": {
+    "type": "Darwin",
+    "release": "27.2.0",
+    "kernel": "Darwin Kernel Version 27.2.0: Tue Sep 29 21:45:06 PDT 2026; root:xnu-13432.40.177.0.3~56/RELEASE_ARM64_T8103",
+    "platform": "darwin",
+    "productVersion": "27.2",
+    "buildVersion": "26B5101f"
+  },
+  "hardware": {
+    "architecture": "arm64",
+    "cpuModels": [
+      "Apple M1"
+    ],
+    "logicalProcessors": 8,
+    "memoryBytes": 8589934592
+  },
+  "node": "v26.8.1",
+  "limits": [
+    "Single host; no Windows, Linux, discrete-GPU, or mobile measurements.",
+    "Ordinary background OS activity was not disabled. Benchmarks were scheduled serially.",
+    "The first full GPU baseline ran while the native baseline was suspended with its memory retained; that context differs from the later optimization run.",
+    "Full fits are single runs, not replicated timing experiments."
+  ]
+}

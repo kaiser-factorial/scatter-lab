@@ -1,0 +1,123 @@
+{
+  "recordedAt": "2026-11-06T12:25:05.247666+00:00",
+  "committedPreviousWork": "d9f19ca",
+  "newImplementation": "local working tree; not committed or pushed",
+  "fullSuite": {
+    "command": "npx vitest run --maxWorkers=2",
+    "passedTests": 861,
+    "skippedTests": 4,
+    "passedFiles": 82,
+    "skippedFiles": 2,
+    "durationSeconds": 20.61,
+    "log": "app-full-tests.log",
+    "sourceQualification": "Full suite before the final adapter-ref commit-effect fix and two UI information-label edits; affected UI/controller follow-up tests passed below. Numerical code unchanged."
+  },
+  "followup": {
+    "command": "npx vitest run --maxWorkers=2 src/components/__tests__/efa-panel.test.tsx src/components/__tests__/decomposition-setup.test.tsx src/components/__tests__/home-pca-mice.test.tsx src/lib/__tests__/pca-batch-controller.test.ts",
+    "passedTests": 22,
+    "passedFiles": 4,
+    "durationSeconds": 3.64,
+    "log": "app-followup-ui-tests.log",
+    "lastChange": "After this run, a likelihood-summary string distinguishes imputed input cells from observed cells; final ESLint and production build include that string."
+  },
+  "typescript": {
+    "status": "passed",
+    "standaloneLog": "app-typescript.log",
+    "finalBuildTypecheck": "passed, 7.0 seconds"
+  },
+  "scopedLint": {
+    "status": "passed",
+    "log": "app-scoped-lint.log",
+    "scope": "EFA components and modules, shared setup, PCA numeric/controller/tools and new likelihood/completion/assistant/R-regression tests"
+  },
+  "existingHostLint": [
+    {
+      "file": "src/app/page.tsx",
+      "baselineCommit": "d9f19ca",
+      "baselineErrors": 81,
+      "baselineWarnings": 1,
+      "currentErrors": 81,
+      "currentWarnings": 1,
+      "newIssueSignatures": []
+    },
+    {
+      "file": "src/lib/assistant.ts",
+      "baselineCommit": "d9f19ca",
+      "baselineErrors": 3,
+      "baselineWarnings": 0,
+      "currentErrors": 3,
+      "currentWarnings": 0,
+      "newIssueSignatures": []
+    }
+  ],
+  "build": {
+    "build": "passed",
+    "exitCode": 0,
+    "finishedAt": "2026-11-06T12:24:07.016178+00:00",
+    "elapsedSeconds": 19.63,
+    "command": [
+      "npm",
+      "run",
+      "build",
+      "--",
+      "--webpack"
+    ],
+    "sourceFiles": 274,
+    "totalHashedFiles": 1006,
+    "manifestSha256": "62cb312d1a4af2dbda314d65f163a2410ce148562591b5227bc6b5b3ceb4b7b2",
+    "changedSinceSnapshot": [
+      "scripts/efa-reference/congruence/run-large.mjs"
+    ],
+    "newSinceSnapshot": [
+      "scripts/efa-reference/congruence/attempts/large-benchmark-receipt.raw.json",
+      "scripts/efa-reference/congruence/attempts/large-driver-executed.mjs",
+      "scripts/efa-reference/congruence/finalize-large.mjs"
+    ],
+    "productionDrift": [
+      "scripts/efa-reference/congruence/run-large.mjs",
+      "scripts/efa-reference/congruence/attempts/large-benchmark-receipt.raw.json",
+      "scripts/efa-reference/congruence/attempts/large-driver-executed.mjs",
+      "scripts/efa-reference/congruence/finalize-large.mjs"
+    ],
+    "testDrift": [],
+    "buildMutatedInputs": [],
+    "log": "/private/tmp/pca-ml-final-build-m2417t08/build.log",
+    "fontStrategy": "Actual previously fetched font assets and CSS from local cache; no fabricated font metrics.",
+    "devNextDirectoryUntouchedByBuild": true
+  },
+  "runtimeSourceVerification": {
+    "status": "passed",
+    "changed": [],
+    "new": [],
+    "files": 246,
+    "manifest": "app-runtime-source-manifest.json",
+    "qualification": "All current runtime source/config/public inputs match the isolated successful build. The raw build drift list contains only independently changing reference scripts/artifacts, not application runtime code."
+  },
+  "developmentServer": {
+    "launcher": "dev start frontend --detach --json --yes",
+    "state": "ready",
+    "reused": true,
+    "port": 3000,
+    "httpStatus": 200
+  },
+  "browserVerification": {
+    "status": "unavailable",
+    "tool": "cua.getTab",
+    "error": "native pipe path unavailable: No such file or directory (os error 2)",
+    "qualification": "No new live browser geometry or click-through claim. Happy DOM interaction checks and production build pass."
+  },
+  "formalCurrentSourceGate": {
+    "status": "passed",
+    "nativeTheorems": 9,
+    "freshSolverRun": false,
+    "qualification": "Retained native proof receipt reverified against current bound source/models/logs."
+  },
+  "diffCheck": "passed",
+  "artifactHashes": {
+    "app-full-tests.log": "adddf07ff96b09344bb748a06dd5aeb6b2dc2d6ddd34c8d8e1d2ebd4b9633d06",
+    "app-followup-ui-tests.log": "a80ef7082397284a46e31125e46e2509cd07de2e9c80c77a417f46b5a40b1774",
+    "app-scoped-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "app-typescript.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "app-build.log": "fa21077c691a0767966cf36f6df55047fb7aaf6d83868a3034d5e466cc2e29b7"
+  }
+}

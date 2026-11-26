@@ -1,0 +1,64 @@
+{
+  "recordedAt": "2026-11-06T12:17:26.326Z",
+  "status": "passed",
+  "method": "minres",
+  "runtime": "v26.8.1",
+  "dimensions": {
+    "respondents": 20000,
+    "items": 500,
+    "factors": 5
+  },
+  "dataSeed": 8801,
+  "timingsMs": {
+    "generation": 2858.684375,
+    "preparation": 2665.7028330000003,
+    "correlation": 21150.243542000004,
+    "MINRES extraction and Promax": 12642.229249999997,
+    "oblimin rotation": 95.08191700000316,
+    "varimax rotation": 31.746165999997174
+  },
+  "qualification": "Single isolated Node CPU run; runtime and execution qualification only. Not browser responsiveness, R speed comparison, or full-size cross-implementation accuracy proof.",
+  "stage": "varimax rotation",
+  "peakRssKiB": 275552,
+  "settings": {
+    "extraction": "minres",
+    "correlation": "polychoric",
+    "missing": "complete",
+    "rotation": "promax",
+    "seed": 8801,
+    "likelihood": null
+  },
+  "progress": {
+    "stage": "MINRES · projected gradient 1.257e-9",
+    "completed": 8,
+    "total": 2000
+  },
+  "convergence": {
+    "converged": true,
+    "iterations": 8,
+    "objective": 2.765512415282951,
+    "gradient": 1.256603096867054e-9,
+    "maxIterations": 2000
+  },
+  "rotations": {
+    "promax": {
+      "converged": true,
+      "iterations": 6,
+      "objective": 116.68918326970497,
+      "gradient": 0
+    },
+    "oblimin": {
+      "converged": true,
+      "iterations": 30,
+      "objective": 0.015685376597705074,
+      "gradient": 6.932963718391785e-9,
+      "maxIterations": 4000
+    },
+    "varimax": {
+      "converged": true,
+      "iterations": 10,
+      "objective": -367.6089773512564,
+      "gradient": 0
+    }
+  }
+}

@@ -1,0 +1,339 @@
+{
+  "recordedAt": "2026-11-01T05:59:37.634496+00:00",
+  "status": "qualified-and-regression-passed",
+  "engine": "scatter-efa/5",
+  "qualifiedPipelineSha256": "b700b5ff2e9dc2ed63c7cde2aac4216bdeedd718893e26c21da8a2c2072d6bc4",
+  "currentNumericalBundleMatchesQualification": true,
+  "verifiedArchives": 19,
+  "fits": [
+    {
+      "artifact": "browser-large-portable-optimized-v2.json",
+      "backend": "gpu-portable-reduced",
+      "fixture": "large",
+      "dimensions": {
+        "rows": 20000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+      "fitMs": 2384696.7000000477,
+      "plan": {
+        "space": "cases",
+        "parameters": 2490,
+        "pairs": 124750,
+        "rows": 20000,
+        "blockSize": 128,
+        "estimatedBytes": 1285863124.8,
+        "budgetBytes": 1610612736,
+        "approximateMultiplyAdds": 25602878498000
+      },
+      "timings": {
+        "prepare": 432.7000000476837,
+        "correlations": 20928.199999928474,
+        "uncertainty": 38929.89999997616,
+        "dwls": 1741.2000000476837,
+        "robustInference": 1716148.8999999762,
+        "obliminRotation": 301.2000000476837,
+        "obliminSE": 390378.7999999523,
+        "scores": 334.89999997615814,
+        "promaxRotation": 9.900000095367432,
+        "promaxSE": 51906.699999928474,
+        "varimaxRotation": 26.799999952316284,
+        "varimaxSE": 163537.29999995232
+      }
+    },
+    {
+      "artifact": "scala-large-blocked-optimized-v2.json",
+      "backend": "scala-resident",
+      "fixture": "large",
+      "dimensions": {
+        "rows": 20000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+      "fitMs": 2081656.054167,
+      "plan": {
+        "space": "cases",
+        "parameters": 2490,
+        "pairs": 124750,
+        "rows": 20000,
+        "blockSize": 128,
+        "estimatedBytes": 1285863124.8,
+        "budgetBytes": 1610612736,
+        "approximateMultiplyAdds": 25602878498000
+      },
+      "timings": {
+        "prepare": 444.1865000000007,
+        "correlations": 19412.73625,
+        "uncertainty": 43457.200583,
+        "dwls": 1784.218292000005,
+        "robustInference": 1344220.7046249998,
+        "obliminRotation": 79.0580829998944,
+        "obliminSE": 434447.64704099996,
+        "scores": 459.94900000002235,
+        "promaxRotation": 10.135665999958292,
+        "promaxSE": 55301.89304200001,
+        "varimaxRotation": 56.19133399985731,
+        "varimaxSE": 181951.96308300016
+      }
+    },
+    {
+      "artifact": "browser-large-holdout-portable-optimized-v2.json",
+      "backend": "gpu-portable-reduced",
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+      "fitMs": 848481.5,
+      "plan": {
+        "space": "cases",
+        "parameters": 2490,
+        "pairs": 124750,
+        "rows": 6000,
+        "blockSize": 128,
+        "estimatedBytes": 926007124.8,
+        "budgetBytes": 1610612736,
+        "approximateMultiplyAdds": 2358397098000
+      },
+      "timings": {
+        "prepare": 140.90000009536743,
+        "correlations": 10765.5,
+        "uncertainty": 13069.300000071526,
+        "dwls": 1590.7000000476837,
+        "robustInference": 228295.79999995232,
+        "obliminRotation": 91.39999997615814,
+        "obliminSE": 403277.60000002384,
+        "scores": 137.70000004768372,
+        "promaxRotation": 12.5,
+        "promaxSE": 45210.39999997616,
+        "varimaxRotation": 38.89999997615814,
+        "varimaxSE": 145832.30000007153
+      }
+    },
+    {
+      "artifact": "scala-large-holdout-blocked-optimized-v2.json",
+      "backend": "scala-resident",
+      "fixture": "large-holdout",
+      "dimensions": {
+        "rows": 6000,
+        "items": 500,
+        "factors": 5
+      },
+      "inputSha256": "345115606fb2821a719be31f6f79bf86052f90065079998b5469d484ae20afc9",
+      "fitMs": 882409.889166,
+      "plan": {
+        "space": "cases",
+        "parameters": 2490,
+        "pairs": 124750,
+        "rows": 6000,
+        "blockSize": 128,
+        "estimatedBytes": 926007124.8,
+        "budgetBytes": 1610612736,
+        "approximateMultiplyAdds": 2358397098000
+      },
+      "timings": {
+        "prepare": 142.5151249999999,
+        "correlations": 10725.62325,
+        "uncertainty": 14013.707708,
+        "dwls": 1709.5683329999993,
+        "robustInference": 179390.614833,
+        "obliminRotation": 71.9539999999979,
+        "obliminSE": 432756.663375,
+        "scores": 142.27420799992979,
+        "promaxRotation": 12.432334000011906,
+        "promaxSE": 54824.23537500005,
+        "varimaxRotation": 32.60129199991934,
+        "varimaxSE": 188576.01162500004
+      }
+    }
+  ],
+  "verification": {
+    "units": {
+      "passed": 630,
+      "failed": 0,
+      "skipped": 4,
+      "reportSha256": "f2f2280a6f83ef438a0d51f41bcf4ed8c283860ccc75d2f0acea359db123bb96"
+    },
+    "lint": {
+      "baselineSha256": "97d57c4e89edd3808dd202ca0a681330b7e0065a4aa700e6f934fbd0bf34bf5b",
+      "currentSha256": "2a7a06d5cfcc13fd35febf21e207531aa168797a6376c0a837176eeed9903016",
+      "errors": 117,
+      "warnings": 6,
+      "increased": [],
+      "status": "passed"
+    },
+    "productionBuild": "/tmp/scatter-portable-build-xwKuMn",
+    "browserWorkflows": [
+      "weighted-ui",
+      "inspector-ui"
+    ],
+    "visualInspection": [
+      "efa-weighted-primary.png",
+      "efa-weighted-terminal.png",
+      "compute-mobile.png"
+    ],
+    "diffWhitespaceCheck": "passed"
+  },
+  "scope": {
+    "sharedTypeScript": "Used by application EFA engine",
+    "accelerators": "Qualification harness; production selector and native companion remain separate",
+    "crossDeviceQualification": "Apple M1, 8 GiB, recorded Chrome/Node/JVM environment only",
+    "originalFullJavaScriptBaseline": "skipped-by-user",
+    "holdout": "Synthetic numerical comparison with saved membership and after-full-exploration history; not product dataset lock or independent model validation",
+    "timings": "Single serial final fits; initial precision-only fit overlapped development checks; not universal causal speed estimates",
+    "browserCancellation": "Worker termination call duration, not GPU command retirement",
+    "data": "Synthetic/public fixtures only; no private participant fixtures or paid provider validation calls"
+  },
+  "sources": [
+    {
+      "path": "src/lib/efa/weighted-linalg.ts",
+      "sha256": "87a1e36aad146717eab5d1470e1b4cffbb2fe1c1cd40ff72760798893109ebae"
+    },
+    {
+      "path": "src/lib/efa/weighted-inference.ts",
+      "sha256": "bfcf5be99ca9ea1cc2051b57a573a85b63f8b3c65273a0823eb6658bd75c13db"
+    },
+    {
+      "path": "src/lib/efa/weighted-rotation.ts",
+      "sha256": "a41c52f4df11028e20ead9ec8a4a0ec23e53754bc733e7fb4f7cf0c465b4115d"
+    },
+    {
+      "path": "src/lib/efa/types.ts",
+      "sha256": "4cf047bb0bec6c6ad581978fdd5eff79600d112de7e20d29b27a9d45c2336669"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-shader.mjs",
+      "sha256": "433ee723087d258cf820d7cb7cabe47728f210930d65b14eebb71a83fab9b954"
+    },
+    {
+      "path": "scripts/efa-reference/compute/webgpu-kernel.mjs",
+      "sha256": "1a1d9c089948e3c89f864fb3f73b82214156b4c5786a2e6b035d5661bb488037"
+    },
+    {
+      "path": "scripts/efa-reference/compute/pipeline.worker.mjs",
+      "sha256": "813e652c876624c05c36de046c8b11565992bd8c3065ea8d24371e8d53726971"
+    },
+    {
+      "path": "scripts/efa-reference/compute/TraceServerTiled.scala",
+      "sha256": "0fa019e2011d32188b9e0f01d9523a09266de3c4d26235c3c8437d5448232e0b"
+    },
+    {
+      "path": "scripts/efa-reference/compute/TraceServerBlocked.scala",
+      "sha256": "de254b681011a64a2c5d93b001749c9091df118c9b406ae4dc2148fcdfa4e854"
+    },
+    {
+      "path": "scripts/efa-reference/compute/fit-comparison.mjs",
+      "sha256": "daea52256d585fc2dcea736563af53a54dd63645886f4604f4135d6aa19ddd6e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/compare-candidate.mjs",
+      "sha256": "dc0bba5b1758f5130967cbdafd2dad7b906040c5d1538a598da9efa29cb7f745"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "scripts/efa-reference/compute/gpu-portable-kernels-v1.json",
+      "sha256": "7091c91afb8aefbb392eaab49a88c0f3d425e271ec888a3ae4f58b01530c8f01"
+    },
+    {
+      "path": "scripts/efa-reference/compute/gpu-portable-resident-v1.json",
+      "sha256": "71217beb57bd80d12bbdeeef1dd943a6a909ff7a5e463f6c2a6ad0b2395122eb"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-full-comparison-v1.json",
+      "sha256": "73bb76a69327a616c1ec963d4488ca4c5ce0f665046d13bca36f8c2f64f70c61"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-portable-final-qualified-v2.json",
+      "sha256": "eefb3170b09c2c79e7cd29fe9c685f0bb520f31a7f8df20b8fb037da467d36af"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-blocked-final-qualified-v2.json",
+      "sha256": "c9611048003387c04f20db47d78ad5e03e1b78fec120f6ee0aa8031535f98d80"
+    },
+    {
+      "path": "scripts/efa-reference/compute/linalg-optimization-v1.json",
+      "sha256": "bbe78c40006fc3c24d3c94fb14c771bffc09bd1b23cd8725e653572351791dde"
+    },
+    {
+      "path": "scripts/efa-reference/compute/native-pair-major-1-v1.json",
+      "sha256": "cab54ac17908475ddbd576a573af540617ed2016efb310b7d51e35ee2593eb2e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/native-pair-major-4-v1.json",
+      "sha256": "76b0a018051e35c60164fdcb217789b0b52613a8165573355e3756f176e74e15"
+    },
+    {
+      "path": "scripts/efa-reference/compute/native-pair-blocked-1-v1.json",
+      "sha256": "684a28b8106a09be34830273eac55e49129642a9016b72e5dcf1b0fc468766fb"
+    },
+    {
+      "path": "scripts/efa-reference/compute/native-pair-blocked-4-v1.json",
+      "sha256": "fbedd322b2baab14d081f5e0143210c92c21c61eb6927b40a8e88837d1829ebe"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-comparison-guards-v1.json",
+      "sha256": "598e918b3e34cb4893bfbf4bf2bd647dcc4fb2df60c7c9ff77387e50bdaad637"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-guards-v1.json",
+      "sha256": "6b9ebe931e6f47c85b3b4c4fd5e2eef7448aa970ad9864500dc99fd2564a31ff"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-final-sequence-v2.json",
+      "sha256": "ca86cf944ae9cc456a4df546a27c20aba9db3978d4c31a5162518a542ad20ea8"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-regression-v2.json",
+      "sha256": "74bbcc2d87e85ba2493421cb6c15077d02cf193afcbc4d5f12f1fc4616032b41"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-unit-verification-v2.json",
+      "sha256": "f2f2280a6f83ef438a0d51f41bcf4ed8c283860ccc75d2f0acea359db123bb96"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-ui-v2/weighted-ui-verification.json",
+      "sha256": "5ba95e2042ab5703019926f6da160cf3e53371677b10f8f8ddfc87b00766f4e7"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-ui-v2/inspector-ui-verification.json",
+      "sha256": "52c0d98c6841253b2bbf2abf194fdfa2a8e950d9f790bac48d0b900dbaf762ad"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-large-optimized-comparison-v2.json",
+      "sha256": "1ed6626f89616c631081c0790a1a5fcde72391e5cbebe907ab91197fe5fe9513"
+    },
+    {
+      "path": "scripts/efa-reference/compute/native-large-optimized-comparison-v2.json",
+      "sha256": "e252b8f6b2ba895daf83c905fbb60f4393f3830d6e0d24d82371cee6d042b2c5"
+    },
+    {
+      "path": "scripts/efa-reference/compute/portable-large-holdout-optimized-comparison-v2.json",
+      "sha256": "51d4e7c32331e005396730e456907c5ce6afb2fb38dc960bd51695151623ab5e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/native-large-holdout-optimized-comparison-v2.json",
+      "sha256": "61ec1d931347846f40383ecc994b1da42e2fde5e2d2263192607982a6cb07e1a"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-large-portable-optimized-v2.json",
+      "sha256": "76008a5deb5003a09afa210e9363f0cdb0188823277aa2d89f01b221ed90f40d"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-large-blocked-optimized-v2.json",
+      "sha256": "8f3398f25eab716d3d82660be4ecf3ee378440b6165d55ff6944c38e5e3ce70e"
+    },
+    {
+      "path": "scripts/efa-reference/compute/browser-large-holdout-portable-optimized-v2.json",
+      "sha256": "b2836bcbdb3a7aba2228e4a90a789bcf75e45012c8b8377e9af4255f4b9d7adf"
+    },
+    {
+      "path": "scripts/efa-reference/compute/scala-large-holdout-blocked-optimized-v2.json",
+      "sha256": "2c221546793ea87a31e90a1644d3de190d855c1c75655c588a440b757106bfb8"
+    }
+  ]
+}

@@ -1,0 +1,3231 @@
+{
+  "scope": "Finite numerical agreement, signed factor permutation only. Report quantiles are over per-comparison error maxima, not cellwise sampling distributions or population error guarantees. Repeated rotations of the same fitted model are not independent datasets.",
+  "groups": 375,
+  "passedGroups": 375,
+  "failedGroups": 0,
+  "scalarChecks": 4239,
+  "failedScalarChecks": 0,
+  "currentSourceDrift": [],
+  "metricBounds": {
+    "common covariance max abs": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 3.5564664643827903e-07,
+      "p95PerComparisonError": 7.976951869968725e-06,
+      "maximumObservedError": 1.7119478975147207e-05,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "holzinger-mar",
+        "method": "minres",
+        "missing": "pairwise",
+        "rotation": "varimax",
+        "metric": "common covariance max abs",
+        "error": 1.7119478975147207e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "signed-permuted pattern max abs": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 4.6402357800623406e-07,
+      "p95PerComparisonError": 1.4709438857926573e-05,
+      "maximumObservedError": 0.00019759454484535866,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "normal-mar",
+        "method": "minres",
+        "missing": "pairwise",
+        "rotation": "varimax",
+        "metric": "signed-permuted pattern max abs",
+        "error": 0.00019759454484535866,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "signed-permuted Phi max abs": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 2.357160988619711e-08,
+      "p95PerComparisonError": 1.8200668545631507e-06,
+      "maximumObservedError": 7.15648237042954e-06,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "holzinger-mar",
+        "method": "minres",
+        "missing": "pairwise",
+        "rotation": "oblimin",
+        "metric": "signed-permuted Phi max abs",
+        "error": 7.15648237042954e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "1 - minimum Tucker congruence": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 8.604228440844963e-14,
+      "p95PerComparisonError": 1.9591602784529958e-10,
+      "maximumObservedError": 2.634175144677897e-08,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "normal-mar",
+        "method": "minres",
+        "missing": "pairwise",
+        "rotation": "varimax",
+        "metric": "1 - minimum Tucker congruence",
+        "error": 2.634175144677897e-08,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "R rotation convergence": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "minres",
+        "missing": "complete",
+        "rotation": "promax",
+        "metric": "R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "native extractor convergence": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "minres",
+        "missing": "complete",
+        "rotation": "promax",
+        "metric": "native extractor convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "native rotation convergence": {
+      "comparisons": 240,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "minres",
+        "missing": "complete",
+        "rotation": "promax",
+        "metric": "native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "correlation max abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        1e-10
+      ],
+      "p50PerComparisonError": 8.465450562766819e-16,
+      "p95PerComparisonError": 1.6653345369377348e-15,
+      "maximumObservedError": 2.7755575615628914e-15,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "minres",
+        "missing": "complete",
+        "rotation": "promax",
+        "metric": "correlation max abs",
+        "error": 2.7755575615628914e-15,
+        "limit": 1e-10,
+        "passed": true
+      }
+    },
+    "MINRES objective abs": {
+      "comparisons": 128,
+      "failures": 0,
+      "limits": [
+        1e-06
+      ],
+      "p50PerComparisonError": 4.014046040001773e-12,
+      "p95PerComparisonError": 1.0181559761957004e-10,
+      "maximumObservedError": 3.930137673635592e-10,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "holzinger-mar",
+        "method": "minres",
+        "missing": "pairwise",
+        "rotation": "promax",
+        "metric": "MINRES objective abs",
+        "error": 3.930137673635592e-10,
+        "limit": 1e-06,
+        "passed": true
+      }
+    },
+    "raw fitted covariance max abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0.0002
+      ],
+      "p50PerComparisonError": 1.193862469162088e-07,
+      "p95PerComparisonError": 8.443194388418893e-07,
+      "maximumObservedError": 1.7374079843864715e-05,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "promax",
+        "metric": "raw fitted covariance max abs",
+        "error": 1.7374079843864715e-05,
+        "limit": 0.0002,
+        "passed": true
+      }
+    },
+    "fitted means max abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 8.114991456587006e-10,
+      "p95PerComparisonError": 1.7138340278055602e-07,
+      "maximumObservedError": 2.2516684916595864e-07,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "normal-mcar",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "promax",
+        "metric": "fitted means max abs",
+        "error": 2.2516684916595864e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "residual variances max abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0.0002
+      ],
+      "p50PerComparisonError": 7.344614494364521e-08,
+      "p95PerComparisonError": 1.3959515079320355e-06,
+      "maximumObservedError": 6.11061815658509e-06,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "promax",
+        "metric": "residual variances max abs",
+        "error": 6.11061815658509e-06,
+        "limit": 0.0002,
+        "passed": true
+      }
+    },
+    "log likelihood per row abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        1e-07
+      ],
+      "p50PerComparisonError": 7.579122514774402e-15,
+      "p95PerComparisonError": 7.26824738300788e-13,
+      "maximumObservedError": 5.755542328448168e-10,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "promax",
+        "metric": "log likelihood per row abs",
+        "error": 5.755542328448168e-10,
+        "limit": 1e-07,
+        "passed": true
+      }
+    },
+    "AIC abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 6.366462912410498e-12,
+      "p95PerComparisonError": 1.2762029655277665e-09,
+      "maximumObservedError": 3.223103703930974e-06,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "promax",
+        "metric": "AIC abs",
+        "error": 3.223103703930974e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "BIC abs": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 6.366462912410498e-12,
+      "p95PerComparisonError": 1.2762029655277665e-09,
+      "maximumObservedError": 3.223103703930974e-06,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "promax",
+        "metric": "BIC abs",
+        "error": 3.223103703930974e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "parameter count": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "complete",
+        "rotation": "promax",
+        "metric": "parameter count",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "R extractor convergence": {
+      "comparisons": 120,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "complete",
+        "rotation": "promax",
+        "metric": "R extractor convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "conditional completion max abs": {
+      "comparisons": 30,
+      "failures": 0,
+      "limits": [
+        0.0005
+      ],
+      "p50PerComparisonError": 9.268676021134681e-07,
+      "p95PerComparisonError": 4.600586427154774e-05,
+      "maximumObservedError": 4.6005864271947416e-05,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "ml",
+        "missing": "fiml",
+        "rotation": "oblimin",
+        "metric": "conditional completion max abs",
+        "error": 4.6005864271947416e-05,
+        "limit": 0.0005,
+        "passed": true
+      }
+    },
+    "PCA eigenvalues max abs": {
+      "comparisons": 100,
+      "failures": 0,
+      "limits": [
+        1e-07
+      ],
+      "p50PerComparisonError": 5.773159728050814e-15,
+      "p95PerComparisonError": 3.5532687903128136e-14,
+      "maximumObservedError": 6.927791673660977e-14,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "pca",
+        "missing": "mean",
+        "standardize": true,
+        "metric": "PCA eigenvalues max abs",
+        "error": 6.927791673660977e-14,
+        "limit": 1e-07,
+        "passed": true
+      }
+    },
+    "PCA displayed vector max abs (rounded .001)": {
+      "comparisons": 100,
+      "failures": 0,
+      "limits": [
+        0.000501
+      ],
+      "p50PerComparisonError": 0.00047968556456368106,
+      "p95PerComparisonError": 0.0004985772974540524,
+      "maximumObservedError": 0.0004999336510687624,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "pca",
+        "missing": "mean",
+        "standardize": false,
+        "metric": "PCA displayed vector max abs (rounded .001)",
+        "error": 0.0004999336510687624,
+        "limit": 0.000501,
+        "passed": true
+      }
+    },
+    "PCA sampled scores max abs": {
+      "comparisons": 100,
+      "failures": 0,
+      "limits": [
+        1e-06
+      ],
+      "p50PerComparisonError": 8.881784197001252e-15,
+      "p95PerComparisonError": 1.640021451976281e-13,
+      "maximumObservedError": 2.34035013590983e-13,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "pca",
+        "missing": "iterative",
+        "standardize": false,
+        "metric": "PCA sampled scores max abs",
+        "error": 2.34035013590983e-13,
+        "limit": 1e-06,
+        "passed": true
+      }
+    },
+    "iterative PCA completion max abs": {
+      "comparisons": 20,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 1.1102230246251565e-14,
+      "p95PerComparisonError": 3.0020430585864256e-14,
+      "maximumObservedError": 6.039613253960852e-14,
+      "maximumCase": {
+        "report": "third-pass-report.json",
+        "dataset": "bfi25-original",
+        "method": "pca",
+        "missing": "iterative",
+        "standardize": true,
+        "metric": "iterative PCA completion max abs",
+        "error": 6.039613253960852e-14,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "polychoric max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 1.2679058324083226e-11,
+      "p95PerComparisonError": 1.7614346092820198e-11,
+      "maximumObservedError": 1.8606949314659005e-11,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "complete",
+        "metric": "polychoric max abs",
+        "error": 1.8606949314659005e-11,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "original observed pair counts": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "original observed pair counts",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "influence Gamma max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.5251967183947954e-11,
+      "p95PerComparisonError": 5.690420357140623e-11,
+      "maximumObservedError": 6.814693254142412e-11,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "complete",
+        "metric": "influence Gamma max abs",
+        "error": 6.814693254142412e-11,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "minres native convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres native convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "minres/promax common max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 6.002443018182646e-07,
+      "p95PerComparisonError": 1.3086050738575494e-06,
+      "maximumObservedError": 1.3086050738575494e-06,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "minres/promax common max abs",
+        "error": 1.3086050738575494e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "minres/promax pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 4.334300862662843e-07,
+      "p95PerComparisonError": 1.3737541433300748e-06,
+      "maximumObservedError": 1.3737541433300748e-06,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "minres/promax pattern max abs",
+        "error": 1.3737541433300748e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "minres/promax Phi max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.2270411041230556e-07,
+      "p95PerComparisonError": 2.966982243429901e-07,
+      "maximumObservedError": 3.3885935290557667e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "complete",
+        "metric": "minres/promax Phi max abs",
+        "error": 3.3885935290557667e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "minres/promax R rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/promax R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "minres/promax native rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/promax native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "minres/oblimin common max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 6.0024430159622e-07,
+      "p95PerComparisonError": 1.3086050737465271e-06,
+      "maximumObservedError": 1.3086050737465271e-06,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "minres/oblimin common max abs",
+        "error": 1.3086050737465271e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "minres/oblimin pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 3.7531422730774366e-07,
+      "p95PerComparisonError": 1.4638807244171659e-06,
+      "maximumObservedError": 1.4638807244171659e-06,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "minres/oblimin pattern max abs",
+        "error": 1.4638807244171659e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "minres/oblimin Phi max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.5510909132099293e-07,
+      "p95PerComparisonError": 1.8427571707724242e-07,
+      "maximumObservedError": 1.8861027534233799e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "complete",
+        "metric": "minres/oblimin Phi max abs",
+        "error": 1.8861027534233799e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "minres/oblimin R rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/oblimin R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "minres/oblimin native rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/oblimin native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "minres/varimax common max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 6.002443016517311e-07,
+      "p95PerComparisonError": 1.3086050737465271e-06,
+      "maximumObservedError": 1.3086050737465271e-06,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "minres/varimax common max abs",
+        "error": 1.3086050737465271e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "minres/varimax pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.0696492971772054e-05,
+      "p95PerComparisonError": 0.00015320803910293113,
+      "maximumObservedError": 0.00015320803910293113,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "minres/varimax pattern max abs",
+        "error": 0.00015320803910293113,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "minres/varimax Phi max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/varimax Phi max abs",
+        "error": 0,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "minres/varimax R rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/varimax R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "minres/varimax native rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "minres/varimax native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls native convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls native convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls/promax common max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.6972867569742256e-07,
+      "p95PerComparisonError": 4.081469565341e-07,
+      "maximumObservedError": 4.3381394898567294e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/promax common max abs",
+        "error": 4.3381394898567294e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "dwls/promax pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 2.28465820067969e-07,
+      "p95PerComparisonError": 5.254128713834405e-07,
+      "maximumObservedError": 5.851969296505333e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/promax pattern max abs",
+        "error": 5.851969296505333e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "dwls/promax Phi max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 5.80242286579713e-08,
+      "p95PerComparisonError": 5.926623159888122e-07,
+      "maximumObservedError": 6.29545062219572e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/promax Phi max abs",
+        "error": 6.29545062219572e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "dwls/promax R rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/promax R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls/promax native rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/promax native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls/oblimin common max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.697286757529337e-07,
+      "p95PerComparisonError": 4.081469564994055e-07,
+      "maximumObservedError": 4.338139489024062e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/oblimin common max abs",
+        "error": 4.338139489024062e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "dwls/oblimin pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.9987620508699067e-07,
+      "p95PerComparisonError": 6.107451336313796e-07,
+      "maximumObservedError": 6.308947873151505e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/oblimin pattern max abs",
+        "error": 6.308947873151505e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "dwls/oblimin Phi max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 7.493966679150699e-08,
+      "p95PerComparisonError": 3.384937186615144e-07,
+      "maximumObservedError": 3.50778706748045e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/oblimin Phi max abs",
+        "error": 3.50778706748045e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "dwls/oblimin R rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/oblimin R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls/oblimin native rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/oblimin native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls/varimax common max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.697286757529337e-07,
+      "p95PerComparisonError": 4.0814695623642144e-07,
+      "maximumObservedError": 4.338139490134285e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "dwls/varimax common max abs",
+        "error": 4.338139490134285e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "dwls/varimax pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 3.857325040074189e-07,
+      "p95PerComparisonError": 5.482954245628058e-07,
+      "maximumObservedError": 5.482954245628058e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "mean",
+        "metric": "dwls/varimax pattern max abs",
+        "error": 5.482954245628058e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "dwls/varimax Phi max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/varimax Phi max abs",
+        "error": 0,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "dwls/varimax R rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/varimax R rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "dwls/varimax native rotation convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "dwls/varimax native rotation convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "R weighted convergence": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "R weighted convergence",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "raw weighted chi-square abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 5.496226584966735e-09,
+      "p95PerComparisonError": 2.6734915081760845e-08,
+      "maximumObservedError": 2.8451950129237957e-08,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "raw weighted chi-square abs",
+        "error": 2.8451950129237957e-08,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV df": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "ordinal-mcar",
+        "missing": "pairwise",
+        "metric": "WLSMV df",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "WLSMV trace abs": {
+      "comparisons": 13,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.7551889719413794e-08,
+      "p95PerComparisonError": 6.604186296499381e-07,
+      "maximumObservedError": 1.1214167301432099e-06,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "WLSMV trace abs",
+        "error": 1.1214167301432099e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV trace squared abs": {
+      "comparisons": 13,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.804513516390216e-08,
+      "p95PerComparisonError": 4.4512612049629743e-07,
+      "maximumObservedError": 4.724707878267509e-07,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "median",
+        "metric": "WLSMV trace squared abs",
+        "error": 4.724707878267509e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV chi-square abs": {
+      "comparisons": 13,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 4.003693732101965e-08,
+      "p95PerComparisonError": 1.4938763524696696e-05,
+      "maximumObservedError": 1.5236404578899965e-05,
+      "maximumCase": {
+        "report": "ordinal-report.json",
+        "dataset": "bfi25-original",
+        "missing": "mean",
+        "metric": "WLSMV chi-square abs",
+        "error": 1.5236404578899965e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV p-value abs": {
+      "comparisons": 13,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 8.755125513459916e-10,
+      "p95PerComparisonError": 4.653264418230662e-09,
+      "maximumObservedError": 4.723247237770067e-09,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "pairwise",
+        "method": "weighted inference and rotated SE",
+        "metric": "WLSMV p-value abs",
+        "error": 4.723247237770067e-09,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "polynomial contrast max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        1e-10
+      ],
+      "p50PerComparisonError": 7.771561172376096e-16,
+      "p95PerComparisonError": 1.6209256159527282e-14,
+      "maximumObservedError": 2.0039525594484076e-14,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "11 levels",
+        "method": "R contr.poly",
+        "metric": "polynomial contrast max abs",
+        "error": 2.0039525594484076e-14,
+        "limit": 1e-10,
+        "passed": true
+      }
+    },
+    "augmentation row count": {
+      "comparisons": 7,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "ordinal",
+        "method": "MICE conditional",
+        "metric": "augmentation row count",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "ordinal coefficients max abs": {
+      "comparisons": 6,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 6.094623522523435e-08,
+      "p95PerComparisonError": 3.171482104713519e-07,
+      "maximumObservedError": 3.9164484988418735e-07,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "separation",
+        "method": "MICE conditional",
+        "metric": "ordinal coefficients max abs",
+        "error": 3.9164484988418735e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "ordinal thresholds max abs": {
+      "comparisons": 6,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.6110539569069715e-07,
+      "p95PerComparisonError": 3.077754879288186e-07,
+      "maximumObservedError": 3.4518223279711435e-07,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "ordinal",
+        "method": "MICE conditional",
+        "metric": "ordinal thresholds max abs",
+        "error": 3.4518223279711435e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "ordinal objective abs": {
+      "comparisons": 6,
+      "failures": 0,
+      "limits": [
+        1e-06
+      ],
+      "p50PerComparisonError": 3.979039320256561e-13,
+      "p95PerComparisonError": 6.59383658785373e-12,
+      "maximumObservedError": 8.185452315956354e-12,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "ordinal",
+        "method": "MICE conditional",
+        "metric": "ordinal objective abs",
+        "error": 8.185452315956354e-12,
+        "limit": 1e-06,
+        "passed": true
+      }
+    },
+    "ordinal probabilities max abs": {
+      "comparisons": 6,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 2.2094686497053928e-08,
+      "p95PerComparisonError": 9.114276920685338e-08,
+      "maximumObservedError": 1.0029422009560918e-07,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "ordinal",
+        "method": "MICE conditional",
+        "metric": "ordinal probabilities max abs",
+        "error": 1.0029422009560918e-07,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "conditional recorded-draw difference": {
+      "comparisons": 7,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "ordinal",
+        "method": "MICE conditional",
+        "metric": "conditional recorded-draw difference",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "binary beta max abs": {
+      "comparisons": 1,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 1.913623767779704e-08,
+      "p95PerComparisonError": 1.913623767779704e-08,
+      "maximumObservedError": 1.913623767779704e-08,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "binary",
+        "method": "MICE conditional",
+        "metric": "binary beta max abs",
+        "error": 1.913623767779704e-08,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "binary covariance max abs": {
+      "comparisons": 1,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 9.71198848599697e-09,
+      "p95PerComparisonError": 9.71198848599697e-09,
+      "maximumObservedError": 9.71198848599697e-09,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "binary",
+        "method": "MICE conditional",
+        "metric": "binary covariance max abs",
+        "error": 9.71198848599697e-09,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "binary sampled max abs": {
+      "comparisons": 1,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 4.4258719023027027e-08,
+      "p95PerComparisonError": 4.4258719023027027e-08,
+      "maximumObservedError": 4.4258719023027027e-08,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "binary",
+        "method": "MICE conditional",
+        "metric": "binary sampled max abs",
+        "error": 4.4258719023027027e-08,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "binary probabilities max abs": {
+      "comparisons": 1,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 3.279508858922142e-08,
+      "p95PerComparisonError": 3.279508858922142e-08,
+      "maximumObservedError": 3.279508858922142e-08,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "binary",
+        "method": "MICE conditional",
+        "metric": "binary probabilities max abs",
+        "error": 3.279508858922142e-08,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "MICE failures": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE failures",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "MICE completed chain count": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE completed chain count",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "MICE completed-cell code difference": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE completed-cell code difference",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "MICE observed-cell difference": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE observed-cell difference",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "MICE trace mean max abs": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        1e-12
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE trace mean max abs",
+        "error": 0,
+        "limit": 1e-12,
+        "passed": true
+      }
+    },
+    "MICE trace SD max abs": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        1e-12
+      ],
+      "p50PerComparisonError": 6.661338147750939e-16,
+      "p95PerComparisonError": 8.548717289613705e-16,
+      "maximumObservedError": 8.881784197001252e-16,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "skew/polynomial",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE trace SD max abs",
+        "error": 8.881784197001252e-16,
+        "limit": 1e-12,
+        "passed": true
+      }
+    },
+    "MICE fitted failures": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE fitted failures",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "MICE fitted completed count": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE fitted completed count",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "MICE correlation max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 9.059836214575512e-13,
+      "p95PerComparisonError": 1.553708914997508e-11,
+      "maximumObservedError": 2.2376520775191366e-11,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/polynomial",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE correlation max abs",
+        "error": 2.2376520775191366e-11,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "MICE sign-aligned pattern max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 5.056304634154518e-07,
+      "p95PerComparisonError": 5.977356520842079e-06,
+      "maximumObservedError": 7.124583998652234e-06,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE sign-aligned pattern max abs",
+        "error": 7.124583998652234e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "MICE communality max abs": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 4.630565101915174e-07,
+      "p95PerComparisonError": 7.696989201053103e-06,
+      "maximumObservedError": 9.4352813164722e-06,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE communality max abs",
+        "error": 9.4352813164722e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "MICE replacement code difference": {
+      "comparisons": 8,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail/rank",
+        "method": "MICE chains and pooled fits",
+        "metric": "MICE replacement code difference",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "bootstrap failures": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap failures",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "bootstrap completed count": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap completed count",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "bootstrap pattern max abs": {
+      "comparisons": 18,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.287089209378589e-06,
+      "p95PerComparisonError": 7.199814227309964e-06,
+      "maximumObservedError": 1.3625846743470227e-05,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap pattern max abs",
+        "error": 1.3625846743470227e-05,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "bootstrap structure max abs": {
+      "comparisons": 18,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.1807534372465511e-06,
+      "p95PerComparisonError": 6.6327143355027116e-06,
+      "maximumObservedError": 1.2177530696821925e-05,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap structure max abs",
+        "error": 1.2177530696821925e-05,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "bootstrap phi max abs": {
+      "comparisons": 18,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.5499343586355963e-07,
+      "p95PerComparisonError": 1.2248278638521396e-06,
+      "maximumObservedError": 1.748075619978362e-06,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap phi max abs",
+        "error": 1.748075619978362e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "bootstrap communalities max abs": {
+      "comparisons": 18,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.570573503417716e-06,
+      "p95PerComparisonError": 8.858941197151231e-06,
+      "maximumObservedError": 1.8899430440977305e-05,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap communalities max abs",
+        "error": 1.8899430440977305e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "bootstrap lower percentile abs": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.0866853153435052e-07,
+      "p95PerComparisonError": 4.4050548131530085e-07,
+      "maximumObservedError": 4.773762535131842e-07,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap lower percentile abs",
+        "error": 4.773762535131842e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "bootstrap upper percentile abs": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.7310581072044195e-07,
+      "p95PerComparisonError": 2.7678245141174453e-07,
+      "maximumObservedError": 2.883020781552226e-07,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "six saved bootstrap resamples",
+        "metric": "bootstrap upper percentile abs",
+        "error": 2.883020781552226e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "parallel R failures": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "100 saved parallel-analysis permutations",
+        "metric": "parallel R failures",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "parallel observed eigenvalues max abs": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.207260069164718e-09,
+      "p95PerComparisonError": 3.035690131214519e-09,
+      "maximumObservedError": 3.127737915886719e-09,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail",
+        "method": "100 saved parallel-analysis permutations",
+        "metric": "parallel observed eigenvalues max abs",
+        "error": 3.127737915886719e-09,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "parallel null eigenvalues max abs": {
+      "comparisons": 300,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 3.6126161784277855e-09,
+      "p95PerComparisonError": 1.4541403956513937e-07,
+      "maximumObservedError": 8.237600012117596e-07,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "heavy-tail",
+        "method": "100 saved parallel-analysis permutations",
+        "metric": "parallel null eigenvalues max abs",
+        "error": 8.237600012117596e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "parallel 95th percentile max abs": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 9.414369062099581e-09,
+      "p95PerComparisonError": 1.5637080077318678e-08,
+      "maximumObservedError": 1.632849241234302e-08,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "skew",
+        "method": "100 saved parallel-analysis permutations",
+        "metric": "parallel 95th percentile max abs",
+        "error": 1.632849241234302e-08,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "parallel completed count": {
+      "comparisons": 3,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "extensions-report.json",
+        "dataset": "normal",
+        "method": "100 saved parallel-analysis permutations",
+        "metric": "parallel completed count",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "weighted polychoric max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        1e-05
+      ],
+      "p50PerComparisonError": 4.175326751010289e-12,
+      "p95PerComparisonError": 7.602851681554056e-12,
+      "maximumObservedError": 8.02863331372805e-12,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "normal",
+        "method": "weighted inference and rotated SE",
+        "metric": "weighted polychoric max abs",
+        "error": 8.02863331372805e-12,
+        "limit": 1e-05,
+        "passed": true
+      }
+    },
+    "weighted Gamma max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.1860512572070547e-11,
+      "p95PerComparisonError": 1.6172707617556624e-11,
+      "maximumObservedError": 1.6724399642953358e-11,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "weighted Gamma max abs",
+        "error": 1.6724399642953358e-11,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "weighted case influences max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.404121263703928e-11,
+      "p95PerComparisonError": 1.9039791965269613e-11,
+      "maximumObservedError": 1.964428619771752e-11,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "weighted case influences max abs",
+        "error": 1.964428619771752e-11,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "raw-data lavaan polychoric max abs": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.9794373647852304e-05,
+      "p95PerComparisonError": 2.0295219374957817e-05,
+      "maximumObservedError": 2.03199521243147e-05,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "heavy-tail",
+        "method": "weighted inference and rotated SE",
+        "metric": "raw-data lavaan polychoric max abs",
+        "error": 2.03199521243147e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "raw-data lavaan Gamma max abs": {
+      "comparisons": 4,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 7.561275705059156e-05,
+      "p95PerComparisonError": 7.866604599473525e-05,
+      "maximumObservedError": 7.903755825156011e-05,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "raw-data lavaan Gamma max abs",
+        "error": 7.903755825156011e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV raw chi-square abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.3447731816995656e-10,
+      "p95PerComparisonError": 3.6788847523894217e-10,
+      "maximumObservedError": 3.793836356180691e-10,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "normal",
+        "method": "weighted inference and rotated SE",
+        "metric": "WLSMV raw chi-square abs",
+        "error": 3.793836356180691e-10,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV df difference": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "normal",
+        "method": "weighted inference and rotated SE",
+        "metric": "WLSMV df difference",
+        "error": 0,
+        "limit": 0,
+        "passed": true
+      }
+    },
+    "WLSMV scaling abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.6879759257015792e-09,
+      "p95PerComparisonError": 2.36709540857305e-09,
+      "maximumObservedError": 2.3938977466997358e-09,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "pairwise",
+        "method": "weighted inference and rotated SE",
+        "metric": "WLSMV scaling abs",
+        "error": 2.3938977466997358e-09,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "WLSMV shift abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.5581528007023735e-09,
+      "p95PerComparisonError": 2.1163672414559184e-08,
+      "maximumObservedError": 2.4308244306325832e-08,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "normal",
+        "method": "weighted inference and rotated SE",
+        "metric": "WLSMV shift abs",
+        "error": 2.4308244306325832e-08,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "oblimin numerical-delta pattern max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.571306838948905e-07,
+      "p95PerComparisonError": 1.7526097650377715e-07,
+      "maximumObservedError": 1.7808545684644406e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "heavy-tail",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin numerical-delta pattern max abs",
+        "error": 1.7808545684644406e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "oblimin numerical-delta loading SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 4.130353573397749e-07,
+      "p95PerComparisonError": 1.1455218170662584e-06,
+      "maximumObservedError": 1.2003874475044474e-06,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin numerical-delta loading SE max abs",
+        "error": 1.2003874475044474e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "oblimin numerical-delta structure SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.6252200763650082e-07,
+      "p95PerComparisonError": 2.6058395079381345e-07,
+      "maximumObservedError": 2.711992250076234e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin numerical-delta structure SE max abs",
+        "error": 2.711992250076234e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "oblimin numerical-delta Phi SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.9917775568044647e-07,
+      "p95PerComparisonError": 4.789056371773403e-07,
+      "maximumObservedError": 5.018265664194499e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin numerical-delta Phi SE max abs",
+        "error": 5.018265664194499e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "oblimin numerical-delta uniqueness SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.0816962110749007e-08,
+      "p95PerComparisonError": 1.4121886145190831e-08,
+      "maximumObservedError": 1.4146345414522976e-08,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "pairwise",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin numerical-delta uniqueness SE max abs",
+        "error": 1.4146345414522976e-08,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "oblimin lavaan loading SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 4.920088061896588e-07,
+      "p95PerComparisonError": 9.397520078280319e-07,
+      "maximumObservedError": 9.431489551847694e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "heavy-tail",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin lavaan loading SE max abs",
+        "error": 9.431489551847694e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "oblimin lavaan Phi SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 3.094311413348594e-07,
+      "p95PerComparisonError": 6.122320589330154e-07,
+      "maximumObservedError": 6.342921644031385e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "oblimin lavaan Phi SE max abs",
+        "error": 6.342921644031385e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "varimax numerical-delta pattern max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 3.227988157883388e-07,
+      "p95PerComparisonError": 9.897062936525812e-07,
+      "maximumObservedError": 1.1486264604454455e-06,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "skew",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax numerical-delta pattern max abs",
+        "error": 1.1486264604454455e-06,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "varimax numerical-delta loading SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.005975753884698e-05,
+      "p95PerComparisonError": 5.0430932663990394e-05,
+      "maximumObservedError": 5.677506788258693e-05,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "skew",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax numerical-delta loading SE max abs",
+        "error": 5.677506788258693e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "varimax numerical-delta structure SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.005975753884698e-05,
+      "p95PerComparisonError": 5.0430932663990394e-05,
+      "maximumObservedError": 5.677506788258693e-05,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "skew",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax numerical-delta structure SE max abs",
+        "error": 5.677506788258693e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "varimax numerical-delta Phi SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "normal",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax numerical-delta Phi SE max abs",
+        "error": 0,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "varimax numerical-delta uniqueness SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.0816962110749007e-08,
+      "p95PerComparisonError": 1.4121886145190831e-08,
+      "maximumObservedError": 1.4146345414522976e-08,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "pairwise",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax numerical-delta uniqueness SE max abs",
+        "error": 1.4146345414522976e-08,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "varimax lavaan loading SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 2.480356617681756e-05,
+      "p95PerComparisonError": 4.832038907517099e-05,
+      "maximumObservedError": 5.417199276414042e-05,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "skew",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax lavaan loading SE max abs",
+        "error": 5.417199276414042e-05,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "varimax lavaan Phi SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 0.0,
+      "p95PerComparisonError": 0.0,
+      "maximumObservedError": 0,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "normal",
+        "method": "weighted inference and rotated SE",
+        "metric": "varimax lavaan Phi SE max abs",
+        "error": 0,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "promax numerical-delta pattern max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.001
+      ],
+      "p50PerComparisonError": 1.6542500111405012e-07,
+      "p95PerComparisonError": 1.7320560847661205e-07,
+      "maximumObservedError": 1.7364404397528233e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "skew",
+        "method": "weighted inference and rotated SE",
+        "metric": "promax numerical-delta pattern max abs",
+        "error": 1.7364404397528233e-07,
+        "limit": 0.001,
+        "passed": true
+      }
+    },
+    "promax numerical-delta loading SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 5.080252421900411e-06,
+      "p95PerComparisonError": 7.670336744178274e-06,
+      "maximumObservedError": 8.097263720842351e-06,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "promax numerical-delta loading SE max abs",
+        "error": 8.097263720842351e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "promax numerical-delta structure SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.6907753603648268e-06,
+      "p95PerComparisonError": 3.938295058246443e-06,
+      "maximumObservedError": 4.2698794661677475e-06,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "promax numerical-delta structure SE max abs",
+        "error": 4.2698794661677475e-06,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "promax numerical-delta Phi SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 9.255788564754841e-08,
+      "p95PerComparisonError": 3.265141634414825e-07,
+      "maximumObservedError": 3.6037795424909147e-07,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "complete",
+        "method": "weighted inference and rotated SE",
+        "metric": "promax numerical-delta Phi SE max abs",
+        "error": 3.6037795424909147e-07,
+        "limit": 0.0001,
+        "passed": true
+      }
+    },
+    "promax numerical-delta uniqueness SE max abs": {
+      "comparisons": 5,
+      "failures": 0,
+      "limits": [
+        0.0001
+      ],
+      "p50PerComparisonError": 1.0816962110749007e-08,
+      "p95PerComparisonError": 1.4121886145190831e-08,
+      "maximumObservedError": 1.4146345414522976e-08,
+      "maximumCase": {
+        "report": "weighted-se-report.json",
+        "dataset": "pairwise",
+        "method": "weighted inference and rotated SE",
+        "metric": "promax numerical-delta uniqueness SE max abs",
+        "error": 1.4146345414522976e-08,
+        "limit": 0.0001,
+        "passed": true
+      }
+    }
+  },
+  "parallelPsychDefaultBoundary": [
+    {
+      "dataset": "normal",
+      "savedRDefaultVsContractMaximumNullEigenvalueDifference": 0.7593844154536808,
+      "maximum95thPercentileDifference": 3.82721494705876e-05,
+      "contractSuggested": 2,
+      "psychDefaultSuggested": 2,
+      "maximumObjectiveDifference": 0.0002633901395461616
+    },
+    {
+      "dataset": "heavy-tail",
+      "savedRDefaultVsContractMaximumNullEigenvalueDifference": 0.3107317738419122,
+      "maximum95thPercentileDifference": 1.0465717069640945e-05,
+      "contractSuggested": 2,
+      "psychDefaultSuggested": 2,
+      "maximumObjectiveDifference": 0.0012120743684531504
+    },
+    {
+      "dataset": "skew",
+      "savedRDefaultVsContractMaximumNullEigenvalueDifference": 0.0004304585162732133,
+      "maximum95thPercentileDifference": 2.2735783132991905e-05,
+      "contractSuggested": 2,
+      "psychDefaultSuggested": 2,
+      "maximumObjectiveDifference": 2.2123919689309712e-08
+    }
+  ],
+  "irisIterationBoundary": {
+    "R": "R version 4.5.1 (2025-06-13)",
+    "qualification": "Unchanged pinned missMDA1.20/FactoMineR2.12 source adapter. A separate counter-only instrumented copy records iteration counts and must return exactly identical completed matrices.",
+    "results": [
+      {
+        "seed": 20260805,
+        "rate": 0.05,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 115,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.7763568394002505e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 115,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.7763568394002505e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.2,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 1.1546319456101628e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 298,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 8.881784197001252e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.35,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 4.085620730620576e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 887,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 2.042810365310288e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 7,
+        "rate": 0.05,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 99,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.3322676295501878e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 7,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 99,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.3322676295501878e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 7,
+        "rate": 0.2,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 1.865174681370263e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 7,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 238,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.5987211554602254e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 7,
+        "rate": 0.35,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 9.769962616701378e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 7,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 574,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 3.019806626980426e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 42,
+        "rate": 0.05,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 72,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 3.1086244689504383e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 42,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 72,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 3.1086244689504383e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 42,
+        "rate": 0.2,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 6.217248937900877e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 42,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 371,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.6431300764452317e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 42,
+        "rate": 0.35,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 1.865174681370263e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 42,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 770,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.7763568394002505e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.05,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 74,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 3.552713678800501e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 74,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 3.552713678800501e-15,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.2,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 1.4210854715202004e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 216,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 1.3322676295501878e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.35,
+        "maxIter": 200,
+        "threshold": 1e-08,
+        "iterations": 200,
+        "converged": false,
+        "warnings": [
+          "Stopped after  200  iterations"
+        ],
+        "maximumCompletionDifference": 1.687538997430238e-14,
+        "instrumentationOutputDifference": 0
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "threshold": 1e-08,
+        "iterations": 524,
+        "converged": true,
+        "warnings": [],
+        "maximumCompletionDifference": 5.329070518200751e-15,
+        "instrumentationOutputDifference": 0
+      }
+    ],
+    "matchedChecks": [
+      {
+        "seed": 20260805,
+        "rate": 0.05,
+        "maxIter": 200,
+        "completionMaxAbs": 1.7763568394002505e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "completionMaxAbs": 1.7763568394002505e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.2,
+        "maxIter": 200,
+        "completionMaxAbs": 1.1546319456101628e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "completionMaxAbs": 8.881784197001252e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.35,
+        "maxIter": 200,
+        "completionMaxAbs": 4.085620730620576e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260805,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "completionMaxAbs": 2.042810365310288e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 7,
+        "rate": 0.05,
+        "maxIter": 200,
+        "completionMaxAbs": 1.3322676295501878e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 7,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "completionMaxAbs": 1.3322676295501878e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 7,
+        "rate": 0.2,
+        "maxIter": 200,
+        "completionMaxAbs": 1.865174681370263e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 7,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "completionMaxAbs": 1.5987211554602254e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 7,
+        "rate": 0.35,
+        "maxIter": 200,
+        "completionMaxAbs": 9.769962616701378e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 7,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "completionMaxAbs": 3.019806626980426e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 42,
+        "rate": 0.05,
+        "maxIter": 200,
+        "completionMaxAbs": 3.1086244689504383e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 42,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "completionMaxAbs": 3.1086244689504383e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 42,
+        "rate": 0.2,
+        "maxIter": 200,
+        "completionMaxAbs": 6.217248937900877e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 42,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "completionMaxAbs": 1.6431300764452317e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 42,
+        "rate": 0.35,
+        "maxIter": 200,
+        "completionMaxAbs": 1.865174681370263e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 42,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "completionMaxAbs": 1.7763568394002505e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.05,
+        "maxIter": 200,
+        "completionMaxAbs": 3.552713678800501e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.05,
+        "maxIter": 1000,
+        "completionMaxAbs": 3.552713678800501e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.2,
+        "maxIter": 200,
+        "completionMaxAbs": 1.4210854715202004e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.2,
+        "maxIter": 1000,
+        "completionMaxAbs": 1.3322676295501878e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.35,
+        "maxIter": 200,
+        "completionMaxAbs": 1.687538997430238e-14,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      },
+      {
+        "seed": 20260806,
+        "rate": 0.35,
+        "maxIter": 1000,
+        "completionMaxAbs": 5.329070518200751e-15,
+        "completionLimit": 1e-10,
+        "instrumentationOutputDifference": 0,
+        "iterationsExact": true,
+        "convergenceFlagExact": true,
+        "passed": true
+      }
+    ]
+  },
+  "completionReplay": {
+    "status": "passed",
+    "R": "R version 4.5.1 (2025-06-13)",
+    "jsonlite": "2.0.0",
+    "rows": 147,
+    "columns": 9,
+    "sourceRowsExact": true,
+    "missingMaskExact": true,
+    "maximumPredictionDifference": 6.217248937900877e-15,
+    "observedValuesMaximumSerializationDifference": 0,
+    "qualification": "R computes the same saved-model conditional means. CSV serialization may round numeric text; native operation preserves observed cells exactly. This is replay parity, not a second lavaan fit."
+  },
+  "reportHashes": {
+    "third-pass-report.json": "c59e91ae7083ba792888229c75d9136227ff18502323d45f656f9cb632bcb6cb",
+    "ordinal-report.json": "d93a79d852de268114770b31e1351ed597e6aa01d985febb79a6ba92a60e4ba9",
+    "extensions-report.json": "f22732d7e3e89b4a57b4efb2bd7a76ae33ca1753e845f7881cf6966ff0cad285",
+    "weighted-se-report.json": "cae40e139e65d0055dffce09310304a6843f8d8984294b47342d9065d3603d36"
+  },
+  "manifestSha256": "03b806b4d652eced1b90d2369e4f225b6947a157c562a77b178888522a3b59b2",
+  "largestBenchmark": {
+    "recordedAt": "2026-11-06T12:16:49.627Z",
+    "bundle": "/var/folders/85/7f4sb4p97r35n0xbn_gw1pmw0000gn/T/efa-large-congruence-0sIxqy/large.mjs",
+    "bundleSha256": "765287773a7742916017fef0f11a0fcae45ebd772764059b9dbfd8d6c6efb858",
+    "sourceHashes": {
+      "src/lib/random.ts": "d9b8b9d36f935199002103ab96d5f596bbb6f5b707b4424420133ba2077bc4f9",
+      "scripts/efa-reference/benchmark-data.ts": "ee87e43fba5a29ee0f5d6da528c9e1a289e43263b65c45ad263101a2818d4230",
+      "src/lib/efa/types.ts": "ed7016d1f48b0bb3b7cc3e133092ecdc93da0a113d74a2da452740221e67ee81",
+      "src/lib/efa/backends/types.ts": "8b416f53e05548b98712ff7adbe3077dc8a5e4d33774678af3cf0ba20a5d8574",
+      "src/lib/measurement.ts": "646513b3cc9a9d3d0b035c71e16ced3ce1c9e94c04b713d1fde1946035838f70",
+      "src/lib/efa/numeric-imputation.ts": "d2ce5d9e6b5650123c023c028d592bada82391e9e8626037f21b07b2cc5edfb2",
+      "src/lib/efa/ordinal-imputation.ts": "93257ce8f7af45c316b0d3884d625e8d581b8623929945545c682b2beedadc13",
+      "src/lib/efa/correlation-method.ts": "09d35efdfd2a8d59cff6eae6dbb8ab11235025ab335c6f030b8ac18005685457",
+      "node_modules/is-any-array/lib/index.js": "454b55170e7f44cd8fa09af696c29aaa501f1083ab0d42fe61790178cca5119e",
+      "node_modules/ml-array-max/lib/index.js": "983ad3845605390afa3aae6adce1564cf4339449eb97ca2d9af066d382ae8a8d",
+      "node_modules/ml-array-min/lib/index.js": "d3ad3e18f35afed591f566b09ec1e3d5ca8c47a8f7466c8c0b786637a88a7bbe",
+      "node_modules/ml-array-rescale/lib/index.js": "568d9254e725cb781600d6ddf0659d3f7d229a5a1aa571da604f5726a11270ac",
+      "node_modules/ml-matrix/matrix.js": "180fc3bced7470e888f276ac635bf589e2da440f9aac9d7a1a540482703a2a13",
+      "node_modules/ml-matrix/matrix.mjs": "d2fb25926e8be4aa7c1878d82030a23c369f6b79d2377da4b11ab5a7756e662c",
+      "src/lib/efa/math.ts": "a1d66b7069257658579f084d27ae8f5147cbb24625b6d5f2d08f298bd61d7d18",
+      "src/lib/efa/maximum-likelihood.ts": "287e56bde0a7eafcec52ba3d5bc397d6880037b13e4d9a08797b18e37e64adef",
+      "src/lib/efa/prepare.ts": "5ee83a35fac7139436b0f0a846e3eeb011f062ddfe842e8f33e93e0f5cc7e14f",
+      "src/lib/efa/correlation.ts": "26dcea35a05a18ee8f92eff1a88cec069e4f266dc489ed641eef892b1db34749",
+      "src/lib/efa/extraction.ts": "3f41195de95cf8781985ac8449a68385e4b50b22a25bb61eefed6d0280cd1df2",
+      "src/lib/efa/rotation.ts": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+      "src/lib/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+      "src/lib/efa/dwls.ts": "960dac0dddc140b222abf323c7494586916f9b784cb6c483644ab24ad158ef37",
+      "src/lib/efa/weighted-moments.ts": "04dec18d4dc685e001006733fe2998cb1b4f5dba356e1812d34f97c8dd02a64c",
+      "src/lib/efa/trace-estimation.ts": "d928cc155c53ad5cf42d29da660a58a3ff21f2786b941e64ef27b0cf9b28cdc5",
+      "src/lib/efa/weighted-linalg.ts": "87a1e36aad146717eab5d1470e1b4cffbb2fe1c1cd40ff72760798893109ebae",
+      "src/lib/table.ts": "4827a149bd218011c3bb036388e52da5ef81c1a27876b17ff65dfe46ce9a30aa",
+      "src/lib/statTests.ts": "870b8c5eec8973e2d934ddcccdab1fc4a16fb0680ba04e999768140f77b8a228",
+      "src/lib/efa/trace-kernel.ts": "a7d589ebe02159f23a4a768a7017ee11bc403884b0cc48c1ef896b9b8703cb58",
+      "src/lib/efa/weighted-inference.ts": "52161d05194c6cccaabbd87573c78ac66bdc39618a67597364f53e57406cdf0c",
+      "src/lib/efa/compare.ts": "082cf9bdc5d01da940e21f18b14ef63ff5fddf4a7ed8458455594f0bbe250e2c",
+      "src/lib/efa/weighted-rotation.ts": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+      "src/lib/efa/fit.ts": "31c00030570cdd61e2152ec53fe679b8423a298f98d8b254733431be95c2ae89",
+      "src/lib/pca.ts": "62dc42ac2fc520fac03bd8e25bef810db8802bbbe3fd2581d7a1ad6750d17a11",
+      "scripts/efa-reference/congruence/large-benchmark.ts": "2b605898c96ba0f61be99555acf3a7ba65528ef813f4c6573d97d6d0b6e4ee76"
+    },
+    "scope": "One sequential Node CPU execution per configuration on a shared workstation with a dev server and some short UI/lint checks during early runs. Not an idle controlled experiment, browser response measurement, R speed comparison, or speedup claim.",
+    "results": [
+      {
+        "method": "pca",
+        "status": "passed",
+        "exitCode": 0,
+        "wallSeconds": 36.523,
+        "wallLimitSeconds": 120,
+        "sampledPeakRssKiB": null,
+        "report": "scripts/efa-reference/congruence/large-pca-report.json",
+        "measurementFailure": "External ps process sampling was unavailable in the workspace sandbox (operation not permitted); zero in the raw supervisor receipt was an unfilled accumulator, not measured memory.",
+        "childReportedRssKiB": 440752,
+        "rssQualification": "process.resourceUsage maxRSS over the completed child run",
+        "memoryCapQualification": "4GiB V8 heap limit; optional3GiB external RSS stop was unavailable because ps was denied. Observed child reports stayed below0.5GiB; no stronger transient RSS bound is claimed."
+      },
+      {
+        "method": "minres",
+        "status": "passed",
+        "exitCode": 0,
+        "wallSeconds": 39.729,
+        "wallLimitSeconds": 180,
+        "sampledPeakRssKiB": null,
+        "report": "scripts/efa-reference/congruence/large-minres-report.json",
+        "measurementFailure": "External ps process sampling was unavailable in the workspace sandbox (operation not permitted); zero in the raw supervisor receipt was an unfilled accumulator, not measured memory.",
+        "childReportedRssKiB": 275552,
+        "rssQualification": "process.resourceUsage maxRSS over the completed child run",
+        "memoryCapQualification": "4GiB V8 heap limit; optional3GiB external RSS stop was unavailable because ps was denied. Observed child reports stayed below0.5GiB; no stronger transient RSS bound is claimed."
+      },
+      {
+        "method": "weighted",
+        "status": "passed",
+        "exitCode": 0,
+        "wallSeconds": 79.413,
+        "wallLimitSeconds": 180,
+        "sampledPeakRssKiB": null,
+        "report": "scripts/efa-reference/congruence/large-weighted-report.json",
+        "measurementFailure": "External ps process sampling was unavailable in the workspace sandbox (operation not permitted); zero in the raw supervisor receipt was an unfilled accumulator, not measured memory.",
+        "childReportedRssKiB": 220048,
+        "rssQualification": "process.resourceUsage maxRSS over the completed child run",
+        "memoryCapQualification": "4GiB V8 heap limit; optional3GiB external RSS stop was unavailable because ps was denied. Observed child reports stayed below0.5GiB; no stronger transient RSS bound is claimed."
+      },
+      {
+        "method": "ml",
+        "status": "passed",
+        "exitCode": 0,
+        "wallSeconds": 27.949,
+        "wallLimitSeconds": 180,
+        "sampledPeakRssKiB": null,
+        "report": "scripts/efa-reference/congruence/large-ml-report.json",
+        "measurementFailure": "External ps process sampling was unavailable in the workspace sandbox (operation not permitted); zero in the raw supervisor receipt was an unfilled accumulator, not measured memory.",
+        "childReportedRssKiB": 369344,
+        "rssQualification": "process.resourceUsage maxRSS over the completed child run",
+        "memoryCapQualification": "4GiB V8 heap limit; optional3GiB external RSS stop was unavailable because ps was denied. Observed child reports stayed below0.5GiB; no stronger transient RSS bound is claimed."
+      },
+      {
+        "method": "fiml-block",
+        "status": "passed",
+        "exitCode": 0,
+        "wallSeconds": 27.76,
+        "wallLimitSeconds": 240,
+        "sampledPeakRssKiB": null,
+        "report": "scripts/efa-reference/congruence/large-fiml-block-report.json",
+        "measurementFailure": "External ps process sampling was unavailable in the workspace sandbox (operation not permitted); zero in the raw supervisor receipt was an unfilled accumulator, not measured memory.",
+        "childReportedRssKiB": 381760,
+        "rssQualification": "process.resourceUsage maxRSS over the completed child run",
+        "memoryCapQualification": "4GiB V8 heap limit; optional3GiB external RSS stop was unavailable because ps was denied. Observed child reports stayed below0.5GiB; no stronger transient RSS bound is claimed."
+      },
+      {
+        "method": "fiml-fragmented",
+        "status": "timeout",
+        "exitCode": null,
+        "wallSeconds": 90.058,
+        "wallLimitSeconds": 90,
+        "sampledPeakRssKiB": null,
+        "report": "scripts/efa-reference/congruence/large-fiml-fragmented-report.json",
+        "measurementFailure": "External ps process sampling was unavailable in the workspace sandbox (operation not permitted); zero in the raw supervisor receipt was an unfilled accumulator, not measured memory.",
+        "childReportedRssKiB": 413216,
+        "rssQualification": "Last reported process.resourceUsage maxRSS; lower bound on full-run peak at forced timeout",
+        "memoryCapQualification": "4GiB V8 heap limit; optional3GiB external RSS stop was unavailable because ps was denied. Observed child reports stayed below0.5GiB; no stronger transient RSS bound is claimed."
+      }
+    ],
+    "changedAfterBundle": [],
+    "driverSha256": "a3a0ae12d45e1269e6b4ad1e38a4e05afbcccb9abc80ddecc3bcc4cabfffb941",
+    "rawReceiptSha256": "0f0e2d0a82dfd2330ec155247dc8280b9e09051475c16bc19dba2bc64212c6ae",
+    "missingMasks": [
+      {
+        "method": "fiml-block",
+        "missingCells": 666650,
+        "fraction": 0.066665,
+        "encoding": "10,000,000 column-major bytes,1missing0observed",
+        "sha256": "7d95e6172d68d9e6deb8b8c4519cd6904da453189a5b5dac16c3b7604aad21c8",
+        "generator": "i mod3; first50/last50missing"
+      },
+      {
+        "method": "fiml-fragmented",
+        "missingCells": 500028,
+        "fraction": 0.0500028,
+        "encoding": "10,000,000 column-major bytes,1missing0observed",
+        "sha256": "100d1d29f8baf1da1759fb339e6950e065b801bdae8a7b9fa8ee003b11eef733",
+        "generator": "mulberry32 seed73291; j outer/i inner; draw<.05"
+      }
+    ]
+  },
+  "applicationVerification": {
+    "path": "app-verification.json",
+    "sha256": "10cb171e9496fcf57343bad506d79201981d6183fe83c7ce86932f967dfd0f18"
+  }
+}

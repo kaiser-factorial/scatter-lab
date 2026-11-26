@@ -1,0 +1,77 @@
+import type { DataTable } from "../table";
+import { EfaError, type EfaPreparedData, type EfaSpec } from "./types";
+import { columnReplacement, inferMeasurement } from '../measurement';
+
+/** Fill only missing cells, using each column's observed fitting respondents. */
+export function completeNumericSample(source: EfaPreparedData, values: Float64Array): EfaPreparedData {
+  if (values.length !== source.nRows * source.items.length)
+    throw new EfaError("imputation", "Invalid numeric imputation sample.");
+  const n = source.nRows, numeric = values.slice(), means: number[] = [], sds: number[] = [],
+    counts: number[][] = [], replacements: number[] = [], missingCounts: number[] = [], rules: string[] = [];
+  for (let j = 0; j < source.items.length; j++) {
+    const observed: number[] = [];
+    for (let i = 0; i < n; i++) if (source.observed[j * n + i]) observed.push(values[j * n + i]);
+    if (observed.length < 2 || observed.some(v => !Number.isFinite(v)) || new Set(observed).size < 2)
+      throw new EfaError("constant", `${source.items[j].column} needs at least two distinct finite observed values in this fitting sample.`);
+    const offset = (source.numericReverseOffsets ?? source.imputation?.reverseOffsets)?.[j];
+    const rawObserved = offset == null ? observed : observed.map(value => offset - value);
+    const completed = columnReplacement(rawObserved, source.imputation?.method ?? 'mean', {
+      measurement: source.imputation?.measurements?.[j] ?? 'continuous',
+      categories: source.imputation?.categoryValues?.[j],
+    });
+    if (typeof completed.value !== 'number') throw new EfaError('numeric-item', 'Pearson imputation requires numeric category values.');
+    const replacement = offset == null ? completed.value : offset - completed.value;
+    rules.push(completed.rule);
+    replacements.push(replacement); missingCounts.push(n - observed.length); counts.push([observed.length]);
+    if (source.imputation) for (let i = 0; i < n; i++) if (!source.observed[j * n + i]) numeric[j * n + i] = replacement;
+    let completedMean = 0, m2 = 0, used = 0;
+    for (let i = 0; i < n; i++) {
+      if (!source.imputation && !source.observed[j * n + i]) continue;
+      const value = numeric[j * n + i], delta = value - completedMean;
+      completedMean += delta / ++used; m2 += delta * (value - completedMean);
+    }
+    const sd = Math.sqrt(m2 / (used - 1));
+    if (!Number.isFinite(completedMean) || !Number.isFinite(sd) || sd <= 0)
+      throw new EfaError("numeric-range", `${source.items[j].column} has an unsupported numeric range or no variation.`);
+    means.push(completedMean); sds.push(sd);
+  }
+  return { ...source, fingerprint: undefined, numeric, means, sds, counts,
+    ...(source.imputation ? { imputation: { ...source.imputation, values: replacements, missingCounts, rules } } : {}),
+    diagnostics: source.imputation ? [{ code: "column-imputation", count: missingCounts.reduce((a, b) => a + b, 0),
+      message: `Column ${source.imputation.method} imputation on fitting rows; Pearson correlations of numeric values. Observed support counts exclude imputed cells.` }] : [] };
+}
+
+export function prepareNumericImputation(table: DataTable, spec: EfaSpec, eligibleRows: number[], method?: "mean" | "median"): EfaPreparedData {
+  const rows = spec.missing === 'complete' ? eligibleRows.filter(row => spec.items.every(item => table.data[item.column]?.[row] != null && table.data[item.column][row] !== '')) : eligibleRows;
+  if (rows.length < 3) throw new EfaError("sample", "Fewer than three eligible respondents remain.");
+  const n = rows.length, p = spec.items.length, numeric = new Float64Array(n * p), observed = new Uint8Array(n * p),
+    reverseOffsets: (number | null)[] = [];
+  spec.items.forEach((item, j) => {
+    if (!table.columns.includes(item.column)) throw new EfaError("column", `Item ${item.column} no longer exists.`);
+    let min = Infinity, max = -Infinity;
+    rows.forEach((row, i) => {
+      const value = table.data[item.column][row];
+      if (value == null || value === "") return;
+      if (typeof value !== "number" || !Number.isFinite(value))
+        throw new EfaError("numeric-item", `${item.column} contains a nonnumeric or nonfinite value. Pearson correlations require numeric items.`);
+      numeric[j * n + i] = value; observed[j * n + i] = 1;
+      min = Math.min(min, value); max = Math.max(max, value);
+    });
+    const offset = item.reverse ? min + max : null;
+    reverseOffsets.push(offset);
+    if (offset !== null) for (let i = 0; i < n; i++) if (observed[j * n + i]) numeric[j * n + i] = offset - numeric[j * n + i];
+  });
+  const measurement = spec.items.map(item => inferMeasurement(rows.map(row => table.data[item.column]?.[row]), {
+    // Old implicit-Pearson analyses used unrestricted numeric replacements.
+    measurement: spec.correlation === undefined ? 'continuous' : item.measurement,
+    categories: item.categories,
+  }));
+  if (measurement.some(item => item.kind !== 'ordinal' && item.kind !== 'continuous'))
+    throw new EfaError('numeric-item', 'Pearson correlations require finite numeric item values.');
+  return completeNumericSample({ items: structuredClone(spec.items), nRows: n, originalRowCount: table.nRows,
+    rows: rows.slice(), codes: new Uint16Array(n * p), observed, means: [], sds: [], counts: [], diagnostics: [],
+    ...(!method ? { numericReverseOffsets: reverseOffsets } : {}),
+    ...(method ? { imputation: { method, values: [], missingCounts: [], reverseOffsets,
+      measurements: measurement.map(item => item.kind as 'ordinal' | 'continuous'),
+      categoryValues: measurement.map(item => item.categories) } } : {}) }, numeric);
+}

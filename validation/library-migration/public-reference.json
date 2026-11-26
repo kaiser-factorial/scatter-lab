@@ -1,0 +1,3504 @@
+{
+  "recordedAt": "2026-11-06T20:33:34.399Z",
+  "runtime": "v24.22.2",
+  "imports": "Emitted package self-reference public ESM exports: @scatterlab/stats/stats, /pca, /cluster",
+  "scope": "Finite matching-contract R comparisons; KS default differences and independently implemented Xi reference explicitly distinguished.",
+  "referenceProvenance": {
+    "R": "R version 4.5.1 (2025-06-13)",
+    "platform": "aarch64-unknown-linux-gnu",
+    "stats": "4.5.1",
+    "jsonlite": "2.0.0",
+    "inputSha256": "74126ac652d3d1f2f9e220a0cf4483643290e472678cea1887ade4e0b22f47a2",
+    "generatorSha256": "cf1d28391ff28efc7e2a8f730dccc96e1bbb99ac0841198d70076dfafbd2b9f3",
+    "image": "sha256:5cd875ebc7ed97cce3e09bca0794e233e5e0d4e5c0252bbbb3c98258dd6c4c6c",
+    "conventions": {
+      "correlation": "pairwise finite numeric coercion, minimum3; Pearson and Spearman midranks",
+      "mannWhitney": "two-sided exact=FALSE correct=FALSE",
+      "ks": "D from stats::ks.test; Stephens-adjusted p separately, R default p measured as compatibility boundary",
+      "kmeans": "ten explicitly recorded kmeans++ center matrices from existing Mulberry32(42+start), compare stats::kmeans Lloyd300 and choose minimumSSE; no shared-seed claim",
+      "pca": "centered, population-SD scaling when enabled; prcomp sample eigenvalues multiplied(n-1)/n for population eigenvalues; signed-axis alignment"
+    },
+    "xi": "Independent R exact predictor-tie permutation average of the paper formula, not a canonical-package call"
+  },
+  "provenance": {
+    "inputSha256": "74126ac652d3d1f2f9e220a0cf4483643290e472678cea1887ade4e0b22f47a2",
+    "referenceSha256": "ec2356276f1da4df6a7099f69b9bdbbdd93298f732f880724f91889f4c147902",
+    "checkerSha256": "91ef2ad86cbd0a71e2c7a8c5d85bd9363f884277ea2c20b042b7bafbb4f1a0ce",
+    "emittedHashes": {
+      "dist/build-manifest.json": "545107651207e9171c9ded11893be0f73ea3cfc34e388a1192355f3f2c259326",
+      "dist/cluster.js": "058834c6c65192077b647b688953427c91722bc41f42c147a195eb1a25dc1f44",
+      "dist/data.js": "3986de73c926a2ef3aab46509cbfc696cbacfcfefda5177bed547750674b5346",
+      "dist/diagnostics.js": "3a08e7636c62c7c10a9e39fbdda9acf24b308e6390b86980ffc79f9678b97c6d",
+      "dist/efa.js": "5c2d03aeb657254a1a42d5371babd4ac387132a46472060f746c97f6ee4a5523",
+      "dist/index.js": "33e91d5e79b541531d4521c1185fcc8993c92f74ef9e359d9d066941cdc1f1ae",
+      "dist/internal/cluster.js": "510a32e7e979d9a49a5af9fefbf78fe0026dab50f9aa7ce0721714d8323c51d5",
+      "dist/internal/convergence.js": "60c92803fbf1dfb147712cca6ad339cecbf9b3928aa0f27ff56c819e4eaf3565",
+      "dist/internal/decomposition-advice.js": "05f326c9d38f547125499edad319723dfe535a10e86ded894f3d65022aadcbce",
+      "dist/internal/efa/backends/types.js": "63d38cbe3e0c277d863a597ba1b365239b5375ffded1a9a9becf66de156807a3",
+      "dist/internal/efa/compare.js": "451d6bf8a976aad49b3e450d0dd9c6d3cf738dbb98c492d6568b4f51e9a6cfee",
+      "dist/internal/efa/completion-record.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+      "dist/internal/efa/correlation-method.js": "5a31f13dd29333b0080785ee084e1481e7e42a899b8d187b35f2cfbe905bdb7c",
+      "dist/internal/efa/correlation.js": "755408407dc192aca268f33ce9d6e94032045bf39847a31e29bd58011617945e",
+      "dist/internal/efa/dwls.js": "ac985d214f04cf4e8246c7901cdbfa4f238427431dbc620158d0e898efdd4479",
+      "dist/internal/efa/extraction.js": "75fd7c6fa94ee2f81d609b88992b99640e2e228f8d0d38e32ca3b73f3f3c41af",
+      "dist/internal/efa/fingerprint.js": "1b15f3c531a1ace0baea594330508d285b27c7f8af6d6e24a1faae15f85f6cac",
+      "dist/internal/efa/fit-cache.js": "af2ef5cc1f2988606965b319db6fa75199e7d68b1da4bcc18014822ec83ce4cd",
+      "dist/internal/efa/fit.js": "cdc14c3c9cd059234cae0273e57b275e8c630e70899b223fbf16933033278f9d",
+      "dist/internal/efa/imputation-analysis.js": "098a9dc40f194af4731ff60a261151260ca4078c7783c45fe3ce2a87648f125c",
+      "dist/internal/efa/math.js": "87e6f391f82eb8cfb86407a4732eca58406e8c4a87a8fadf8dd6e7a22f44bae0",
+      "dist/internal/efa/maximum-likelihood.js": "52a8b9769be4ac371bc7cdf15d3a56422609d4c1577321f5a4198dabe11d5c4c",
+      "dist/internal/efa/mice.js": "4614a3074991a7c232b72ac2d66013a79b60168133ed9b1640d6f76182f64794",
+      "dist/internal/efa/numeric-imputation.js": "c74fb0061c8558ef72104ec8e7f0d28d73b6a85341b8f5cb8762f7fcf21abcb1",
+      "dist/internal/efa/optimize.js": "cad870133a0102ce041812a7b493b0f355be7d67f5e7acb8297f1374f79a841f",
+      "dist/internal/efa/ordinal-imputation.js": "a2e0281317fad2288f7a3869d1784f5bcce6b7c2381cb15ac9e445d18d87dc97",
+      "dist/internal/efa/ordinal-regression.js": "c3c4cca052d6b71c41e07fcfd817b76ac4dcc04874646731310e89b26fdcbf7c",
+      "dist/internal/efa/parallel.js": "2a1552d8a4b4f3789cfb0f893a43c0e34e7fb43ded65eda6c5a2e5ecba8ce2bb",
+      "dist/internal/efa/prepare.js": "dc61576987463079559dfda13e7ac22afd91a2f08b5e6e91586246ce9db581ac",
+      "dist/internal/efa/prepared-sample.js": "913406ef2e76987df59dc3bf47348cef394e37178382afb9c86f3ef89cf88ef1",
+      "dist/internal/efa/rotation.js": "d6856acf8acc0ae3a988df6a7add434c6aab604ff9131c10bae07653417d7b3a",
+      "dist/internal/efa/stability.js": "b6d9e495999db93c908e1e3f0e2437625afa85d9cc176129431ec8809ae6bada",
+      "dist/internal/efa/trace-estimation.js": "f89b77f0a52d62f29a5d0451144308d4c096bfa8afc438549eb693db74f47bf7",
+      "dist/internal/efa/trace-kernel.js": "bf6623dcb2056203721a5d315d9c5eeaf6820e9c93456ad52e7d3c09e1eac8fa",
+      "dist/internal/efa/types.js": "e7acec16fda189a51cb20ffdc47c1306addd5232ec29afb605e81562e4d1639b",
+      "dist/internal/efa/weighted-inference.js": "7961d6eb71af60a6db543b134de605e807d976ff5de4d95aaa0afcd448123015",
+      "dist/internal/efa/weighted-linalg.js": "4a38c726fae34178c8a57406f987ca07fef7d235b9c6778e4a348e3edce37335",
+      "dist/internal/efa/weighted-moments.js": "a4ad4ca8f723ee00cbb04739e39180f455620550c897b2e6fe7ce864a3fad2ea",
+      "dist/internal/efa/weighted-rotation.js": "a3210b31db6537ca3911eae7ef45a8fc7173479e10aacf9ec5f08ca06f5e49f3",
+      "dist/internal/identifiers.js": "a854d9ce047a90ddd9a7e1c430d7c316f652656aee07d6f1d1b9455be767afd3",
+      "dist/internal/measurement.js": "1fb5cc0e78d2702829e01550e14e79133b7290851d5ce98faa29c918763cf9d0",
+      "dist/internal/pca-imputation-core.js": "f8bda2ddd46c6f40a0d93accd51894bf3162b5ba2998f8789712221be4006a2e",
+      "dist/internal/pca.js": "3c9b2d0e01cf8d5fc13bbabc7a504a4aff431d79920e0129a3107383fd9363cf",
+      "dist/internal/random.js": "1c15e3d246637466e0f6a1059977bb0c11db79fc51c3f4c83510c9127ed20ca7",
+      "dist/internal/statTests.js": "98bb71a0da436fd3c15bf07de0cad240e76cb0b7e614fe5f38f38da9616b0e07",
+      "dist/internal/stats.js": "fb5694008b90177a85528dba7d156b1732fecaaa90dc40d503277198aa0a65dc",
+      "dist/internal/table.js": "f1c59fd7c195941b3d4d87e84290566d4bd47cb1f1c8718e857eafe4a4f28add",
+      "dist/missing.js": "88f82857832c129d3a7f62a529ee2ed21cc6bfc29c954032cfa6a473d019bfbf",
+      "dist/pca.js": "ede31160c8ba862a28b995dbfb7fe83d8c0d7b17fecaa5a28a352dfe80248caa",
+      "dist/stats.js": "691fa71c3baee27b1a745333bf326129965e21b6c418eae980bdbbd5e6b9d063"
+    },
+    "sourceHashes": {
+      "src/cluster.ts": "d17a5f7dec26d2302c781d86c69d790e8e36ea4a2f8fb0b1d88576aa438feb0a",
+      "src/data.ts": "ed81f572660bfbed1f3f4e5da7b4e1f71aee52a0ad1c3dd57a02fcab61896e3d",
+      "src/diagnostics.ts": "195d78eeb42320a8dfc70b4a06346434f17f1e7b453abe7f99dea43c8d96a656",
+      "src/efa.ts": "61afdd7640c43de681906aa7302a2ce1c1dc1b5b111a2002c1326f34dcfcb0bb",
+      "src/index.ts": "e282d603c3f383e738f4fe58b26b106396741c5fdf76a0d7170f8a97f4386c16",
+      "src/internal/cluster.ts": "62caad558eee999de9c69dffa6fb20eff03064ca97b047e3475ead8cc651055a",
+      "src/internal/convergence.ts": "9490e7d50175a9dfab436e3fa7e2b505b73da97de8c47c1a0ee09d015ec90889",
+      "src/internal/decomposition-advice.ts": "8bfe4b1666280d852ec501e4fb62aef69e07c13529302fa9bb5a1936c4f116bf",
+      "src/internal/efa/backends/types.ts": "8b416f53e05548b98712ff7adbe3077dc8a5e4d33774678af3cf0ba20a5d8574",
+      "src/internal/efa/compare.ts": "082cf9bdc5d01da940e21f18b14ef63ff5fddf4a7ed8458455594f0bbe250e2c",
+      "src/internal/efa/completion-record.ts": "e97dae1ae8775ec0a0ecc2312c76c5e715dc644e173e8b38d36f21523ebbdb0a",
+      "src/internal/efa/correlation-method.ts": "09d35efdfd2a8d59cff6eae6dbb8ab11235025ab335c6f030b8ac18005685457",
+      "src/internal/efa/correlation.ts": "26dcea35a05a18ee8f92eff1a88cec069e4f266dc489ed641eef892b1db34749",
+      "src/internal/efa/dwls.ts": "960dac0dddc140b222abf323c7494586916f9b784cb6c483644ab24ad158ef37",
+      "src/internal/efa/extraction.ts": "3f41195de95cf8781985ac8449a68385e4b50b22a25bb61eefed6d0280cd1df2",
+      "src/internal/efa/fingerprint.ts": "a331215b74d36b0a706a159251313f0f8fea88692ef555025c4768d3245de54a",
+      "src/internal/efa/fit-cache.ts": "5ae0084e4c1406704e72f101e816b3d77fb492cae58808cd12e36438520b7928",
+      "src/internal/efa/fit.ts": "31c00030570cdd61e2152ec53fe679b8423a298f98d8b254733431be95c2ae89",
+      "src/internal/efa/imputation-analysis.ts": "0595495568d85c954014d740086253e1a50318addbb23513a4c4230421013463",
+      "src/internal/efa/math.ts": "a1d66b7069257658579f084d27ae8f5147cbb24625b6d5f2d08f298bd61d7d18",
+      "src/internal/efa/maximum-likelihood.ts": "2dd74472fbebca943f301b999e2696975b41239d0f722d8aecbdb81c9b7a296a",
+      "src/internal/efa/mice.ts": "12562a773db1fbe6599573c31a97fcfeace075315717046237b808fc904f8691",
+      "src/internal/efa/numeric-imputation.ts": "d2ce5d9e6b5650123c023c028d592bada82391e9e8626037f21b07b2cc5edfb2",
+      "src/internal/efa/optimize.ts": "21ae8d4a9c2287b79591922ae0f5e43795546847733bbded5a807ef0803c37da",
+      "src/internal/efa/ordinal-imputation.ts": "93257ce8f7af45c316b0d3884d625e8d581b8623929945545c682b2beedadc13",
+      "src/internal/efa/ordinal-regression.ts": "598ab395649a8619c34502a78b3e19c42f7d2c1575ee8c7ed0e8958a8d406ad8",
+      "src/internal/efa/parallel.ts": "27ef5e920524e7f171b9605fed46b21a3533e354687a4e531909282e194a6b45",
+      "src/internal/efa/prepare.ts": "5ee83a35fac7139436b0f0a846e3eeb011f062ddfe842e8f33e93e0f5cc7e14f",
+      "src/internal/efa/prepared-sample.ts": "fb3402fa11e819e4d4241b33c93af79293af23a7a556462f3d3adb9e329895fa",
+      "src/internal/efa/rotation.ts": "9abe01ca31eed9128a724b8b69f51dabc7b2cd853531e7d9803a6b8a8cbdc2c3",
+      "src/internal/efa/stability.ts": "f337bb9bcd548309934dcf6d13c72bacce659cc70d7e1b2e184b57d5f98bb270",
+      "src/internal/efa/trace-estimation.ts": "d928cc155c53ad5cf42d29da660a58a3ff21f2786b941e64ef27b0cf9b28cdc5",
+      "src/internal/efa/trace-kernel.ts": "a7d589ebe02159f23a4a768a7017ee11bc403884b0cc48c1ef896b9b8703cb58",
+      "src/internal/efa/types.ts": "0face4d759805d9ef3be40def2b7824ed603a676d25fd26edc460488fd6c4fe8",
+      "src/internal/efa/weighted-inference.ts": "52161d05194c6cccaabbd87573c78ac66bdc39618a67597364f53e57406cdf0c",
+      "src/internal/efa/weighted-linalg.ts": "87a1e36aad146717eab5d1470e1b4cffbb2fe1c1cd40ff72760798893109ebae",
+      "src/internal/efa/weighted-moments.ts": "04dec18d4dc685e001006733fe2998cb1b4f5dba356e1812d34f97c8dd02a64c",
+      "src/internal/efa/weighted-rotation.ts": "7d35c7ade885330fb6a646d6881cd269c5cc2feb0aa8429a6e37c84b44770ee6",
+      "src/internal/identifiers.ts": "069a406eba70c5a04d1793735964a3b57fc3ffb7d5ceaf61ac4191a8e077ff5f",
+      "src/internal/measurement.ts": "646513b3cc9a9d3d0b035c71e16ced3ce1c9e94c04b713d1fde1946035838f70",
+      "src/internal/pca-imputation-core.ts": "16c39b1f516fb936fbec445da901a34e77d00f62869b4935d43373054aea2924",
+      "src/internal/pca.ts": "6a9aedc18bbeee8e03d36a0d605d0e4638a7fdebb05ee7e078eaba0c7205f2bd",
+      "src/internal/random.ts": "d9b8b9d36f935199002103ab96d5f596bbb6f5b707b4424420133ba2077bc4f9",
+      "src/internal/statTests.ts": "7e9ce4bc31c1746471810f87beba626ae1bf732e3d3743607503beaa85aa7d47",
+      "src/internal/stats.ts": "73561e067bf424116749a64245860d93a80540ad9a06358446979acdc378c481",
+      "src/internal/table.ts": "4827a149bd218011c3bb036388e52da5ef81c1a27876b17ff65dfe46ce9a30aa",
+      "src/missing.ts": "9f9a159b9540a0376cd56ffd1e1532e302c814a8f90693c53764b3e53a4e1952",
+      "src/pca.ts": "cd0f10aa011328cef608957d1f93e305659eb1a761b68b2b4f52876184aa3da0",
+      "src/stats.ts": "918dfc0fcdf3ff06dc6124c1ac9f937d2bdbd6535ed3e4bcb3a4b29ffddefcc9"
+    },
+    "sourceDrift": [],
+    "emittedDrift": []
+  },
+  "groups": 73,
+  "expectedGroups": 73,
+  "scalarChecks": 23969,
+  "expectedScalarChecks": 23969,
+  "status": "passed",
+  "results": [
+    {
+      "family": "descriptive",
+      "name": "continuous",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "missing",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "median",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "min",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "max",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "variancePopulation",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "varianceSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdPopulation",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "descriptive",
+      "name": "coercion",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "missing",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "median",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "min",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "max",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "variancePopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "varianceSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdPopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "descriptive",
+      "name": "singleton",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "missing",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "median",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "min",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "max",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "variancePopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "varianceSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdPopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "descriptive",
+      "name": "empty",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "missing",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "median",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "min",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "max",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "variancePopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "varianceSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdPopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "descriptive",
+      "name": "constant",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "missing",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "median",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "min",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "max",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "variancePopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "varianceSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdPopulation",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "sdSample",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "linear",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 2.220446049250313e-16,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "negative",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 2.220446049250313e-16,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 2.220446049250313e-16,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "nonlinear",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "ties",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 6.938893903907228e-18,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "chatterjee",
+          "error": 5.551115123125783e-17,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "chatterjeeReverse",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "no-ties-small",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 2.220446049250313e-16,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 2.220446049250313e-16,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "chatterjee",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "chatterjeeReverse",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "numeric-strings-missing",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "constant",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "chatterjee",
+          "error": 9.25185853854297e-18,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "chatterjeeReverse",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "two-observations",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "correlation",
+      "name": "offset",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "n",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pearson",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "spearman",
+          "error": 0,
+          "limit": 2e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "unequal-groups",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 1.0658141036401503e-14,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 1.3552527156068805e-20,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 1.2434497875801753e-14,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "unequal-groups",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 6.961847673868371e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "unequal-groups",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 1.1102230246251565e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 7.806255641895632e-18,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "outlier",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 2.0816681711721685e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 9.769962616701378e-15,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "outlier",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 5.8375147773216457e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "outlier",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 0,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "tied-ordinal",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 1.1102230246251565e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 3.1086244689504383e-15,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "tied-ordinal",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 4.382448937079175e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "tied-ordinal",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 5.551115123125783e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 0,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "symmetric-null",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "symmetric-null",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 1.0496172819784988e-9,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "symmetric-null",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 0,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "skewed",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 2.1316282072803006e-14,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 5.995204332975845e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 9.325873406851315e-15,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 1.6653345369377348e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "skewed",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 4.7168308869860454e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "skewed",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 1.1102230246251565e-16,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "heavy-tail",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 7.105427357601002e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 1.887379141862766e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 1.2434497875801753e-14,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 2.7755575615628914e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "heavy-tail",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 7.288912318159646e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "heavy-tail",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 2.7755575615628914e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 1.1102230246251565e-16,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "near-null-ecdf",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 2.3436114160446664e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 7.105427357601002e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 5.421219029244639e-13,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 2.5757174171303632e-14,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 6.054184931159057e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "near-null-ecdf",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 7.297160831143401e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "near-null-ecdf",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 1.0408340855860843e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 0,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "welch",
+      "name": "tiny-unequal",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 3.0531133177191805e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "ci95",
+          "error": 5.329070518200751e-15,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "Cohen d",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "mann-whitney",
+      "name": "tiny-unequal",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "U",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "normal approximation p",
+          "error": 6.549091099983251e-8,
+          "limit": 1.6e-7,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "rank biserial convention",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "KS",
+      "name": "tiny-unequal",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "D",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Stephens-adjusted p",
+          "error": 5.551115123125783e-17,
+          "limit": 2e-12,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kruskal-wallis",
+      "name": "three-separated",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 1.0408340855860843e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "epsilon squared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "group-comparison",
+      "name": "three-separated",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "overall n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "etaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "omegaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kruskal-wallis",
+      "name": "tied",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 7.549516567451064e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 2.220446049250313e-15,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "epsilon squared",
+          "error": 5.412337245047638e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "group-comparison",
+      "name": "tied",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "overall n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "etaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "omegaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kruskal-wallis",
+      "name": "unbalanced",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 8.326672684688674e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "epsilon squared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "group-comparison",
+      "name": "unbalanced",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "overall n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "etaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "omegaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kruskal-wallis",
+      "name": "overlapping",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 4.163336342344337e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "epsilon squared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "group-comparison",
+      "name": "overlapping",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "overall n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "overall sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "etaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "omegaSquared",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g3 sd",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g2 sd",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 n",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 mean",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "g1 sd",
+          "error": 2.220446049250313e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "chi-square",
+      "name": "two-by-two",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 5.551115123125783e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Cramer V",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "chi-square",
+      "name": "sparse",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 1.3877787807814457e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 1.1102230246251565e-16,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Cramer V",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "chi-square",
+      "name": "three-by-three",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 1.9081958235744878e-17,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Cramer V",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "chi-square",
+      "name": "independent",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "statistic",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "df",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "p",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "Cramer V",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 1,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kmeans",
+      "name": "three-clouds",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "within-cluster SS",
+          "error": 7.105427357601002e-15,
+          "limit": 1e-9,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pairwise co-membership",
+          "error": 0,
+          "limit": 0,
+          "scalarChecks": 630,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kmeans",
+      "name": "unequal-clouds",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "within-cluster SS",
+          "error": 2.1316282072803006e-14,
+          "limit": 1e-9,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pairwise co-membership",
+          "error": 0,
+          "limit": 0,
+          "scalarChecks": 990,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "kmeans",
+      "name": "overlapping-clouds",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "within-cluster SS",
+          "error": 1.4210854715202004e-14,
+          "limit": 1e-9,
+          "scalarChecks": 1,
+          "passed": true
+        },
+        {
+          "metric": "pairwise co-membership",
+          "error": 0,
+          "limit": 0,
+          "scalarChecks": 435,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "small-continuous/complete/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 1.7763568394002505e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 4.579669976578771e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 1.27675647831893e-14,
+          "limit": 2e-8,
+          "scalarChecks": 96,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 1.3100631690576847e-14,
+          "limit": 2e-8,
+          "scalarChecks": 12,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "small-continuous/complete/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 8.881784197001252e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 2.220446049250313e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 8.992806499463768e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 2.8310687127941492e-14,
+          "limit": 2e-8,
+          "scalarChecks": 96,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 3.164135620181696e-14,
+          "limit": 2e-8,
+          "scalarChecks": 12,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "small-continuous/mean/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 3.552713678800501e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 9.270362255620057e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 3.026745520884333e-14,
+          "limit": 2e-8,
+          "scalarChecks": 96,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 2.7977620220553945e-14,
+          "limit": 2e-8,
+          "scalarChecks": 12,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "small-continuous/mean/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 1.1102230246251565e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 2.220446049250313e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 3.497202527569243e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 6.63358257213531e-15,
+          "limit": 2e-8,
+          "scalarChecks": 96,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 4.9960036108132044e-15,
+          "limit": 2e-8,
+          "scalarChecks": 12,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "small-continuous/median/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 1.5543122344752192e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 9.43689570931383e-16,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 3.3306690738754696e-15,
+          "limit": 2e-8,
+          "scalarChecks": 96,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 1.8596235662471372e-15,
+          "limit": 2e-8,
+          "scalarChecks": 12,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "small-continuous/median/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 2.6645352591003757e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 2.220446049250313e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 2.220446049250313e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 2.831068712794149e-15,
+          "limit": 2e-8,
+          "scalarChecks": 96,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 2.4147350785597155e-15,
+          "limit": 2e-8,
+          "scalarChecks": 12,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "iris/complete/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 4.440892098500626e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 1.3322676295501878e-15,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 2.55351295663786e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 3.1086244689504383e-15,
+          "limit": 2e-8,
+          "scalarChecks": 480,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 3.3475826277662435e-15,
+          "limit": 2e-8,
+          "scalarChecks": 120,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "iris/complete/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 8.881784197001252e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 1.3322676295501878e-15,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 2.220446049250313e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 8.049116928532385e-16,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 5.329070518200751e-15,
+          "limit": 2e-8,
+          "scalarChecks": 480,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 4.884981308350689e-15,
+          "limit": 2e-8,
+          "scalarChecks": 120,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "iris/mean/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 5.329070518200751e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 2.220446049250313e-15,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 6.328271240363392e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 1.3211653993039363e-14,
+          "limit": 2e-8,
+          "scalarChecks": 480,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 1.049160758270773e-14,
+          "limit": 2e-8,
+          "scalarChecks": 120,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "iris/mean/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 4.440892098500626e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 2.220446049250313e-15,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 5.551115123125783e-16,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 3.885780586188048e-15,
+          "limit": 2e-8,
+          "scalarChecks": 480,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 3.774758283725532e-15,
+          "limit": 2e-8,
+          "scalarChecks": 120,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "iris/median/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 8.881784197001252e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 1.7763568394002505e-15,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 9.769962616701378e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 1.8346435481930712e-14,
+          "limit": 2e-8,
+          "scalarChecks": 480,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 1.7763568394002505e-14,
+          "limit": 2e-8,
+          "scalarChecks": 120,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "iris/median/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 8.326672684688674e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 1.7763568394002505e-15,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 1.2212453270876722e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 5.995204332975845e-15,
+          "limit": 2e-8,
+          "scalarChecks": 480,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 6.661338147750939e-15,
+          "limit": 2e-8,
+          "scalarChecks": 120,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "holzinger/complete/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 5.773159728050814e-15,
+          "limit": 2e-8,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 1.3822276656583199e-14,
+          "limit": 2e-8,
+          "scalarChecks": 81,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 3.885780586188048e-14,
+          "limit": 2e-8,
+          "scalarChecks": 2250,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 3.752553823233029e-14,
+          "limit": 2e-8,
+          "scalarChecks": 459,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "holzinger/complete/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 2.6645352591003757e-15,
+          "limit": 2e-8,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 4.440892098500626e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 6.661338147750939e-16,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 8.132383655379272e-15,
+          "limit": 2e-8,
+          "scalarChecks": 81,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 2.525757381022231e-14,
+          "limit": 2e-8,
+          "scalarChecks": 2250,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 2.6201263381153694e-14,
+          "limit": 2e-8,
+          "scalarChecks": 459,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "holzinger/mean/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 6.217248937900877e-15,
+          "limit": 2e-8,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 7.993605777301127e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 5.6066262743570405e-15,
+          "limit": 2e-8,
+          "scalarChecks": 81,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 1.9761969838327786e-14,
+          "limit": 2e-8,
+          "scalarChecks": 2250,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 1.5265566588595902e-14,
+          "limit": 2e-8,
+          "scalarChecks": 459,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "holzinger/mean/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 6.217248937900877e-15,
+          "limit": 2e-8,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 7.993605777301127e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 3.410813298465598e-14,
+          "limit": 2e-8,
+          "scalarChecks": 81,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 2.936539900133539e-13,
+          "limit": 2e-8,
+          "scalarChecks": 2250,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 2.2008783684412947e-13,
+          "limit": 2e-8,
+          "scalarChecks": 459,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "holzinger/median/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 7.549516567451064e-15,
+          "limit": 2e-8,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 1.6292522886374172e-14,
+          "limit": 2e-8,
+          "scalarChecks": 81,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 4.596323321948148e-14,
+          "limit": 2e-8,
+          "scalarChecks": 2250,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 3.241851231905457e-14,
+          "limit": 2e-8,
+          "scalarChecks": 459,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "holzinger/median/scaled",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 1.021405182655144e-14,
+          "limit": 2e-8,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 3.552713678800501e-15,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 4.440892098500626e-16,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 9,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 3.1787072973799013e-14,
+          "limit": 2e-8,
+          "scalarChecks": 81,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 2.778194341246376e-13,
+          "limit": 2e-8,
+          "scalarChecks": 2250,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 2.0566881531181025e-13,
+          "limit": 2e-8,
+          "scalarChecks": 459,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "covariance-scale-1e-10/complete/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 3.552713678800501e-15,
+          "limit": 2e-8,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 0,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 1.7763568394002505e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 1.7763568394002505e-15,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "family": "PCA-public-fit-and-transform",
+      "name": "covariance-scale-1e+100/complete/covariance",
+      "status": "passed",
+      "checks": [
+        {
+          "metric": "population eigenvalues (normalized for explicit scale cases)",
+          "error": 1.7763568394002505e-15,
+          "limit": 2e-8,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "training means",
+          "error": 8.881784197001252e-16,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "training population scales",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "training fill values",
+          "error": 0,
+          "limit": 1e-10,
+          "scalarChecks": 2,
+          "passed": true
+        },
+        {
+          "metric": "signed components",
+          "error": 1.1102230246251565e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        },
+        {
+          "metric": "signed training scores",
+          "error": 1.7763568394002505e-15,
+          "limit": 2e-8,
+          "scalarChecks": 16,
+          "passed": true
+        },
+        {
+          "metric": "signed heldout scores with training parameters",
+          "error": 8.881784197001252e-16,
+          "limit": 2e-8,
+          "scalarChecks": 4,
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "family": "KS",
+      "name": "unequal-groups",
+      "nativeP": 0.002235763401371504,
+      "rAsymptoticP": 0.00519928694171996,
+      "rExactP": 0.0015561456536015692,
+      "absVsRAsymptotic": 0.0029635235403484557,
+      "absVsRExact": 0.0006796177477699349
+    },
+    {
+      "family": "KS",
+      "name": "outlier",
+      "nativeP": 0.0012832588773382019,
+      "rAsymptoticP": 0.003150525052560046,
+      "rExactP": 0.0009073777212153842,
+      "absVsRAsymptotic": 0.0018672661752218442,
+      "absVsRExact": 0.0003758811561228177
+    },
+    {
+      "family": "KS",
+      "name": "tied-ordinal",
+      "nativeP": 0.6898030576924539,
+      "rAsymptoticP": 0.7804448483506444,
+      "rExactP": 0.5063759769642123,
+      "absVsRAsymptotic": 0.09064179065819056,
+      "absVsRExact": 0.18342708072824154
+    },
+    {
+      "family": "KS",
+      "name": "symmetric-null",
+      "nativeP": 1,
+      "rAsymptoticP": 1,
+      "rExactP": 1,
+      "absVsRAsymptotic": 0,
+      "absVsRExact": 0
+    },
+    {
+      "family": "KS",
+      "name": "skewed",
+      "nativeP": 0.5961212241614214,
+      "rAsymptoticP": 0.6464668094867736,
+      "rExactP": 0.5766966320961194,
+      "absVsRAsymptotic": 0.05034558532535216,
+      "absVsRExact": 0.019424592065302004
+    },
+    {
+      "family": "KS",
+      "name": "heavy-tail",
+      "nativeP": 0.9841755266358839,
+      "rAsymptoticP": 0.9932393174027832,
+      "rExactP": 0.9571326506311028,
+      "absVsRAsymptotic": 0.009063790766899227,
+      "absVsRExact": 0.02704287600478117
+    },
+    {
+      "family": "KS",
+      "name": "near-null-ecdf",
+      "nativeP": 1,
+      "rAsymptoticP": 1,
+      "rExactP": 1,
+      "absVsRAsymptotic": 0,
+      "absVsRExact": 0
+    },
+    {
+      "family": "KS",
+      "name": "tiny-unequal",
+      "nativeP": 0.4249095498880198,
+      "rAsymptoticP": 0.6603860231499035,
+      "rExactP": 0.4,
+      "absVsRAsymptotic": 0.23547647326188365,
+      "absVsRExact": 0.0249095498880198
+    }
+  ]
+}

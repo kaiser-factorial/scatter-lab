@@ -1,0 +1,11 @@
+{
+  "recordedAt": "2026-10-31T07:32:48.601Z",
+  "stage": {
+    "id": "365cfbef-575c-420b-a582-93f8e84a38ee",
+    "status": "running",
+    "stage": "Parallel analysis · replicate 8: MINRES · projected gradient 4.454e-6 (39/500) · 1 failed",
+    "completed": 4,
+    "total": 100
+  },
+  "heartbeat": "7501"
+}

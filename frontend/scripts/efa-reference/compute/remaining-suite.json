@@ -1,0 +1,249 @@
+{
+  "status": "completed",
+  "startedAt": "2026-11-01T01:20:09.687Z",
+  "stages": [
+    {
+      "name": "Observe existing strict GPU full-size fit",
+      "status": "completed-unqualified",
+      "startedAt": "2026-11-01T01:20:09.696Z",
+      "endedAt": "2026-11-01T01:55:57.120Z"
+    },
+    {
+      "name": "Verify full-size numerical agreement",
+      "args": [
+        "scripts/efa-reference/compute/compare-results.mjs"
+      ],
+      "startedAt": "2026-11-01T01:55:57.131Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T01:55:58.176Z"
+    },
+    {
+      "name": "Strict GPU holdout refit",
+      "args": [
+        "scripts/efa-reference/compute/check-pipeline.mjs",
+        "http://localhost:3000/efa-qualification/compute/index.html?pipeline=1&fixture=large-holdout&backend=gpu-strict-reduced&block=128&budgetMiB=1536&probeCancellation=1",
+        "scripts/efa-reference/compute/browser-holdout-gpu-strict-reduced.json",
+        "--worker-archive=scripts/efa-reference/compute/archives/f25b3a141bbb14d8fc42de6116072c5cb0a06b5bd632eebdd9c819810ab4d40f.js.gz"
+      ],
+      "startedAt": "2026-11-01T01:55:58.180Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:14:42.895Z"
+    },
+    {
+      "name": "native-reuse-direct-1",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-reuse-direct-1",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-reuse-direct-1.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=1",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json"
+      ],
+      "startedAt": "2026-11-01T02:14:42.902Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:15:10.319Z"
+    },
+    {
+      "name": "native-reuse-direct-2",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-reuse-direct-2",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-reuse-direct-2.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=2",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json"
+      ],
+      "startedAt": "2026-11-01T02:15:10.348Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:15:36.665Z"
+    },
+    {
+      "name": "native-reuse-direct-4",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-reuse-direct-4",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-reuse-direct-4.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=4",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json"
+      ],
+      "startedAt": "2026-11-01T02:15:36.687Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:16:01.279Z"
+    },
+    {
+      "name": "native-reuse-row-cache-1",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-reuse-row-cache-1",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-reuse-row-cache-1.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=1",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json",
+        "--row-cache"
+      ],
+      "startedAt": "2026-11-01T02:16:01.306Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:16:29.590Z"
+    },
+    {
+      "name": "native-reuse-row-cache-2",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-reuse-row-cache-2",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-reuse-row-cache-2.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=2",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json",
+        "--row-cache"
+      ],
+      "startedAt": "2026-11-01T02:16:29.625Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:16:54.555Z"
+    },
+    {
+      "name": "native-reuse-row-cache-4",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/native-reuse-row-cache-4",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-native-resident.mjs",
+        "scripts/efa-reference/compute/native-reuse-row-cache-4.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=4",
+        "--repeats=5",
+        "--reference=scripts/efa-reference/compute/native-resident-reference.json",
+        "--row-cache"
+      ],
+      "startedAt": "2026-11-01T02:16:54.573Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:17:17.745Z"
+    },
+    {
+      "name": "Optimized native R qualification",
+      "args": [
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/scala-optimized-qualified.json",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=4",
+        "--row-cache"
+      ],
+      "startedAt": "2026-11-01T02:17:17.766Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:17:26.748Z"
+    },
+    {
+      "name": "Optimized native holdout refit",
+      "args": [
+        "scripts/efa-reference/compute/run-monitored.mjs",
+        "scripts/efa-reference/compute/scala-holdout-resident",
+        "/Users/corinakaiser/.hermes/node/bin/node",
+        "scripts/efa-reference/compute/check-scala-pipeline.mjs",
+        "scripts/efa-reference/compute/scala-holdout-resident.json",
+        "--fixture=large-holdout",
+        "--block=128",
+        "--budget-mib=1536",
+        "--pipeline-archive=scripts/efa-reference/compute/archives/f25b3a141bbb14d8fc42de6116072c5cb0a06b5bd632eebdd9c819810ab4d40f.mjs.gz",
+        "--source=scripts/efa-reference/compute/TraceServerOptimized.scala",
+        "--class=TraceServerOptimized",
+        "--threads=4",
+        "--row-cache"
+      ],
+      "startedAt": "2026-11-01T02:17:26.754Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:38:36.398Z"
+    },
+    {
+      "name": "Final numerical comparison",
+      "args": [
+        "scripts/efa-reference/compute/compare-results.mjs"
+      ],
+      "startedAt": "2026-11-01T02:38:36.404Z",
+      "status": "completed",
+      "exitCode": 0,
+      "endedAt": "2026-11-01T02:38:37.125Z"
+    }
+  ],
+  "originalJavaScriptFullSizeBaseline": "skipped-by-user",
+  "nativeSelection": {
+    "criterion": "Lowest subsequent median on ten representative case blocks, after all six configurations passed Float64 parity. This is a kernel selection, not a full-fit speed guarantee.",
+    "candidates": [
+      {
+        "filename": "native-reuse-row-cache-4.json",
+        "threads": 4,
+        "rowCache": true,
+        "subsequentMedianMs": 2431.1209584999997
+      },
+      {
+        "filename": "native-reuse-direct-4.json",
+        "threads": 4,
+        "rowCache": false,
+        "subsequentMedianMs": 2609.128645499999
+      },
+      {
+        "filename": "native-reuse-row-cache-2.json",
+        "threads": 2,
+        "rowCache": true,
+        "subsequentMedianMs": 2609.694291499998
+      },
+      {
+        "filename": "native-reuse-direct-1.json",
+        "threads": 1,
+        "rowCache": false,
+        "subsequentMedianMs": 2774.6777914999993
+      },
+      {
+        "filename": "native-reuse-direct-2.json",
+        "threads": 2,
+        "rowCache": false,
+        "subsequentMedianMs": 2801.9805420000002
+      },
+      {
+        "filename": "native-reuse-row-cache-1.json",
+        "threads": 1,
+        "rowCache": true,
+        "subsequentMedianMs": 3360.4726249999985
+      }
+    ],
+    "selected": {
+      "filename": "native-reuse-row-cache-4.json",
+      "threads": 4,
+      "rowCache": true,
+      "subsequentMedianMs": 2431.1209584999997
+    }
+  },
+  "completedAt": "2026-11-01T02:38:37.128Z",
+  "defaultBrowserGpu": "Numerical failure preserved separately; developer-only strict-math success does not qualify default WebGPU"
+}

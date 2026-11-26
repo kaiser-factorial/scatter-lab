@@ -1,0 +1,28 @@
+Loading file "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/fiml-cell.saw"
+
+
+# Theorems Proved or Assumed
+
+* Theorem:
+~~~~
+  let { _x`1 = seq (TCNum 64) Bool;
+      }
+   in (_x : Bool)
+      -> (_x1 : _x`1)
+      -> (_x2 : _x`1)
+      -> EqTrue (preservesObserved _x _x1 _x2)
+~~~~
+
+* Theorem:
+~~~~
+  let { _x`1 = seq (TCNum 64) Bool;
+      }
+   in (_x : Bool)
+      -> (_x1 : _x`1)
+      -> (_x2 : _x`1)
+      -> EqTrue (fillsMissing _x _x1 _x2)
+~~~~
+
+# Solvers Used
+
+* SBV->Z3

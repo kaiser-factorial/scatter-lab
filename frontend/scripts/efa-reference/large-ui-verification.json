@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "items": 500,
+  "respondents": 20000,
+  "renderedTableRows": 23,
+  "checks": [
+    "real full-size fit displayed",
+    "virtualized table",
+    "keyboard dismissal",
+    "last item reachable",
+    "pattern and structure heatmaps in both themes"
+  ],
+  "pageErrors": []
+}

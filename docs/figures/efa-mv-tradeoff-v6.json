@@ -1,0 +1,132 @@
+{
+  "purpose": "Compare measured trace-stage speed against observed relative Monte Carlo error, by dataset and probe budget",
+  "grain": "one synthetic case, seed and cumulative fixed probe budget",
+  "statistic": "absolute relative error to exact tr(H\u00b2); exact time / estimated time",
+  "encoding": "faceted log-log scatter; common scales; probe count encoded by color and marker; no aggregation or trend line",
+  "alternative": "A single pooled scatter would obscure dataset structure and encourage a size-only claim; facets retain the case identity",
+  "timing_scope": "GPU kernel startup plus trace stage, excluding common projections/covariance, self-checks and rotations. CPU inset is whole inference and explicitly separate.",
+  "limits": [
+    "Data dimensions and factor counts vary together; not a controlled effect of N alone",
+    "Ten seeds for current cases; two for the historical 500-item case",
+    "Observed errors are not error guarantees; probe checkpoints are nested",
+    "Single-hardware measurements; no universal backend threshold"
+  ],
+  "matplotlib": "3.10.7",
+  "sources": {
+    "frontend/scripts/efa-reference/compute/trace-tradeoff-v6.json": "118780ceb9c9afa3ad12c3ddb21aa8ba8eadd45b5a36bb847d22de11464e358d",
+    "frontend/scripts/efa-reference/compute/trace-estimation-large-v5.json": "cf018c54210179ae003825455ec4d69dadb32ef6f18719d1a1f75cd684bdee4b"
+  },
+  "summaries": [
+    {
+      "dimensions": {
+        "rows": 1000,
+        "items": 8,
+        "factors": 2,
+        "pairs": 28,
+        "parameters": 15
+      },
+      "exact_gpu_ms": 191.29999995231628,
+      "estimated_gpu_median_ms": 59.39999997615814,
+      "error_range_percent": [
+        1.3087460400576723,
+        7.97761779371792
+      ],
+      "median_abs_error_percent": 3.4408149410483673,
+      "seeds": 10,
+      "cpu_exact_inference_median_ms": 5.300000071525574,
+      "cpu_repeats": [
+        9.399999976158142,
+        8.800000071525574,
+        6.299999952316284,
+        3.899999976158142,
+        5.300000071525574,
+        4.399999976158142,
+        3.899999976158142
+      ]
+    },
+    {
+      "dimensions": {
+        "rows": 1000,
+        "items": 20,
+        "factors": 5,
+        "pairs": 190,
+        "parameters": 90
+      },
+      "exact_gpu_ms": 145.60000002384186,
+      "estimated_gpu_median_ms": 52.300000071525574,
+      "error_range_percent": [
+        0.25170166414866646,
+        2.6041257139192484
+      ],
+      "median_abs_error_percent": 1.1995816912623352,
+      "seeds": 10,
+      "cpu_exact_inference_median_ms": 55.699999928474426,
+      "cpu_repeats": [
+        124.80000007152557,
+        52.10000002384186,
+        50.199999928474426,
+        60.10000002384186,
+        56.10000002384186,
+        55.699999928474426,
+        52
+      ]
+    },
+    {
+      "dimensions": {
+        "rows": 2000,
+        "items": 60,
+        "factors": 5,
+        "pairs": 1770,
+        "parameters": 290
+      },
+      "exact_gpu_ms": 1189.7999999523163,
+      "estimated_gpu_median_ms": 212.69999992847443,
+      "error_range_percent": [
+        0.00853493927793187,
+        1.1104978896676476
+      ],
+      "median_abs_error_percent": 0.34237691126044334,
+      "seeds": 10,
+      "cpu_exact_inference_median_ms": null,
+      "cpu_repeats": null
+    },
+    {
+      "dimensions": {
+        "rows": 5000,
+        "items": 120,
+        "factors": 5,
+        "pairs": 7140,
+        "parameters": 590
+      },
+      "exact_gpu_ms": 8538.700000047684,
+      "estimated_gpu_median_ms": 885.7000001072884,
+      "error_range_percent": [
+        0.010924991671773994,
+        0.3846382039965867
+      ],
+      "median_abs_error_percent": 0.15285836759915072,
+      "seeds": 10,
+      "cpu_exact_inference_median_ms": null,
+      "cpu_repeats": null
+    },
+    {
+      "dimensions": {
+        "rows": 20000,
+        "items": 500,
+        "factors": 5,
+        "pairs": 124750,
+        "parameters": 2490
+      },
+      "exact_gpu_ms": 1376886.5,
+      "estimated_gpu_median_ms": 36976.89999997616,
+      "error_range_percent": [
+        0.03870108783492515,
+        0.05036889274192258
+      ],
+      "median_abs_error_percent": 0.044534990288423865,
+      "seeds": 2,
+      "cpu_exact_inference_median_ms": null,
+      "cpu_repeats": null
+    }
+  ]
+}

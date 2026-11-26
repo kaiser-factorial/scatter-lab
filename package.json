@@ -1,0 +1,15 @@
+{
+  "name": "scatter-lab-workspace",
+  "private": true,
+  "scripts": {
+    "build:stats": "pnpm --filter @scatterlab/stats run build",
+    "test:stats": "pnpm --filter @scatterlab/stats run test",
+    "check:package": "node packages/statistics/scripts/check-package.mjs",
+    "setup": "pnpm install --frozen-lockfile",
+    "check": "pnpm run build:stats && pnpm run test:stats && pnpm --filter frontend run ci:fast && pnpm --filter frontend run ci:numerical && pnpm run check:package"
+  },
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": "24.x"
+  }
+}

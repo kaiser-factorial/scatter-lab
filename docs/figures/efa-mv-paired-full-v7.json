@@ -1,0 +1,97 @@
+{
+  "purpose": "Compare full analysis time for a fresh exact/estimated pair",
+  "grain": "one complete production-service analysis per method",
+  "transformation": "disjoint elapsed time components; no summation of parallel worker CPU times",
+  "encoding": "stacked horizontal bars on common zero-based minute scale with total labels",
+  "limits": [
+    "One sequential pair on one machine",
+    "Other applications may remain active",
+    "No repeated or order-balanced estimate"
+  ],
+  "validation": [
+    "parts add to measured total",
+    "trace wall stage is a subset of initial fit",
+    "same input hash and unchanged-output parity"
+  ],
+  "timings": [
+    {
+      "mode": "exact",
+      "first_fit_ms": 1755120.8999999762,
+      "trace_stage_wall_ms": 1324585.6000000238,
+      "other_first_fit_ms": 430535.2999999523,
+      "scores_and_rotation_comparisons_ms": 81677.39999997616,
+      "total_ms": 1836798.2999999523
+    },
+    {
+      "mode": "estimated",
+      "first_fit_ms": 507259.2000000477,
+      "trace_stage_wall_ms": 42441.89999997616,
+      "other_first_fit_ms": 464817.3000000715,
+      "scores_and_rotation_comparisons_ms": 91546.59999990463,
+      "total_ms": 598805.7999999523
+    }
+  ],
+  "comparison": {
+    "parity": {
+      "correlation": 0,
+      "scores": 0,
+      "rotations": [
+        {
+          "rotation": "oblimin",
+          "loadings": 0,
+          "phi": 0,
+          "communalities": 0,
+          "standardErrors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0
+          },
+          "trace": 0
+        },
+        {
+          "rotation": "promax",
+          "loadings": 0,
+          "phi": 0,
+          "communalities": 0,
+          "standardErrors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0
+          },
+          "trace": 0
+        },
+        {
+          "rotation": "varimax",
+          "loadings": 0,
+          "phi": 0,
+          "communalities": 0,
+          "standardErrors": {
+            "pattern": 0,
+            "structure": 0,
+            "phi": 0,
+            "communalities": 0
+          },
+          "trace": 0
+        }
+      ]
+    },
+    "tolerance": 1e-10,
+    "totalSpeedup": 3.067435719560663,
+    "firstFitSpeedup": 3.460008019568322,
+    "traceSquaredRelativeError": 0.0005036889274192258,
+    "correctionDelta": {
+      "traceSquared": 76.66625727407518,
+      "scalingFactor": 0.00028096774418151504,
+      "shift": 11.33912069775397,
+      "statistic": -0.011332383670378476,
+      "pValue": 9.101510979325766e-06
+    },
+    "exactTraceInEstimatedInterval": true
+  },
+  "matplotlib": "3.10.7",
+  "sources": {
+    "frontend/scripts/efa-reference/compute/paired-full-large-v7.json.gz": "6358fcfefe6baf83067137bb0c57f80fcb1c48b5fa322c70ffa97d128d971d03"
+  }
+}

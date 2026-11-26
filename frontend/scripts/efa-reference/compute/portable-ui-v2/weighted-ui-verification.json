@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-11-01T05:58:05.305Z",
+  "estimator": "wlsmv",
+  "runs": 5,
+  "baselineItems": 8,
+  "themes": [
+    "primary",
+    "terminal"
+  ],
+  "checks": [
+    "pattern and structure heatmaps with distinct values",
+    "separate comparison heatmap cells and shared scale",
+    "WLSMV preflight allocation/work estimate",
+    "robust SE cells and CSV metadata",
+    "weighted raw/corrected tests and provenance",
+    "preview",
+    "fit",
+    "rotation comparison",
+    "item reviews/refit",
+    "scores",
+    "holdout replication/history",
+    "workspace reload",
+    "Escape dismissal",
+    "long item identifiers",
+    "keyboard focus",
+    "matrix pagination resets across views"
+  ],
+  "pageErrors": []
+}

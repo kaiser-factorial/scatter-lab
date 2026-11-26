@@ -1,0 +1,982 @@
+{
+  "normal-complete": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.17999999999999994
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.06800000000000006
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.05600000000000005
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.058999999999999941
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.028999999999999915
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.016000000000000014
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.017000000000000126
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.014999999999999902
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.024000000000000021
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000001119
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000000018
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000000018
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0040000000000000036
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000000018
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.060000000000000053
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999988987
+      }
+    }
+  },
+  "normal-mcar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.072999999999999954
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.057000000000000162
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.048999999999999932
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.21399999999999997
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.024999999999999911
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.014000000000000012
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.016000000000000014
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.014999999999999902
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000001119
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999988987
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000000018
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000001119
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0029999999999998916
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000000018
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0040000000000000036
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.10199999999999987
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.092999999999999972
+      }
+    }
+  },
+  "normal-mar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.074999999999999734
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.1080000000000001
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.076999999999999957
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.27900000000000036
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.012999999999999901
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.027000000000000135
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.025999999999999801
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.020999999999999908
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999988987
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000002238
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0040000000000000036
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0040000000000000036
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.065999999999999837
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.064999999999999947
+      }
+    }
+  },
+  "heavy-mcar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.099000000000000199
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.075000000000000178
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.072000000000000064
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.21499999999999986
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0099999999999997868
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.017999999999999794
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.015000000000000568
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.01699999999999946
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000006679
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999944578
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000006679
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0039999999999995595
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.046000000000000263
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.046000000000000263
+      }
+    }
+  },
+  "skew-mar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.061999999999999389
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.060000000000000497
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.052999999999999936
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.17900000000000027
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.011000000000000121
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.017000000000000348
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.012999999999999901
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.016000000000000014
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.001000000000000334
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.001000000000000334
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0039999999999995595
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000006679
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.041999999999999815
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.057999999999999829
+      }
+    }
+  },
+  "holzinger-complete": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.29099999999999948
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.14300000000000068
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.14200000000000035
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.26900000000000013
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.031000000000000583
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.024000000000000021
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.017000000000000348
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0099999999999997868
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.001000000000000334
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.001000000000000334
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999997797
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999944578
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000006679
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999944578
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.001000000000000334
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.001000000000000334
+      }
+    }
+  },
+  "holzinger-mcar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.10800000000000054
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.29699999999999882
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.1769999999999996
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 1.4220000000000006
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.015000000000000568
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0099999999999997868
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.032999999999999474
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.035000000000000142
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0060000000000002274
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999944578
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0040000000000013358
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999944578
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000006679
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0020000000000006679
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0049999999999990052
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.051000000000000156
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.069000000000000838
+      }
+    }
+  },
+  "holzinger-mar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.14900000000000091
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.14999999999999858
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.073000000000000398
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.57099999999999973
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.022000000000000242
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.019000000000000128
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.023999999999999133
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.012999999999999901
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000012221
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999988916
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000012221
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999988916
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000012221
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999988916
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999944578
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.029000000000001691
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.030999999999998806
+      }
+    }
+  },
+  "bfi25-original": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.54300000000000104
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 1.1829999999999998
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.63199999999999967
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 4.7029999999999994
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.079000000000000625
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.07400000000000162
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.073999999999998067
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.12700000000000244
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.021999999999998465
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.024000000000000909
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.022999999999999687
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.086999999999999744
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.074999999999999289
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.025999999999999801
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.15599999999999881
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.14300000000000068
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.87600000000000122
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.56299999999999883
+      }
+    }
+  },
+  "ordinal-mcar": {
+    "ml": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.10699999999999932
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.07400000000000162
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.057999999999999829
+      },
+      "fiml": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.21499999999999986
+      }
+    },
+    "minres": {
+      "complete": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0079999999999991189
+      },
+      "mean": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.021000000000000796
+      },
+      "median": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.01699999999999946
+      },
+      "pairwise": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.016000000000001791
+      }
+    },
+    "pca": {
+      "complete-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0
+      },
+      "complete-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.00099999999999766942
+      },
+      "mean-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000012221
+      },
+      "mean-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999988916
+      },
+      "median-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000012221
+      },
+      "median-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0010000000000012221
+      },
+      "pairwise-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0030000000000001137
+      },
+      "pairwise-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.0019999999999988916
+      },
+      "iterative-scaled": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.042999999999999261
+      },
+      "iterative-raw": {
+        "status": "ok",
+        "error": null,
+        "seconds": 0.028000000000002245
+      }
+    }
+  }
+}

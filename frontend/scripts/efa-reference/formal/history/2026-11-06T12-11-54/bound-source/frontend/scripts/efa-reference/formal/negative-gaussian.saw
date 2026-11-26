@@ -1,0 +1,8 @@
+enable_experimental;
+import "GaussianContracts.cry" as G;
+let main : TopLevel () = do {
+  // A concrete zero-residual counterexample avoids nonlinear search heuristics.
+  // The corrupted grouped quadratic is one while the rowwise quadratic is zero.
+  wrong <- prove_print z3 {{ G::wrongSufficientStatistics [1,0,1] [0,0] [[0,0],[0,0],[0,0]] }};
+  return ();
+};

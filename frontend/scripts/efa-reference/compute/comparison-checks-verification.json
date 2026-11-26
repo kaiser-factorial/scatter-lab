@@ -1,0 +1,70 @@
+{
+  "recordedAt": "2026-11-01T02:39:26.314Z",
+  "status": "passed",
+  "sourceReports": [
+    {
+      "file": "browser-resident-qualified.json",
+      "sha256": "c9247ad0ef5032146d226312ab39782889c9df406d935cb68f728066afb4b355"
+    },
+    {
+      "file": "scala-resident-pipeline.json",
+      "sha256": "c3f487cb56bf0cf742e77fc3e5939a25b9c3d25e4231a3371e04a113cc718ee2"
+    }
+  ],
+  "scope": "Comparison verifier acceptance and rejection paths; altered inputs are temporary copies, not numerical reference results.",
+  "results": [
+    {
+      "name": "valid reference outputs",
+      "expectedRejection": null,
+      "passed": true
+    },
+    {
+      "name": "identically truncated scores",
+      "expectedRejection": "Missing complete score vectors",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:87\n  if (!s || !vector(s.values, n * k) || !vector(s.completeMask, n) || !matrix(s.weights, p, k) || !vector(s.means, p) || !vector(s.sds, p) || s.sds.some(value => value <= 0)) throw new Error('Missing complete score vectors or fitted scaling');\n                                                                                                                                                                                     ^\n\nError: Missing complete score vectors or fitted scaling\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:87:182)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:92:3)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "identically invalid score masks",
+      "expectedRejection": "Invalid complete-response score membership",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:88\n  if (s.completeMask.some(value => value !== 0 && value !== 1) || s.completeMask.reduce((sum, value) => sum + value, 0) !== r.scoreCompleteRows || r.scoreCompleteRows < 2) throw new Error('Invalid complete-response score membership');\n                                                                                                                                                                                  ^\n\nError: Invalid complete-response score membership\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:88:179)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:92:3)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "identically negative standard errors",
+      "expectedRejection": "Negative oblimin standard error",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:84\n    if ([...se.pattern.flat(), ...se.structure.flat(), ...se.phi.flat(), ...se.communalities, ...se.uniquenesses].some(value => value < 0)) throw new Error(`Negative ${method} standard error`);\n                                                                                                                                                  ^\n\nError: Negative oblimin standard error\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:84:147)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:92:3)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "identically missing rotation matrix",
+      "expectedRejection": "Incomplete varimax rotation",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:81\n    if (!r?.convergence?.converged || !matrix(r.pattern, p, k) || !matrix(r.structure, p, k) || !matrix(r.phi, k, k) || !vector(r.communalities, p)) throw new Error(`Incomplete ${method} rotation`);\n                                                                                                                                                           ^\n\nError: Incomplete varimax rotation\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:81:156)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:92:3)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "identically failed extraction convergence",
+      "expectedRejection": "Invalid extraction convergence",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:73\n  if (convergence && (convergence.converged !== true || !Number.isInteger(convergence.iterations) || convergence.iterations < 0 || !Number.isFinite(convergence.objective) || convergence.objective < 0 || !Number.isFinite(convergence.gradient) || convergence.gradient < 0)) throw new Error('Invalid extraction convergence');\n                                                                                                                                                                                                                                                                                      ^\n\nError: Invalid extraction convergence\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:73:279)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:92:3)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "identically impossible p-values",
+      "expectedRejection": "Invalid robust inference outputs",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:78\n  if (!['rawStatistic', 'trace', 'traceSquared', 'scalingFactor', 'shift', 'statistic', 'pValue'].every(key => Number.isFinite(fit.test[key])) || fit.test.rawStatistic < 0 || fit.test.trace <= 0 || fit.test.traceSquared <= 0 || fit.test.scalingFactor <= 0 || fit.test.statistic < 0 || fit.test.pValue < 0 || fit.test.pValue > 1) throw new Error('Invalid robust inference outputs');\n                                                                                                                                                                                                                                                                                                                                               ^\n\nError: Invalid robust inference outputs\n    at validateFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:78:336)\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:92:3)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "nonidentical prepared input fingerprints",
+      "expectedRejection": "Missing or nonidentical prepared inputs",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:94\n  if (!reference.inputSha256 || reference.inputSha256 !== candidate.inputSha256) throw new Error('Missing or nonidentical prepared inputs');\n                                                                                       ^\n\nError: Missing or nonidentical prepared inputs\n    at compareFit (file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:94:88)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:166:55\n    at Array.map (<anonymous>)\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:164:79\n\nNode.js v26.8.1\n"
+    },
+    {
+      "name": "small fit relabeled as full-size evidence",
+      "expectedRejection": "Incorrect workload dimensions",
+      "passed": true,
+      "rejection": "file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:147\n  if (fit.dimensions.rows !== rows || fit.dimensions.items !== 500 || fit.dimensions.factors !== 5) throw new Error(`Incorrect workload dimensions: ${file}`);\n                                                                                                          ^\n\nError: Incorrect workload dimensions: scala-large-resident.json\n    at file:///Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/compute/compare-results.mjs:147:107\n\nNode.js v26.8.1\n"
+    }
+  ]
+}

@@ -1,0 +1,398 @@
+{
+  "status": "passed",
+  "scope": "Targeted 500-item / 20000-row resident kernels; not new full-fit timings. Each range has five calls; wall summary excludes its first call. GPU times include all five calls. Paired orders are reversed. Initial a and block a/b retain preliminary versions; final block comparison is c/d.",
+  "layouts": {
+    "columnar": {
+      "meanSumWarmMediansMs": 906.8249999284744,
+      "runs": 2
+    },
+    "cooperative": {
+      "meanSumWarmMediansMs": 901.3749999701977,
+      "runs": 2
+    },
+    "respondent": {
+      "meanSumWarmMediansMs": 919.2749999761581,
+      "runs": 2
+    }
+  },
+  "blocks": {
+    "128": {
+      "meanSumWarmMediansMs": 3584.149999976158,
+      "runs": 2
+    },
+    "256": {
+      "meanSumWarmMediansMs": 3664.8749999701977,
+      "runs": 2
+    }
+  },
+  "summaries": [
+    {
+      "file": "scripts/efa-reference/compute/layout-block128-a-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "9b22375d2daddfa00f1d4a02dae0d88cc2f61f5edf9793987a0c095190880d9d",
+      "blockSize": 256,
+      "subBlock": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3518.050000011921,
+      "meanGpuMsPerTenRanges": 3453.353983999993,
+      "meanReductionGpuMsPerTenRanges": 39.25606400000008,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block128-b-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "9b22375d2daddfa00f1d4a02dae0d88cc2f61f5edf9793987a0c095190880d9d",
+      "blockSize": 256,
+      "subBlock": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3558.2000001072884,
+      "meanGpuMsPerTenRanges": 3516.412723199994,
+      "meanReductionGpuMsPerTenRanges": 44.577587199999996,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block128-c-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "1180eb3d0a40506a40e2c04c5c839f7b2b7801600ab00af5ed45ce169627c626",
+      "blockSize": 256,
+      "subBlock": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3539.349999964237,
+      "meanGpuMsPerTenRanges": 3473.5652863999917,
+      "meanReductionGpuMsPerTenRanges": 39.845888000000066,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block128-d-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "1180eb3d0a40506a40e2c04c5c839f7b2b7801600ab00af5ed45ce169627c626",
+      "blockSize": 256,
+      "subBlock": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3628.949999988079,
+      "meanGpuMsPerTenRanges": 3573.0751487999914,
+      "meanReductionGpuMsPerTenRanges": 41.78575360000004,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block256-a-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "9b22375d2daddfa00f1d4a02dae0d88cc2f61f5edf9793987a0c095190880d9d",
+      "blockSize": 256,
+      "subBlock": 256,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3466.5000001192093,
+      "meanGpuMsPerTenRanges": 3451.7024767999997,
+      "meanReductionGpuMsPerTenRanges": 41.261465600000015,
+      "peakOwnedGpuBufferBytes": 575369536,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block256-b-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "9b22375d2daddfa00f1d4a02dae0d88cc2f61f5edf9793987a0c095190880d9d",
+      "blockSize": 256,
+      "subBlock": 256,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3490.3000000715256,
+      "meanGpuMsPerTenRanges": 3475.570687999999,
+      "meanReductionGpuMsPerTenRanges": 40.08181760000002,
+      "peakOwnedGpuBufferBytes": 575369536,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block256-c-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "1180eb3d0a40506a40e2c04c5c839f7b2b7801600ab00af5ed45ce169627c626",
+      "blockSize": 256,
+      "subBlock": 256,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3813.100000023842,
+      "meanGpuMsPerTenRanges": 3781.807308800003,
+      "meanReductionGpuMsPerTenRanges": 49.4534656,
+      "peakOwnedGpuBufferBytes": 575369536,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-block256-d-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "1180eb3d0a40506a40e2c04c5c839f7b2b7801600ab00af5ed45ce169627c626",
+      "blockSize": 256,
+      "subBlock": 256,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 3516.6499999165535,
+      "meanGpuMsPerTenRanges": 3501.2608000000037,
+      "meanReductionGpuMsPerTenRanges": 37.32930559999999,
+      "peakOwnedGpuBufferBytes": 575369536,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "25c18e324b572cc572c8d0354089eb3ec2b62789f326690b664e286abcb2a735",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "2863ad4e5a5888cc49bbfcf93024b7ee041b647e32a8270cbf32e5f323dec246",
+        "c2bb1d0e33cfe805f695190ba47ac6322c18b3e28686d7ba499c45ae768c6b34",
+        "7ecf57d697ab2b2d8ef982d46721bb653388b453a7756701a02233424912e1bd",
+        "8dd62148b2e2023d8532f8921e82f872fa561e191f4bf4d28a451d231e46bbe3",
+        "af134aad1bdfbe0c033b6d17d64575c0e8eb86307155ad50464ae1f2aaeff2d2",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "1bf2666b726a851bc7d64a2b509afe8ce4dd3d1d6ec29473bb467fb87f04eedd",
+        "a6e0fd621a4c426560ce487b3c1da55809469d4fc7facc7c1a0585f67e1f98ad"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-columnar128-a-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "61bc9d401227d237ba07d87603b081f7cda6ab5d032c1b0024e8e20f372316ae",
+      "blockSize": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 978.75,
+      "meanGpuMsPerTenRanges": 930.3621632000006,
+      "meanReductionGpuMsPerTenRanges": 11.835801599999996,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-columnar128-b-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "d096877b8942a6aac3df90b792e8a8d39ea91ffff03dbaa378477887e3b4e5e5",
+      "blockSize": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 907.8499999046326,
+      "meanGpuMsPerTenRanges": 888.930304000001,
+      "meanReductionGpuMsPerTenRanges": 10.7347968,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-columnar128-c-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "d096877b8942a6aac3df90b792e8a8d39ea91ffff03dbaa378477887e3b4e5e5",
+      "blockSize": 128,
+      "loading": "columnar",
+      "sumWarmRangeMediansMs": 905.7999999523163,
+      "meanGpuMsPerTenRanges": 885.8894336000001,
+      "meanReductionGpuMsPerTenRanges": 10.774118399999997,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-cooperative128-b-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "d096877b8942a6aac3df90b792e8a8d39ea91ffff03dbaa378477887e3b4e5e5",
+      "blockSize": 128,
+      "loading": "cooperative",
+      "sumWarmRangeMediansMs": 896.9000000357628,
+      "meanGpuMsPerTenRanges": 882.7305984000008,
+      "meanReductionGpuMsPerTenRanges": 11.062476799999997,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-cooperative128-c-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "d096877b8942a6aac3df90b792e8a8d39ea91ffff03dbaa378477887e3b4e5e5",
+      "blockSize": 128,
+      "loading": "cooperative",
+      "sumWarmRangeMediansMs": 905.8499999046326,
+      "meanGpuMsPerTenRanges": 886.2302208000004,
+      "meanReductionGpuMsPerTenRanges": 10.171187199999995,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-respondent128-b-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "d096877b8942a6aac3df90b792e8a8d39ea91ffff03dbaa378477887e3b4e5e5",
+      "blockSize": 128,
+      "loading": "respondent",
+      "sumWarmRangeMediansMs": 917.0500000119209,
+      "meanGpuMsPerTenRanges": 893.1901440000001,
+      "meanReductionGpuMsPerTenRanges": 10.682368,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    },
+    {
+      "file": "scripts/efa-reference/compute/layout-respondent128-c-v4.json",
+      "sourceSha256": "c6c2682d7659b6add3fdbe740d97dd8548dc2e9ca98fbc8c7f6686c06c29ccfb",
+      "workerSha256": "d096877b8942a6aac3df90b792e8a8d39ea91ffff03dbaa378477887e3b4e5e5",
+      "blockSize": 128,
+      "loading": "respondent",
+      "sumWarmRangeMediansMs": 921.4999999403954,
+      "meanGpuMsPerTenRanges": 896.3751935999999,
+      "meanReductionGpuMsPerTenRanges": 10.9576192,
+      "peakOwnedGpuBufferBytes": 477851968,
+      "maxScaledError": 6.114968455688894e-14,
+      "outputSha256": [
+        "ec1e53c8a0453cf3c56ae554faa825668851ff9f9c6f937d3eb5c7e6a2dcd4f1",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "99856517acc49a8e091253b73c6085fb45e92a8eeeb0867a68f8517127648e75",
+        "980f87f7a7474bdb59f7686962bed205ddff38a8666490dac5d4c0514851b205",
+        "5103ea2c870c85c890a0be8afcffb616cffc26d4d5a9099996de20e6909de81e",
+        "498f15217028397d7e4b91d4f09764200c162dbe65c512edf27c2e3a2c7a1e79",
+        "afbca41cb7db6baf835a3a292bf7cb3214ec29f6b3ad1756879ec617499136ba",
+        "ef5dd18db4c1f58ffb5b1335618b57334d4b4267cedee5fe4460fef1685de695",
+        "05c7619307dc74a77cf5afaf53cfa2c86ddfce6a4ac1ca370cb61401382e9ef0",
+        "1a291774a6bf474ff39d7cc3b7ea0da987354403632d4bcc765d75d4210bb5c5"
+      ]
+    }
+  ]
+}

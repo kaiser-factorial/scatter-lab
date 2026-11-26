@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { runAssistantTurn, type AppBridge } from '../assistant';
+import { runAssistantTurn, toolsFor, type AppBridge } from '../assistant';
 import { call, replayTransport, say } from '../replay';
+import { correlationReport } from '../aggregatePolicy';
+import { policyFor } from '../dataPolicy';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 // Replay cases drive the REAL runAssistantTurn loop — registry, policy,
@@ -47,6 +49,37 @@ const run = (
     { onText: d => onText.push(d), onToolUse: () => {} }, transport);
 
 describe('replayTransport inside runAssistantTurn', () => {
+  it.each(['private', 'open'] as const)('routes Chatterjee requests to the real aggregate report in %s mode', async mode => {
+    const policy = policyFor(mode);
+    const definition = toolsFor(policy).find(t => t.type === 'function' && t.function.name === 'correlate');
+    expect(definition?.type === 'function' && definition.function.description).toContain('Chatterjee xi in BOTH directions');
+    const bridge = bridgeWith([{ name: 'sample', nRows: 5, active: true, dataMode: mode }], {
+      correlate: (a: string, b: string) => {
+        expect([a, b]).toEqual(['x', 'squared']);
+        return correlationReport(a, b, [-2, -1, 0, 1, 2], [4, 1, 0, 1, 4], policy).message;
+      },
+    });
+    const t = replayTransport([
+      ctx => {
+        expect(ctx.toolNames).toContain('correlate');
+        expect(ctx.system).toContain('Chatterjee xi in both directions');
+        return call('get_methods_reference', { topics: ['chatterjee_correlation'] });
+      },
+      ctx => {
+        expect(ctx.lastObservation).toContain('https://arxiv.org/abs/1909.10140v4');
+        return call('correlate', { col_a: 'x', col_b: 'squared' });
+      },
+      ctx => {
+        expect(ctx.lastObservation).toContain('xi(x → squared)=0.000');
+        expect(ctx.lastObservation).toContain('xi(squared → x)=-0.125');
+        expect(ctx.lastObservation).toContain('n=5 (pairwise complete)');
+        return say(`Calculated: ${ctx.lastObservation}`);
+      },
+    ]);
+    const history = await run(bridge, t, "Calculate Chatterjee's correlation between x and squared");
+    expect(history.at(-1)?.content).toContain('xi(squared → x)=-0.125');
+  });
+
   it('happy path: one tool call, observation lands, final text returned', async () => {
     const t = replayTransport([
       call('correlate', { col_a: 'age', col_b: 'score' }),
@@ -83,12 +116,12 @@ describe('replayTransport inside runAssistantTurn', () => {
       ctx => {
         expect(ctx.toolNames).not.toContain('sample_rows');
         expect(ctx.toolNames).toContain('correlate');
-        expect(ctx.system).toContain('PRIVATE — aggregates only');
+        expect(ctx.system).toContain('never see raw data rows');
         // A stale/hallucinated row call must hit the second fence…
         return call('sample_rows', { n: 5 });
       },
       ctx => {
-        expect(ctx.lastObservation).toBe('Row access is not available: the session is in Private data mode.');
+        expect(ctx.lastObservation).toBe('Dataset tools provide aggregate summaries only.');
         return say('understood');
       },
     ]);
@@ -96,16 +129,20 @@ describe('replayTransport inside runAssistantTurn', () => {
     expect(t.seen.length).toBe(2);
   });
 
-  it('open session offers the row tools', async () => {
+  it('refuses a retired tool even with an open legacy dataset and a row-capable bridge', async () => {
     const t = replayTransport([
       ctx => {
-        expect(ctx.toolNames).toContain('sample_rows');
-        expect(ctx.toolNames).toContain('get_rows_where');
-        expect(ctx.toolNames).toContain('list_categories');
+        expect(ctx.toolNames).not.toContain('sample_rows');
+        expect(ctx.toolNames).not.toContain('get_rows_where');
+        expect(ctx.toolNames).not.toContain('list_categories');
+        return call('get_rows_where', { column: 'id', value: 1 });
+      },
+      ctx => {
+        expect(ctx.lastObservation).toBe('Dataset tools provide aggregate summaries only.');
         return say('ok');
       },
     ]);
-    await run(bridgeWith([{ name: 'iris', nRows: 150, active: true, dataMode: 'open' }]), t);
+    await run(bridgeWith([{ name: 'iris', nRows: 150, active: true, dataMode: 'open' }], { getRowsWhere: () => 'raw data' }), t);
   });
 
   it('an exhausted script throws with the last observation in the message', async () => {

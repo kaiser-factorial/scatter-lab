@@ -1,0 +1,149 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T10:00:41.267Z",
+  "dimensions": {
+    "items": 500,
+    "rows": 20000,
+    "factors": 5
+  },
+  "robustComputed": false,
+  "method": "DWLS plus explicit WLSMV only when robustComputed=true; weighted rotations use varimax convergence 1e-14",
+  "timingsMs": {
+    "FullPreparation": 427.5,
+    "FullCorrelations": 18675,
+    "FullUncertainty": 37253.60000002384,
+    "FullDWLS": 1828.699999988079,
+    "Fulloblimin": 45.5,
+    "FullScores": 197.39999997615814,
+    "Fullpromax": 5.800000011920929,
+    "Fullvarimax": 14.900000035762787,
+    "HoldoutPreparation": 137,
+    "HoldoutCorrelations": 10004.600000023842,
+    "HoldoutUncertainty": 12233.599999964237,
+    "HoldoutDWLS": 1578.5,
+    "Holdoutoblimin": 37.39999997615814,
+    "HoldoutScores": 82.59999996423721,
+    "Holdoutpromax": 4.5,
+    "Holdoutvarimax": 14.199999988079071
+  },
+  "full": {
+    "inputSha256": "969353b07599ec49b4587184502ddd308c43bd84096dbd22cdc4db998deb8629",
+    "rows": 20000,
+    "convergence": {
+      "converged": true,
+      "iterations": 14,
+      "objective": 2.5154475532092784,
+      "gradient": 9.97574720238933e-9,
+      "maxIterations": 2000
+    },
+    "rotations": {
+      "oblimin": {
+        "convergence": {
+          "converged": true,
+          "iterations": 28,
+          "objective": 0.01568717980445183,
+          "gradient": 5.1645708943763315e-9,
+          "maxIterations": 4000
+        }
+      },
+      "promax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 13,
+          "objective": 116.68873331020913,
+          "gradient": 0
+        }
+      },
+      "varimax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 13,
+          "objective": -367.6096326083761,
+          "gradient": 0
+        }
+      }
+    },
+    "varianceRange": [
+      0.7960689315200623,
+      1.2310982070596366
+    ],
+    "robustPlan": {
+      "space": "cases",
+      "parameters": 2490,
+      "pairs": 124750,
+      "rows": 20000,
+      "blockSize": 32,
+      "estimatedBytes": 977840160,
+      "budgetBytes": 1073741824,
+      "approximateMultiplyAdds": 25602878498000
+    }
+  },
+  "holdout": {
+    "inputSha256": "8731bea1b10dab7a340e5fc99ffd21a5922c909f204b1f3f84fb19f63cb6ba01",
+    "rows": 6000,
+    "convergence": {
+      "converged": true,
+      "iterations": 16,
+      "objective": 8.400254509644936,
+      "gradient": 3.0867218598837343e-9,
+      "maxIterations": 2000
+    },
+    "rotations": {
+      "oblimin": {
+        "convergence": {
+          "converged": true,
+          "iterations": 37,
+          "objective": 0.05344814640333513,
+          "gradient": 8.011642454830742e-9,
+          "maxIterations": 4000
+        }
+      },
+      "promax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 15,
+          "objective": 116.58770612282316,
+          "gradient": 0
+        }
+      },
+      "varimax": {
+        "convergence": {
+          "converged": true,
+          "iterations": 15,
+          "objective": -368.15006420464306,
+          "gradient": 0
+        }
+      }
+    },
+    "varianceRange": [
+      0.7510975247574299,
+      1.2667709493576496
+    ],
+    "robustPlan": {
+      "space": "cases",
+      "parameters": 2490,
+      "pairs": 124750,
+      "rows": 6000,
+      "blockSize": 32,
+      "estimatedBytes": 617984160,
+      "budgetBytes": 1073741824,
+      "approximateMultiplyAdds": 2358397098000
+    }
+  },
+  "heartbeats": 865,
+  "maxHeartbeatGapMs": 102.5,
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "hardwareConcurrency": 8,
+  "cancelMs": 0,
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  },
+  "memory": {
+    "peakBrowserProcessRssBytes": 1179385856,
+    "method": "1-second samples of summed RSS for this isolated browser process tree; shared pages may be counted more than once"
+  },
+  "workerSha256": "6f10057f44bf03cf918f7072ad7a17c69445b128adcb40a3c0b9589ff73d2cb8",
+  "url": "http://localhost:3000/efa-qualification/weighted/index.html"
+}

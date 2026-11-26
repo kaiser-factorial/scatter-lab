@@ -1,0 +1,23 @@
+{
+  "status": "stopped-for-engine-revision",
+  "recordedAt": "2026-10-31T08:33:18.797484+00:00",
+  "reason": "Independent null-8804 diagnosis qualified a lower-objective deterministic initialization at unchanged bounds/tolerance. Replace the superseded SMC-only starting rule with the numerically qualified revision. This partial batch was not declared failed or passed.",
+  "lastCheckpoint": {
+    "recordedAt": "2026-10-31T08:33:04.913Z",
+    "stage": {
+      "id": "4c891be2-10da-4d20-bb0f-e978f6bd935f",
+      "status": "running",
+      "stage": "Parallel analysis \u00b7 replicate 16: MINRES \u00b7 projected gradient 1.034e-6 (162/2000) \u00b7 0 failed",
+      "completed": 12,
+      "total": 100,
+      "workerFailures": []
+    },
+    "heartbeat": "27235",
+    "cancelMs": 1.899999976158142,
+    "workerSha256": "20a3bccb819322ebd91dfdd912dca375193096825fb89733b712a6336efecdb6",
+    "peakRssBytes": 819576832
+  },
+  "workerArchive": "archives/parallel-attempt-3-worker.js.gz",
+  "harnessArchive": "archives/parallel-attempt-3-parallel.js.gz",
+  "source": "Synthetic benchmark seed 8801; 500 items x 20000 rows; 100 requested permutations. Completed spectra were not exported before stopping."
+}

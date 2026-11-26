@@ -1,0 +1,17 @@
+{
+  "generated": "module FimlCellContract where\n\n// Source-derived branch. The calculated fallback is an opaque payload.\ncellWrite : Bit -> [64] -> [64] -> [64]\ncellWrite present original calculated = if (present && (original != 0) && (original != 0x8000000000000000)) then original else calculated\nproperty preservesObserved present original calculated = present ==> (cellWrite present original calculated == original)\nproperty fillsMissing present original calculated = (~present) ==> (cellWrite present original calculated == calculated)\n",
+  "source": {
+    "file": "/Users/corinakaiser/Projects/pca-workbench/frontend/scripts/efa-reference/formal/evidence/negative-fiml-cell/maximum-likelihood.ts.txt",
+    "sha256": "1621eec0e5dcdf12c195e081e7d1194923803dd1dd80062fd4a15b60447954f5",
+    "function": "createConditionalProjector",
+    "sourceLine": 335,
+    "operator": "||"
+  },
+  "scope": "The final mapped cell branch preserves any present observed payload, including zero. The calculated fallback is unconstrained; no Gaussian calculation or full function equivalence is proved.",
+  "trusted": [
+    "TypeScript AST recognizer and lowering",
+    "Inputs are finite Numbers or null",
+    "Nullish coalescing returns its left operand when nonnull",
+    "Ordinary standard Array.map and no asynchronous mutation"
+  ]
+}

@@ -30,6 +30,8 @@
 // by emphasisSegments below); anything else — backticks, links — shows up
 // literally.
 
+import { TEST_RELEASE_REQUIREMENTS, TEST_RELEASE_SUMMARY } from './analysisPlan';
+
 export type Disclosure = {
   /** Short label — the tooltip heading and the About page entry title. */
   title: string;
@@ -49,27 +51,28 @@ export type Disclosure = {
 
 export const DISCLOSURES = {
   data_modes: {
-    title: 'Assistant Access: Private vs Public Mode',
+    title: 'Assistant data access',
     text: [
-      'For each dataset added, you will choose a privacy mode that sets what the assistant may see of it. In both modes the assistant gets column names, aggregate summaries, and the results of analyses it runs. Everything else (parsing, PCA, clustering, exports) computes in the browser without uploading the dataset anywhere.',
-      '**Private mode** (default) returns aggregates only, with a floor of 5 rows: never raw rows, identifier columns, category values covering fewer than 5 rows, group statistics for groups smaller than that, or a column\'s minimum or maximum unless at least 5 rows share it. A row filter set by the assistant may only name columns and values that floor already shows, and analyses are blocked while a filter leaves, or excludes, fewer than 5 rows. The floor stops direct disclosure; it cannot stop every comparison of overlapping filters.',
-      '**Public mode** lets the assistant read raw rows and full category lists.',
-      'If any loaded dataset is private, the whole conversation runs at the private level: row-reading tools do not exist for that conversation.',
-      'With a local runtime (Ollama, LM Studio) as the assistant endpoint, even the assistant\'s summaries never leave your machine.',
+      'The configured model endpoint receives your chat, dataset and column names, and permitted analysis summaries. Dataset tools withhold individual rows, identifier values and groups smaller than five.',
+      'Numeric extremes must occur in at least five rows to be reported. Analyses are blocked if a filter leaves or excludes fewer than five rows. Comparing overlapping filters can still reveal information.',
+      'File parsing and CPU statistics run locally in the browser. Browser CPU and WebGPU are the available compute paths; WebGPU uses the local GPU through the browser.',
+      'A genuinely local model endpoint keeps model requests local. Feedback, sign-in, external links and remote images are separate network paths; choosing a local model does not disable them.',
     ],
     more: [
-      'A dataset\'s mode is locked in when it is added — there is no switch to flip later. To change it, remove the dataset and add it again; public mode always requires re-confirming that the data holds nothing personal.',
+      'Text you type into chat or an optional feedback reason is not automatically redacted. Feedback ratings send metadata to the configured Supabase service; sending a reason can also include the displayed exchange when its checkbox is checked.',
+      'The website host delivers code and assets without needing your dataset for local analysis. Workspaces use browser storage; downloaded data/workspace files can contain raw data.',
     ],
   },
 
   statistical_tests: {
     title: 'The Analyze Tools',
     text: [
-      'The assistant can run five tests (Welch\'s t, Mann–Whitney U, Kruskal–Wallis, two-sample Kolmogorov–Smirnov, chi-square) and draw seven chart types (ECDF, histogram, box, violin, Q–Q, bar, line over time), all computed in the browser — just ask, e.g. "run a t test comparing X between groups A and B".',
-      'Results report the exact p-value with an effect size and, for the t-test, a 95% confidence interval.',
-      'In Private mode, category values covering fewer than 5 rows stay withheld here too: charts pool them as an unlabeled "(rare values)" bucket or omit them with a note.',
+      TEST_RELEASE_SUMMARY,
+      'Results identify the p-value approximation, effect size and, for Welch’s t, a 95% confidence interval on the mean difference. Seven descriptive chart types remain available: ECDF, histogram, box, violin, Q–Q, bar and line over time.',
+      'Category values covering fewer than 5 rows stay withheld here too: charts pool them as an unlabeled "(rare values)" bucket or omit them with a note.',
       'Histograms share bin edges across groups, bars anchor at zero and distribution charts do not, and violins use a Gaussian kernel density (Silverman\'s bandwidth).',
     ],
+    more: [...TEST_RELEASE_REQUIREMENTS, 'These are conservative release limits, not proof that the study assumptions hold or that inference is calibrated for every accepted dataset.'],
     methodsTopic: 'statistical_tests',
   },
 
@@ -179,8 +182,8 @@ export const DISCLOSURES = {
   aspect_mode: {
     title: 'Cube Or True Scale',
     text: [
-      'Cube (the default) draws the 3-D box with equal-length axes, so each axis is stretched by whatever factor its own data span needs. One unit along X is not the same length as one unit along Y, and the tick spacing is not comparable between axes.',
-      'True scale makes each axis length proportional to its own span, so a unit is the same length everywhere.',
+      'True scale is the default. Each axis is proportional to its data range, so one unit has the same length along every axis.',
+      'Cube draws all three axes at equal length. When their data ranges differ, a unit occupies a different length on each axis.',
     ],
     more: [
       'Neither changes the data, the clustering or any number reported — only the shape of the box the points are drawn in. Distances judged by eye are only comparable across axes on True scale.',

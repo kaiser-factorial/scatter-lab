@@ -1,0 +1,8 @@
+enable_experimental;
+import "NumericCellContract.cry" as N;
+let main : TopLevel [Theorem] = do {
+  observed <- prove_print z3 {{ N::preservesObserved }};
+  missing <- prove_print z3 {{ N::fillsMissing }};
+  summarize_verification;
+  return [observed,missing];
+};

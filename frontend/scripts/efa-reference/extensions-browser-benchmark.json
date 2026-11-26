@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T08:12:06.257Z",
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "hardwareConcurrency": 8,
+  "timingsMs": {
+    "imputation": 417.89999997615814,
+    "cancel": 1.2999999523162842,
+    "bootstrap": 1032,
+    "groupBootstrap": 383.80000001192093
+  },
+  "heartbeats": 25,
+  "maxHeartbeatGapMs": 216.79999995231628,
+  "imputation": {
+    "requested": 5,
+    "completed": 5,
+    "rows": 300,
+    "traceEntries": 200,
+    "missingCells": 179,
+    "failures": [],
+    "provenance": {
+      "method": "Separate ordinal polr / binary logreg conditional imputations; MINRES fitted independently to each completed dataset",
+      "inputSha256": "cc81bd517f9d017b0d8b8e17b2cecce485f6dcbbe03c65e29967017710d6df23",
+      "alignment": "Signs and factor permutation only, anchored to first successful imputation",
+      "uncertainty": "Descriptive between-imputation dispersion only; no within-imputation variance or Rubin-pooled confidence intervals",
+      "execution": {
+        "workers": 4,
+        "estimatedWorkingSetBytesPerWorker": 79232,
+        "note": "Concurrency reduced for expanded predictor designs using an approximate 1 GiB combined working-set budget, with at least one worker. This is a scheduling estimate, not measured peak memory or a cap on a single model."
+      }
+    }
+  },
+  "bootstrap": {
+    "requested": 100,
+    "completed": 100,
+    "failures": []
+  },
+  "groups": {
+    "requested": 20,
+    "completed": 20,
+    "failures": []
+  },
+  "pageErrors": [],
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "systemMemoryBytes": 8589934592
+  }
+}

@@ -13,8 +13,8 @@ export const sortClusterLabels = (a: string, b: string) => {
   return a.localeCompare(b, undefined, { numeric: true });
 };
 
-export const buildClusterCrosstab = (table: DataTable, attribute: string): ClusterCrosstab | null => {
-  const clusterCol = table.data.Cluster;
+export const buildClusterCrosstab = (table: DataTable, attribute: string, clusterColumn = 'Cluster'): ClusterCrosstab | null => {
+  const clusterCol = table.data[clusterColumn];
   const attrVals = table.data[attribute];
   if (!clusterCol || !attrVals) return null;
 
@@ -56,10 +56,11 @@ export const buildClusterHeatmap = (crosstab: ClusterCrosstab, direction: Breakd
   return { rowLabels, columnLabels, percentages, counts, denominatorLabel: direction };
 };
 
-export const HEATMAP_PALETTES = ['Viridis', 'Inferno', 'Greens'] as const;
+export const HEATMAP_PALETTES = ['PrimaryBlue', 'Viridis', 'Inferno', 'Greens'] as const;
 export type HeatmapPalette = typeof HEATMAP_PALETTES[number];
 
 const PALETTE_STOPS: Record<HeatmapPalette, string[]> = {
+  PrimaryBlue: ['#FFFFFF', '#0045AD'],
   Viridis: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
   Inferno: ['#000004', '#420a68', '#932667', '#dd513a', '#fba40a', '#fcffa4'],
   Greens: ['#f7fcf5', '#c7e9c0', '#74c476', '#238b45', '#00441b'],

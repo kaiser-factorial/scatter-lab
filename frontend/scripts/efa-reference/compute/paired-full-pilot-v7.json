@@ -1,0 +1,40 @@
+{
+  "status": "failed",
+  "startedAt": "2026-11-06T00:18:42.402Z",
+  "hardware": {
+    "cpu": "Apple M1",
+    "architecture": "arm64",
+    "memoryBytes": 8589934592
+  },
+  "order": [
+    "exact",
+    "estimated"
+  ],
+  "options": {
+    "n": 1000,
+    "p": 8,
+    "probes": 128,
+    "seed": 61001
+  },
+  "snapshots": {
+    "efa.worker": {
+      "sha256": "984cc284807934738bf035560f0196549c3abbf9eb4c924e134717a154a0d357",
+      "archive": "scripts/efa-reference/compute/archives/984cc284807934738bf035560f0196549c3abbf9eb4c924e134717a154a0d357.js.gz"
+    },
+    "client": {
+      "sha256": "72eb4bcb03f23f52a4bce61706ab81aa055a985a2bc1bdce2d945e8a46d1c952",
+      "archive": "scripts/efa-reference/compute/archives/72eb4bcb03f23f52a4bce61706ab81aa055a985a2bc1bdce2d945e8a46d1c952.js.gz"
+    }
+  },
+  "arms": [
+    {
+      "correction": "exact",
+      "status": "running",
+      "startedAt": "2026-11-06T00:18:52.662Z",
+      "browser": "156.0.8078.81",
+      "webgpuRuntimeFlags": []
+    }
+  ],
+  "qualification": "One sequential pair on one machine; fresh browser and service for each arm. Other user applications may remain active; not a controlled idle-machine repetition study.",
+  "error": "Error: page.evaluate: EfaError: 5 factors are underidentified for 8 items. Reduce the factor count or add items.\n    at WorkerClient.worker.onmessage (http://localhost:3000/efa-qualification/paired-full/client.js:807:18)"
+}

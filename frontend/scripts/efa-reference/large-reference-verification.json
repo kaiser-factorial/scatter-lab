@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "recordedAt": "2026-10-31T09:11:29.201687+00:00",
+  "command": "EFA_LARGE_PARITY=1 npx vitest run src/lib/__tests__/efa-large-reference.test.ts --maxWorkers=1",
+  "tests": 3,
+  "durationSeconds": 778.0,
+  "node": "26.8.1",
+  "v8": "14.6.202.34-node.28",
+  "architecture": "arm64",
+  "seeds": [
+    8801,
+    8802,
+    8804
+  ],
+  "scope": "Independent pinned-R MINRES extraction on shared saved native 500-item polychoric matrices; not independent large R correlation estimates",
+  "limits": {
+    "projectedGradient": 1e-08,
+    "objectiveAbsoluteDifference": 1e-05,
+    "signAlignedLoadingsAbsoluteDifference": 0.001,
+    "communalitiesAbsoluteDifference": 0.0001,
+    "reproducedCorrelationsAbsoluteDifference": 0.0001
+  },
+  "sourceSha256": {
+    "src/lib/efa/extraction.ts": "7fc3ba0679f2df0efb75874ef671b23885ca47e2e5795047e102ee4f70de6549",
+    "src/lib/__tests__/efa-large-reference.test.ts": "ddd9052615c478b2c63bdf5924168ccc024a59db38353c4daa7535c3c633b2f6"
+  }
+}

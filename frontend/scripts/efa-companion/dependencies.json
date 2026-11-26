@@ -1,0 +1,37 @@
+[
+  {
+    "artifact": "org/scala-lang/scala-compiler/2.13.16/scala-compiler-2.13.16.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/scala-lang/scala-compiler/2.13.16/scala-compiler-2.13.16.jar",
+    "bytes": 12308669,
+    "sha256": "f59982714591e321ba9c087af2c8666e2f5fb92b11a0cef72c2c5e9b342152d3",
+    "repositorySha1": "0341e484680c23a379e9935a7343a28969ff113a"
+  },
+  {
+    "artifact": "org/scala-lang/scala-library/2.13.16/scala-library-2.13.16.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/scala-lang/scala-library/2.13.16/scala-library-2.13.16.jar",
+    "bytes": 5926340,
+    "sha256": "1ebb2b6f9e4eb4022497c19b1e1e825019c08514f962aaac197145f88ed730f1",
+    "repositorySha1": "9e064d9304904fd7b6bd2b55a9e601b8c1c9006e"
+  },
+  {
+    "artifact": "org/scala-lang/scala-reflect/2.13.16/scala-reflect-2.13.16.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/scala-lang/scala-reflect/2.13.16/scala-reflect-2.13.16.jar",
+    "bytes": 3801119,
+    "sha256": "fb49ccd9cac7464486ab993cda20a3c1569d8ef26f052e897577ad2a4970fb1d",
+    "repositorySha1": "4958d4e43faf2d6d66f18ce2aa9a3e5ba141f87b"
+  },
+  {
+    "artifact": "dev/ludovic/netlib/blas/3.2.0/blas-3.2.0.jar",
+    "url": "https://repo.maven.apache.org/maven2/dev/ludovic/netlib/blas/3.2.0/blas-3.2.0.jar",
+    "bytes": 284830,
+    "sha256": "4cc05cf9ba3550b4f0d2cfbadf29b5fe10dfbe2ad7e5179dfb4adb782bb7e7fe",
+    "repositorySha1": "40133113c599beb9929792e46e74d0be4755c12a"
+  },
+  {
+    "artifact": "net/sourceforge/f2j/arpack_combined_all/0.1/arpack_combined_all-0.1.jar",
+    "url": "https://repo.maven.apache.org/maven2/net/sourceforge/f2j/arpack_combined_all/0.1/arpack_combined_all-0.1.jar",
+    "bytes": 1194003,
+    "sha256": "9964fb948ef213548a79b23dd480af9d72f1450824fa006bbfea211ac1ffa6dc",
+    "repositorySha1": "225619a060b42605b4d9fd4af11815664abf26eb"
+  }
+]
