@@ -252,6 +252,9 @@ const ThemedLegend = ({ view, theme, muted = {}, onToggle }: { view: any, theme:
 // Columnar table as returned by /api/upload: one array per column
 type DataTable = { columns: string[], data: Record<string, any[]>, nRows: number };
 
+const timestampId = () => Date.now();
+const stageFreshTable = (ref: { current: DataTable | null }, table: DataTable) => { ref.current = table; };
+
 // Which table columns feed the plot; z is null for purely 2D data
 type Axes = { x: string, y: string, z: string | null };
 type AxisLabels = { x: string, y: string, z: string };
@@ -2579,7 +2582,7 @@ export default function Home() {
     setUploadStatus(warnings.length
       ? `${warnings.map(w => `⚠ ${w}`).join('\n')}\n${result.message}`
       : result.message);
-    const id = Math.max(Date.now(), ...datasets.map(d => d.id + 1));
+    const id = Math.max(timestampId(), ...datasets.map(d => d.id + 1));
     const table = result.table;
     const projected = Object.keys(result.topContributors ?? {});
     const axes = initialView?.axes ?? (projected.length >= 2
@@ -3727,7 +3730,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
       }
       const pin = (
           // Tables are replaced wholesale on change, so sharing the reference is a safe snapshot
-          { id: Date.now(), data: processedData, colorBy, shapeBy,
+          { id: timestampId(), data: processedData, colorBy, shapeBy,
             axes: effectiveAxes(activeDataset!, viewMode), labels: effectiveLabels(activeDataset!, viewMode), viewMode,
             scoreCaption: scoreDetails,
             showAxes: showAxes[viewMode],
@@ -4332,7 +4335,7 @@ ${rotate ? `  var rotating=true,t=Math.atan2(layout.scene.camera.eye.y,layout.sc
               data: { ...t.data, [output]: fullLabels }, nRows: t.nRows,
           };
           clusterOutputs.current.set(newTable, output);
-          freshTableRef.current = newTable;
+          stageFreshTable(freshTableRef, newTable);
           pendingSwitchRef.current = { id: targetId, table: newTable };
           setDatasets(prev => commitDatasetAnalysis(prev, target, d => ({
               ...d, table: newTable, clusterColumn: output,
