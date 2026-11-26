@@ -126,32 +126,32 @@
 
   <!-- ═══ TOOLS + KNOWLEDGE ═══ -->
   <g id="node-tools">
-    <rect x="1176" y="380" width="216" height="326" class="box" filter="url(#hs2)"/>
-    <text x="1190" y="406" class="bt">TOOLS ×24</text>
-    <text x="1190" y="432" class="bt12">READ</text>
-    <text x="1190" y="450" class="c10">get_app_state</text>
-    <text x="1190" y="474" class="bt12">ACT</text>
-    <text x="1190" y="492" class="c10">set_plot · control_view</text>
-    <text x="1190" y="508" class="c10">highlight_ui · pins</text>
-    <text x="1190" y="524" class="c10">switch_dataset · visibility</text>
-    <text x="1190" y="540" class="c10">transfer_column · save_ws</text>
-    <text x="1190" y="556" class="c10">load_demo_data</text>
-    <text x="1190" y="572" class="c10">PNG · HTML · GIF · CSV export</text>
-    <text x="1190" y="596" class="bt12">ANALYZE</text>
-    <text x="1190" y="614" class="c10">run_pca · run_clustering</text>
-    <text x="1190" y="630" class="c10">correlate · compare_groups</text>
-    <text x="1190" y="646" class="c10">suggest_k/eps · breakdown</text>
-    <text x="1190" y="662" class="c10">save_cluster_heatmap</text>
-    <text x="1190" y="678" class="bt12">TEACH</text>
-    <text x="1190" y="694" class="c10">get_tutorial · methods_ref</text>
+    <rect x="1176" y="380" width="216" height="344" class="box" filter="url(#hs2)"/>
+    <text x="1190" y="406" class="bt">TOOLS ×25</text>
+    <text x="1190" y="430" class="bt12">READ</text>
+    <text x="1190" y="448" class="c10">get_app_state</text>
+    <text x="1190" y="470" class="bt12">ACT</text>
+    <text x="1190" y="488" class="c10">set_plot · control_view</text>
+    <text x="1190" y="504" class="c10">highlight_ui · pins</text>
+    <text x="1190" y="520" class="c10">switch_dataset · visibility</text>
+    <text x="1190" y="536" class="c10">transfer_column · save_ws</text>
+    <text x="1190" y="552" class="c10">load_demo_data</text>
+    <text x="1190" y="574" class="bt12">ANALYZE</text>
+    <text x="1190" y="592" class="c10">run_pca · run_clustering</text>
+    <text x="1190" y="608" class="c10">correlate · compare_groups</text>
+    <text x="1190" y="624" class="c10">suggest_k/eps · breakdown</text>
+    <text x="1190" y="646" class="bt12">EXPORT</text>
+    <text x="1190" y="664" class="c10">png·gif·html·csv·heatmap</text>
+    <text x="1190" y="686" class="bt12">TEACH</text>
+    <text x="1190" y="704" class="c10">get_tutorial · methods_ref</text>
   </g>
 
   <g id="node-knowledge">
-    <rect x="940" y="580" width="220" height="100" class="box" filter="url(#hs2)"/>
-    <text x="954" y="604" class="bt12">SHIPPED KNOWLEDGE</text>
-    <text x="954" y="624" class="b11">tutorial + 15 methods chunks</text>
-    <text x="954" y="642" class="n11">every claim cites its source</text>
-    <text x="954" y="660" class="n10">lexical search · vetted corpus</text>
+    <rect x="940" y="600" width="220" height="100" class="box" filter="url(#hs2)"/>
+    <text x="954" y="624" class="bt12">SHIPPED KNOWLEDGE</text>
+    <text x="954" y="644" class="b11">tutorial + 16 methods chunks</text>
+    <text x="954" y="662" class="n11">every claim cites its source</text>
+    <text x="954" y="680" class="n10">lexical search · vetted corpus</text>
   </g>
 
   <!-- ═══ AFTER EACH TURN ═══ -->
@@ -231,7 +231,7 @@
   <text x="990" y="532" class="n10">dispatch ⇄ result strings</text>
 
   <!-- teach tools → knowledge -->
-  <path d="M1176,662 H1168" class="flow" marker-end="url(#bB)"/>
+  <path d="M1176,690 H1168" class="flow" marker-end="url(#bB)"/>
 
   <!-- feedback → supabase (one-way, crosses the boundary) -->
   <path d="M920,750 H1456" class="flow" marker-end="url(#bB)"/>

@@ -51,6 +51,8 @@
     <text x="66" y="306" class="li">mute or hide legend categories</text>
     <rect x="52" y="322" width="7" height="7" fill="#0045AD"/>
     <text x="66" y="330" class="li">compare ≤4 views (3 pins + live)</text>
+    <rect x="52" y="346" width="7" height="7" fill="#0045AD"/>
+    <text x="66" y="354" class="li">saves png · gif · html · csv on request</text>
     <rect x="50" y="400" width="64" height="22" class="tool"/><text x="58" y="415" class="tc">set_plot</text>
     <rect x="122" y="400" width="88" height="22" class="tool"/><text x="130" y="415" class="tc">control_view</text>
     <rect x="218" y="400" width="64" height="22" class="tool"/><text x="226" y="415" class="tc">pin_view</text>
@@ -73,13 +75,13 @@
     <rect x="614" y="298" width="7" height="7" fill="#EB1A26"/>
     <text x="628" y="306" class="li">picks k &amp; eps — silhouette-by-k · k-distance</text>
     <rect x="614" y="322" width="7" height="7" fill="#EB1A26"/>
-    <text x="628" y="330" class="li">reports cluster composition by any category</text>
-    <rect x="612" y="400" width="54" height="22" class="tool"/><text x="620" y="415" class="tc">run_pca</text>
-    <rect x="674" y="400" width="96" height="22" class="tool"/><text x="682" y="415" class="tc">run_clustering</text>
-    <rect x="778" y="400" width="66" height="22" class="tool"/><text x="786" y="415" class="tc">suggest_k</text>
-    <rect x="852" y="400" width="78" height="22" class="tool"/><text x="860" y="415" class="tc">suggest_eps</text>
-    <rect x="938" y="400" width="138" height="22" class="tool"/><text x="946" y="415" class="tc">get_cluster_breakdown</text>
-    <rect x="1084" y="400" width="142" height="22" class="tool"/><text x="1092" y="415" class="tc">save_cluster_heatmap</text>
+    <text x="628" y="330" class="li">cluster composition — crosstab + heatmap PNG</text>
+    <rect x="612" y="392" width="54" height="22" class="tool"/><text x="620" y="407" class="tc">run_pca</text>
+    <rect x="674" y="392" width="96" height="22" class="tool"/><text x="682" y="407" class="tc">run_clustering</text>
+    <rect x="778" y="392" width="66" height="22" class="tool"/><text x="786" y="407" class="tc">suggest_k</text>
+    <rect x="852" y="392" width="78" height="22" class="tool"/><text x="860" y="407" class="tc">suggest_eps</text>
+    <rect x="612" y="422" width="138" height="22" class="tool"/><text x="620" y="437" class="tc">get_cluster_breakdown</text>
+    <rect x="758" y="422" width="132" height="22" class="tool"/><text x="766" y="437" class="tc">save_cluster_heatmap</text>
   </g>
 
   <!-- ═══ CARD 3 · ANSWER FROM THE DATA ═══ -->
@@ -135,7 +137,7 @@
     <rect x="614" y="620" width="7" height="7" fill="#EB1A26"/>
     <text x="628" y="628" class="li">step-by-step tour from a curated tutorial</text>
     <rect x="614" y="644" width="7" height="7" fill="#EB1A26"/>
-    <text x="628" y="652" class="li">loads demo data to show, not tell</text>
+    <text x="628" y="652" class="li">loads the Iris demo to show, not tell</text>
     <rect x="614" y="668" width="7" height="7" fill="#EB1A26"/>
     <text x="628" y="676" class="li">points at real controls — highlight ring + arrow</text>
     <rect x="614" y="692" width="7" height="7" fill="#EB1A26"/>
@@ -160,10 +162,12 @@
     <text x="1192" y="634" class="say wt">every change it makes = one-click undo</text>
     <rect x="1176" y="658" width="7" height="7" fill="#FFD600"/>
     <text x="1192" y="666" class="say wt">feedback is opt-in and write-only</text>
+    <rect x="1176" y="690" width="7" height="7" fill="#0045AD"/>
+    <text x="1192" y="698" class="say wt">asks before starting any download</text>
     <text x="1176" y="780" font-size="10.5" class="gy">the mechanics — loop, bridge, boundary — are diagram 02</text>
   </g>
 
   <!-- footer -->
-  <text x="32" y="860" class="n10">source: frontend/src/lib/assistant.ts — 19 tool definitions · card icons = the app's marker-shape symbols</text>
+  <text x="32" y="860" class="n10">source: frontend/src/lib/assistant.ts — 25 tool definitions · card icons = the app's marker-shape symbols</text>
   <text x="1688" y="860" text-anchor="end" class="n10">scatter-lab.vercel.app</text>
 </svg>

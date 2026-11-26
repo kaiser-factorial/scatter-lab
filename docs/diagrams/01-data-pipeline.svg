@@ -152,8 +152,8 @@
     <rect x="858" y="140" width="250" height="140" class="box" filter="url(#hs)"/>
     <text x="872" y="166" class="bt">THE WORKBENCH</text>
     <text x="872" y="184" class="n11">steps 2–6 — detailed at right</text>
-    <text x="872" y="210" class="b12">assign → analyze → view →</text>
-    <text x="872" y="230" class="b12">cluster → export</text>
+    <text x="872" y="210" class="b12">assign → analyze → cluster →</text>
+    <text x="872" y="230" class="b12">view → export</text>
     <text x="872" y="258" class="red12">+PC · +Cluster → the table</text>
   </g>
 
@@ -213,36 +213,40 @@
 
     <rect x="1168" y="304" width="20" height="20" fill="#EB1A26" stroke="#111111" stroke-width="2"/>
     <text x="1178" y="319" text-anchor="middle" class="wt" font-size="12" font-weight="700">4</text>
-    <text x="1198" y="319" class="bt12">VIEW</text>
-    <text x="1198" y="339" class="c10">2D/3D · camera · auto-rotate · axis labels · zoom window</text>
+    <text x="1198" y="319" class="bt12">CLUSTER</text>
+    <text x="1270" y="319" class="n10">cluster.ts</text>
+    <text x="1198" y="339" class="c10">on the plotted axes — z-score? → DBSCAN | k-means++ (seeded)</text>
+    <text x="1198" y="355" class="c10">silhouette-by-k · k-distance · % heatmap</text>
+    <text x="1460" y="355" class="red10">+Cluster → table</text>
 
-    <rect x="1168" y="360" width="20" height="20" fill="#0045AD" stroke="#111111" stroke-width="2"/>
-    <text x="1178" y="375" text-anchor="middle" class="wt" font-size="12" font-weight="700">5</text>
-    <text x="1198" y="375" class="bt12">CLUSTER</text>
-    <text x="1270" y="375" class="n10">cluster.ts</text>
-    <text x="1198" y="395" class="c10">on the plotted axes — z-score? → DBSCAN | k-means++ (seeded)</text>
-    <text x="1198" y="411" class="c10">silhouette-by-k · k-distance diagnostics</text>
-    <text x="1460" y="411" class="red10">+Cluster → table</text>
+    <rect x="1168" y="376" width="20" height="20" fill="#0045AD" stroke="#111111" stroke-width="2"/>
+    <text x="1178" y="391" text-anchor="middle" class="wt" font-size="12" font-weight="700">5</text>
+    <text x="1198" y="391" class="bt12">VIEW</text>
+    <text x="1198" y="411" class="c10">2D/3D · camera · auto-rotate · axis labels · zoom window</text>
+    <text x="1198" y="427" class="c10">pin the live view — ≤3 pins tile into a compare grid</text>
 
-    <rect x="1168" y="432" width="20" height="20" fill="#FFD600" stroke="#111111" stroke-width="2"/>
-    <text x="1178" y="447" text-anchor="middle" font-size="12" font-weight="700">6</text>
-    <text x="1198" y="447" class="bt12">EXPORT &amp; PIN</text>
-    <text x="1198" y="467" class="c10">compare ≤4 views — 3 pins + the live plot, tiled in a grid</text>
-    <rect x="1198" y="478" width="64" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-    <text x="1206" y="493" font-size="10">.png 2×</text>
-    <rect x="1270" y="478" width="48" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-    <text x="1278" y="493" font-size="10">.gif</text>
-    <rect x="1326" y="478" width="56" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
-    <text x="1334" y="493" font-size="10">.html</text>
-    <text x="1400" y="486" class="n10">captures the live plot ·</text>
-    <text x="1400" y="500" class="n10">html = interactive, offline</text>
+    <rect x="1168" y="448" width="20" height="20" fill="#FFD600" stroke="#111111" stroke-width="2"/>
+    <text x="1178" y="463" text-anchor="middle" font-size="12" font-weight="700">6</text>
+    <text x="1198" y="463" class="bt12">EXPORT</text>
+    <text x="1198" y="483" class="c10">save the active view — or the derived dataset as csv</text>
+    <rect x="1198" y="494" width="64" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="1206" y="509" font-size="10">.png 2×</text>
+    <rect x="1270" y="494" width="48" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="1278" y="509" font-size="10">.gif</text>
+    <rect x="1326" y="494" width="56" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="1334" y="509" font-size="10">.html</text>
+    <rect x="1390" y="494" width="48" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="1398" y="509" font-size="10">.csv</text>
+    <rect x="1446" y="494" width="72" height="22" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="1454" y="509" font-size="10">heatmap</text>
+    <text x="1532" y="509" class="n10">html works offline</text>
 
-    <line x1="1168" y1="524" x2="1676" y2="524" stroke="#111111" stroke-width="1"/>
-    <text x="1168" y="550" class="n11">the write-backs (red) are why a fresh PC score or cluster</text>
-    <text x="1168" y="568" class="n11">label can immediately be plotted, coloured by, re-clustered,</text>
-    <text x="1168" y="586" class="n11">or fed into a second-order PCA — one table, no copies</text>
-    <text x="1168" y="618" class="n10">variables panel = data profile + plot control in one surface;</text>
-    <text x="1168" y="634" class="n10">clustering's feature selection is the plotted axes themselves</text>
+    <line x1="1168" y1="540" x2="1676" y2="540" stroke="#111111" stroke-width="1"/>
+    <text x="1168" y="566" class="n11">the write-backs (red) are why a fresh PC score or cluster</text>
+    <text x="1168" y="584" class="n11">label can immediately be plotted, coloured by, re-clustered,</text>
+    <text x="1168" y="602" class="n11">or fed into a second-order PCA — one table, no copies</text>
+    <text x="1168" y="630" class="n10">variables panel = data profile + plot control in one surface;</text>
+    <text x="1168" y="646" class="n10">clustering's feature selection is the plotted axes themselves</text>
   </g>
 
   <!-- ═══ THE ASSISTANT · opt-in mention ═══ -->
